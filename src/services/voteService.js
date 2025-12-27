@@ -41,19 +41,24 @@ export const voteService = {
    * @returns {object} { data, error }
    */
   async getMyVote(voteId, customerId) {
-    const { data, error } = await supabase
-      .from('vote_responses')
-      .select('*')
-      .eq('vote_id', voteId)
-      .eq('customer_id', customerId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('vote_responses')
+        .select('*')
+        .eq('vote_id', voteId)
+        .eq('customer_id', customerId)
+        .single();
 
-    // 데이터가 없어도 에러로 처리하지 않음
-    if (error && error.code === 'PGRST116') {
-      return { data: null, error: null };
+      // 데이터가 없어도 에러로 처리하지 않음
+      if (error && error.code === 'PGRST116') {
+        return { data: null, error: null };
+      }
+
+      return { data, error };
+    } catch (error) {
+      console.error('Get my vote error:', error);
+      return { data: null, error };
     }
-
-    return { data, error };
   },
 
   /**
@@ -78,7 +83,8 @@ export const voteService = {
           .select()
           .single();
 
-        return { data, error };
+        if (error) throw error;
+        return { data, error: null };
       } else {
         // 새 투표
         const { data, error } = await supabase
@@ -91,7 +97,8 @@ export const voteService = {
           .select()
           .single();
 
-        return { data, error };
+        if (error) throw error;
+        return { data, error: null };
       }
     } catch (error) {
       console.error('Submit vote error:', error);
@@ -116,7 +123,8 @@ export const voteService = {
       // 각 옵션의 투표 수 집계
       const results = {};
       (data || []).forEach((response) => {
-        (response.selected_options || []).forEach((optionId) => {
+        const options = response.selected_options || [];
+        options.forEach((optionId) => {
           results[optionId] = (results[optionId] || 0) + 1;
         });
       });
@@ -134,11 +142,17 @@ export const voteService = {
    * @returns {object} { count, error }
    */
   async getVoteParticipants(voteId) {
-    const { count, error } = await supabase
-      .from('vote_responses')
-      .select('*', { count: 'exact', head: true })
-      .eq('vote_id', voteId);
+    try {
+      const { count, error } = await supabase
+        .from('vote_responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('vote_id', voteId);
 
-    return { count: count || 0, error };
+      if (error) throw error;
+      return { count: count || 0, error: null };
+    } catch (error) {
+      console.error('Get vote participants error:', error);
+      return { count: 0, error };
+    }
   },
 };
