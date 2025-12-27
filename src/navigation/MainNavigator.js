@@ -14,10 +14,6 @@ import CardSelectionScreen from '../screens/CardSelectionScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-/**
- * 탭 네비게이터
- * 하단 탭 바로 주요 화면들 전환
- */
 const TabNavigator = () => {
   return (
     <Tab.Navigator
@@ -27,15 +23,19 @@ const TabNavigator = () => {
           backgroundColor: Colors.purpleMid,
           borderTopColor: Colors.gold,
           borderTopWidth: 2,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
-          paddingTop: 5,
-          height: Platform.OS === 'ios' ? 85 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+          paddingTop: 10,
+          height: Platform.OS === 'ios' ? 90 : 70,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
         },
         tabBarActiveTintColor: Colors.gold,
         tabBarInactiveTintColor: Colors.lavender,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: '700',
         },
       }}
     >
@@ -83,11 +83,6 @@ const TabNavigator = () => {
   );
 };
 
-/**
- * 메인 네비게이터
- * 로그인 후 화면들을 관리
- * TabNavigator + CardSelectionScreen (모달 형식)
- */
 const MainNavigator = () => {
   return (
     <Stack.Navigator
@@ -100,7 +95,7 @@ const MainNavigator = () => {
         name="CardSelection"
         component={CardSelectionScreen}
         options={{
-          presentation: 'card', // 카드 형식으로 표시 (iOS에서 모달처럼)
+          presentation: 'card',
         }}
       />
     </Stack.Navigator>

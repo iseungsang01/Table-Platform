@@ -12,7 +12,8 @@ import {
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
-import { formatPhoneNumber, validatePhoneNumber } from '../utils/validators';
+import { formatPhoneNumber } from '../utils/formatters';
+import { validatePhoneNumber } from '../utils/validators';
 import { storage } from '../utils/storage';
 import { Colors } from '../constants/Colors';
 
@@ -28,12 +29,15 @@ const LoginScreen = () => {
   }, []);
 
   const loadSavedPhone = async () => {
-    const savedPhone = await storage.get('saved_phone');
     const savedRemember = await storage.get('remember_me');
     
-    if (savedRemember && savedPhone) {
-      setPhone(savedPhone);
-      setRememberMe(true);
+    // remember_me가 true일 때만 저장된 전화번호 불러오기
+    if (savedRemember === true) {
+      const savedPhone = await storage.get('saved_phone');
+      if (savedPhone) {
+        setPhone(savedPhone);
+        setRememberMe(true);
+      }
     }
   };
 

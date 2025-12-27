@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { GradientBackground } from '../components/GradientBackground';
@@ -105,16 +107,21 @@ const HistoryScreen = ({ navigation }) => {
 
   const renderHeader = () => (
     <View>
+      {/* 헤더 카드 */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>🔮 나의 타로 기록</Text>
-          <Text style={styles.customerName}>{customer.nickname}님의 방문 기록</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerIcon}>🔮</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.title}>나의 타로 기록</Text>
+            <Text style={styles.customerName}>{customer.nickname}님의 방문 기록</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>로그아웃</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>로그아웃</Text>
-        </TouchableOpacity>
       </View>
 
+      {/* 통계 카드 */}
       <View style={styles.statsContainer}>
         <StatsCard
           label="현재 스탬프"
@@ -184,8 +191,11 @@ const HistoryScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   listContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
+    paddingBottom: 120,
   },
+  
+  // 헤더 카드
   header: {
     backgroundColor: Colors.purpleMid,
     borderRadius: 20,
@@ -193,38 +203,59 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 3,
     borderColor: Colors.gold,
+    shadowColor: Colors.gold,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerIcon: {
+    fontSize: 56,
+    marginRight: 15,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: Colors.gold,
     marginBottom: 5,
+    textShadowColor: 'rgba(255, 215, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
   customerName: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.lavender,
+    opacity: 0.9,
   },
   logoutButton: {
-    backgroundColor: 'rgba(255, 69, 0, 0.3)',
+    backgroundColor: 'rgba(255, 107, 107, 0.25)',
     borderWidth: 2,
-    borderColor: Colors.red,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    borderColor: Colors.redSoft,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   logoutButtonText: {
-    color: '#ffb3b3',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.redSoft,
+    fontSize: 13,
+    fontWeight: '700',
   },
+  
+  // 통계 카드
   statsContainer: {
     flexDirection: 'row',
     gap: 15,
     marginBottom: 30,
   },
+  
+  // 빈 상태
   emptyContainer: {
     alignItems: 'center',
     padding: 60,
@@ -243,11 +274,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.gold,
     marginBottom: 10,
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 16,
     color: Colors.lavender,
     textAlign: 'center',
+    lineHeight: 24,
   },
 });
 

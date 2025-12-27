@@ -2,15 +2,6 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Colors } from '../constants/Colors';
 
-/**
- * 통계 카드 컴포넌트
- * 스탬프, 방문 횟수, 쿠폰 등의 통계 정보 표시
- * 
- * @param {string} label - 라벨 텍스트
- * @param {string|number} value - 표시할 값
- * @param {string} icon - 아이콘 이모지
- * @param {function} onPress - 클릭 핸들러 (선택적)
- */
 export const StatsCard = ({ label, value, icon, onPress }) => {
   const CardContent = (
     <View style={[styles.card, onPress && styles.cardClickable]}>
@@ -22,46 +13,59 @@ export const StatsCard = ({ label, value, icon, onPress }) => {
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{ flex: 1 }}>
+      <TouchableOpacity 
+        onPress={onPress} 
+        activeOpacity={0.7} 
+        style={styles.touchableContainer}
+      >
         {CardContent}
       </TouchableOpacity>
     );
   }
 
-  return CardContent;
+  return <View style={styles.touchableContainer}>{CardContent}</View>;
 };
 
 const styles = StyleSheet.create({
-  card: {
+  touchableContainer: {
     flex: 1,
+  },
+  card: {
     backgroundColor: Colors.purpleMid,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: Colors.purpleLight,
     borderRadius: 15,
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
+    minHeight: 110,
+    shadowColor: Colors.purpleLight,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   cardClickable: {
     borderColor: Colors.gold,
+    borderWidth: 2,
   },
   icon: {
-    fontSize: 24,
-    marginBottom: 5,
+    fontSize: 28,
+    marginBottom: 8,
   },
   value: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: Colors.gold,
-    marginBottom: 5,
-    textShadowColor: 'rgba(255, 215, 0, 0.5)',
+    marginBottom: 4,
+    textShadowColor: 'rgba(255, 215, 0, 0.3)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 8,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.lavender,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });
