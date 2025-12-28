@@ -1,8 +1,9 @@
 import { supabase } from './supabase';
+import { storage } from '../utils/storage';
 
 /**
- * 공지사항 및 버그 리포트 서비스 (최적화)
- * notice_reads 테이블 제거 → customers.last_notice_read_at 사용
+ * 공지사항 및 버그 리포트 서비스
+ * 공지사항 읽음 처리는 로컬 스토리지에서 관리
  */
 export const noticeService = {
   /**
@@ -21,41 +22,28 @@ export const noticeService = {
   },
 
   /**
-   * 공지사항 읽음 처리 (단순화)
-   * 고객의 last_notice_read_at만 업데이트
-   * @param {number} customerId - 고객 ID
+   * 공지사항 읽음 처리 (로컬 스토리지만 사용)
+   * @param {number} customerId - 고객 ID (사용 안 함)
    * @returns {object} { error }
    */
   async markNoticesAsRead(customerId) {
     try {
-      const { error } = await supabase.rpc('mark_notices_as_read', {
-        p_customer_id: customerId,
-      });
+      // 모든 공지사항 가져오기
+      const { data: allNotices, error: noticesError } = await supabase
+        .from('notices')
+        .select('id')
+        .eq('is_published', true);
 
-      return { error };
+      if (noticesError) throw noticesError;
+
+      // 로컬 스토리지에 읽음 처리
+      const noticeIds = (allNotices || []).map(n => n.id);
+      await storage.markNoticesAsRead(noticeIds);
+
+      return { error: null };
     } catch (error) {
       console.error('Mark notices as read error:', error);
       return { error };
-    }
-  },
-
-  /**
-   * 안 읽은 공지사항 개수 조회 (최적화)
-   * @param {number} customerId - 고객 ID
-   * @returns {object} { count, error }
-   */
-  async getUnreadNoticeCount(customerId) {
-    try {
-      const { data, error } = await supabase.rpc('get_unread_notice_count', {
-        p_customer_id: customerId,
-      });
-
-      if (error) throw error;
-
-      return { count: data || 0, error: null };
-    } catch (error) {
-      console.error('Get unread notice count error:', error);
-      return { count: 0, error };
     }
   },
 
@@ -101,6 +89,7 @@ export const noticeService = {
    */
   async markReportsAsRead(customerId, reports) {
     try {
+      // 답변이 있고 읽지 않은 리포트만 처리
       const unreadReports = reports.filter(
         (report) => report.admin_response && !report.response_read
       );
@@ -109,6 +98,7 @@ export const noticeService = {
         return { error: null };
       }
 
+      // 각 리포트를 읽음 처리
       for (const report of unreadReports) {
         await supabase
           .from('bug_reports')
@@ -120,6 +110,33 @@ export const noticeService = {
     } catch (error) {
       console.error('Mark reports as read error:', error);
       return { error };
+    }
+  },
+
+  /**
+   * 안 읽은 공지사항 개수 조회 (로컬 스토리지 사용)
+   * @param {number} customerId - 고객 ID (사용 안 함)
+   * @returns {object} { count, error }
+   */
+  async getUnreadNoticeCount(customerId) {
+    try {
+      // 전체 공지사항 ID 조회
+      const { data, error } = await supabase
+        .from('notices')
+        .select('id')
+        .eq('is_published', true);
+
+      if (error) throw error;
+
+      const allNoticeIds = (data || []).map(n => n.id);
+
+      // 로컬 스토리지에서 읽지 않은 개수 계산
+      const unreadCount = await storage.getUnreadNoticeCount(allNoticeIds);
+
+      return { count: unreadCount, error: null };
+    } catch (error) {
+      console.error('Get unread notice count error:', error);
+      return { count: 0, error };
     }
   },
 };
