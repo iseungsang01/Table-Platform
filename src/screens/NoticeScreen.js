@@ -20,7 +20,7 @@ import { noticeService } from '../services/noticeService';
 import { Colors } from '../constants/Colors';
 
 const NoticeScreen = () => {
-  const { customer } = useAuth();
+  const { customer, refreshCustomer } = useAuth();
   const [notices, setNotices] = useState([]);
   const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,6 @@ const NoticeScreen = () => {
   const [showReportForm, setShowReportForm] = useState(false);
   const [showMyReports, setShowMyReports] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' });
 
   const [reportData, setReportData] = useState({
     title: '',
@@ -39,11 +38,7 @@ const NoticeScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      loadNotices();
-      if (customer) {
-        loadMyReports();
-        markNoticesAsRead();
-      }
+      loadData();
     }, [customer])
   );
 
@@ -53,15 +48,31 @@ const NoticeScreen = () => {
     }
   }, [showMyReports]);
 
+  const loadData = async () => {
+    await Promise.all([
+      loadNotices(),
+      loadMyReports(),
+    ]);
+    
+    // 공지사항 화면 진입 시 자동으로 읽음 처리
+    if (customer) {
+      await markNoticesAsRead();
+      await refreshCustomer(); // 고객 정보 새로고침으로 last_notice_read_at 업데이트
+    }
+    
+    setLoading(false);
+  };
+
   const loadNotices = async () => {
     const { data, error } = await noticeService.getNotices();
     if (!error && data) {
       setNotices(data);
     }
-    setLoading(false);
   };
 
   const loadMyReports = async () => {
+    if (!customer) return;
+    
     const { data, error } = await noticeService.getMyReports(customer.id);
     if (!error && data) {
       setMyReports(data);
@@ -69,18 +80,21 @@ const NoticeScreen = () => {
   };
 
   const markNoticesAsRead = async () => {
+    if (!customer) return;
+    
     await noticeService.markNoticesAsRead(customer.id);
   };
 
   const markReportsAsRead = async () => {
+    if (!customer) return;
+    
     await noticeService.markReportsAsRead(customer.id, myReports);
     await loadMyReports();
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadNotices();
-    await loadMyReports();
+    await loadData();
     setRefreshing(false);
   };
 
