@@ -15,20 +15,20 @@
  * formatPhoneNumber('010-1234-5678') // '010-1234-5678'
  * formatPhoneNumber('010123') // '010-123'
  */
+// utils/formatters.js 수정
 export const formatPhoneNumber = (value) => {
-  const numbers = value.replace(/[^0-9]/g, '');
-  
-  if (numbers.length <= 3) {
-    return numbers;
-  }
-  
-  if (numbers.length <= 7) {
-    return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-  }
-  
-  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  // 하이픈 제거 후 숫자만
+  return value.replace(/[^0-9]/g, '').slice(0, 11);
 };
 
+// 표시용 포맷팅 (UI에만)
+export const displayPhoneNumber = (phone) => {
+  // 01012345678 → 010-1234-5678
+  if (phone.length === 11) {
+    return `${phone.slice(0, 3)}-${phone.slice(3, 7)}-${phone.slice(7)}`;
+  }
+  return phone;
+};
 /**
  * 날짜 포맷팅 (전체)
  * ISO 문자열을 한국어 형식으로 변환

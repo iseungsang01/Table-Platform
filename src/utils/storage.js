@@ -86,3 +86,33 @@ export const storage = {
     }
   },
 };
+
+// utils/storage.js에 추가
+const REVIEWS_KEY = 'tarot_card_reviews';
+
+export const reviewStorage = {
+  // 리뷰 저장
+  async saveReview(visitId, review) {
+    const reviews = await this.getAllReviews();
+    reviews[visitId] = review;
+    await storage.save(REVIEWS_KEY, reviews);
+  },
+  
+  // 리뷰 조회
+  async getReview(visitId) {
+    const reviews = await this.getAllReviews();
+    return reviews[visitId] || null;
+  },
+  
+  // 전체 리뷰
+  async getAllReviews() {
+    return await storage.get(REVIEWS_KEY) || {};
+  },
+  
+  // 리뷰 삭제
+  async deleteReview(visitId) {
+    const reviews = await this.getAllReviews();
+    delete reviews[visitId];
+    await storage.save(REVIEWS_KEY, reviews);
+  }
+};
