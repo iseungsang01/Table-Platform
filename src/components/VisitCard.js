@@ -9,10 +9,15 @@ import {
 } from 'react-native';
 import { CustomButton } from './CustomButton';
 import { visitService } from '../services/visitService';
+import { storage } from '../utils/storage';
 import { getTarotEmoji } from '../constants/TarotCards';
 import { formatDate } from '../utils/formatters';
 import { Colors } from '../constants/Colors';
 
+/**
+ * 방문 기록 카드 컴포넌트
+ * card_review는 로컬 스토리지에서 관리
+ */
 export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editReview, setEditReview] = useState(visit.card_review || '');
@@ -24,7 +29,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
   };
 
   const handleEditSave = async () => {
-    if (editReview.trim().length > 100) {
+    if (editReview.length > 100) {
       Alert.alert('알림', '리뷰는 100자 이내로 작성해주세요.');
       return;
     }
@@ -32,33 +37,22 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
     setSaving(true);
 
     try {
-      const reviewValue = editReview.trim() === '' ? null : editReview.trim();
-      
-      console.log('Updating visit:', visit.id, 'with review:', reviewValue);
-      
-      const { data, error } = await visitService.updateVisit(visit.id, {
-        card_review: reviewValue,
-      });
-
-      if (error) {
-        console.error('Update error:', error);
-        Alert.alert('오류', '수정 중 오류가 발생했습니다.');
-        setSaving(false);
-        return;
+      // 로컬 스토리지에만 저장 (서버 요청 없음)
+      if (editReview.trim()) {
+        await storage.saveCardReview(visit.id, editReview.trim());
+      } else {
+        await storage.deleteCardReview(visit.id);
       }
 
-      console.log('Update successful:', data);
       Alert.alert('완료', '✨ 리뷰가 저장되었습니다!');
       setIsEditing(false);
-      setSaving(false);
       
-      // 부모 컴포넌트 새로고침
-      if (onRefresh) {
-        await onRefresh();
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      Alert.alert('오류', '예상치 못한 오류가 발생했습니다.');
+      // 부모 컴포넌트 새로고침 (로컬 데이터 반영)
+      onRefresh();
+    } catch (error) {
+      Alert.alert('오류', '저장 중 오류가 발생했습니다.');
+      console.error('Save review error:', error);
+    } finally {
       setSaving(false);
     }
   };
@@ -66,6 +60,11 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
   const handleEditCancel = () => {
     setIsEditing(false);
     setEditReview(visit.card_review || '');
+  };
+
+  const handleDelete = async () => {
+    // 삭제 시 로컬 리뷰도 함께 삭제됨 (visitService에서 처리)
+    onDelete(visit.id, !!visit.selected_card);
   };
 
   return (
@@ -76,12 +75,12 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
         <View style={styles.actions}>
           {visit.stamps_added > 0 && (
             <View style={styles.stampsBadge}>
-              <Text style={styles.stampsBadgeText}>+{visit.stamps_added}</Text>
+              <Text style={styles.stampsBadgeText}>+{visit.stamps_added} 스탬프</Text>
             </View>
           )}
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => onDelete(visit.id, !!visit.selected_card)}
+            onPress={handleDelete}
           >
             <Text style={styles.deleteButtonText}>🗑️</Text>
           </TouchableOpacity>
@@ -91,9 +90,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
       {/* 카드 선택된 경우 */}
       {visit.selected_card ? (
         <View style={styles.cardDisplay}>
-          <View style={styles.cardEmojiContainer}>
-            <Text style={styles.cardEmoji}>{getTarotEmoji(visit.selected_card)}</Text>
-          </View>
+          <Text style={styles.cardEmoji}>{getTarotEmoji(visit.selected_card)}</Text>
           <View style={styles.cardInfo}>
             <Text style={styles.cardName}>{visit.selected_card}</Text>
 
@@ -104,13 +101,12 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                   style={styles.editTextarea}
                   value={editReview}
                   onChangeText={setEditReview}
-                  placeholder="리뷰를 입력하세요"
+                  placeholder="리뷰를 입력하세요 (로컬 저장)"
                   placeholderTextColor={Colors.purpleLight}
                   maxLength={100}
                   multiline
                   numberOfLines={3}
                   editable={!saving}
-                  autoFocus
                 />
                 <Text style={styles.charCount}>{editReview.length}/100</Text>
                 <View style={styles.editButtons}>
@@ -119,14 +115,14 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                     onPress={handleEditSave}
                     disabled={saving}
                   >
-                    <Text style={styles.editSaveButtonText}>{saving ? '...' : '✓'}</Text>
+                    <Text style={styles.editSaveButtonText}>✓ 저장</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.editCancelButton}
                     onPress={handleEditCancel}
                     disabled={saving}
                   >
-                    <Text style={styles.editCancelButtonText}>✕</Text>
+                    <Text style={styles.editCancelButtonText}>✕ 취소</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -136,7 +132,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                 {visit.card_review ? (
                   <View style={styles.reviewBox}>
                     <View style={styles.reviewHeader}>
-                      <Text style={styles.reviewLabel}>📝 기록</Text>
+                      <Text style={styles.reviewLabel}>📝 기록 (로컬)</Text>
                       <TouchableOpacity onPress={handleEditStart}>
                         <Text style={styles.editIcon}>✏️</Text>
                       </TouchableOpacity>
@@ -145,7 +141,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                   </View>
                 ) : (
                   <TouchableOpacity style={styles.addReviewButton} onPress={handleEditStart}>
-                    <Text style={styles.addReviewButtonText}>+ 리뷰 추가하기</Text>
+                    <Text style={styles.addReviewButtonText}>+ 리뷰 추가하기 (로컬 저장)</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -174,25 +170,17 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.purpleLight,
     borderRadius: 20,
-    padding: 20,
+    padding: 25,
     marginBottom: 20,
-    shadowColor: Colors.purpleLight,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 2,
-    borderBottomColor: 'rgba(138, 43, 226, 0.4)',
   },
   date: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.gold,
   },
@@ -202,72 +190,52 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   stampsBadge: {
-    backgroundColor: 'rgba(255, 215, 0, 0.25)',
+    backgroundColor: 'rgba(138, 43, 226, 0.3)',
     borderWidth: 2,
-    borderColor: Colors.gold,
+    borderColor: Colors.purpleLight,
     borderRadius: 20,
-    paddingVertical: 6,
+    paddingVertical: 5,
     paddingHorizontal: 12,
   },
   stampsBadgeText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.gold,
   },
   deleteButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.25)',
+    backgroundColor: 'rgba(255, 69, 0, 0.2)',
     borderWidth: 2,
-    borderColor: Colors.redSoft,
-    borderRadius: 10,
+    borderColor: Colors.red,
+    borderRadius: 8,
     padding: 8,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   deleteButtonText: {
-    fontSize: 18,
+    fontSize: 16,
   },
   cardDisplay: {
     flexDirection: 'row',
-    gap: 15,
+    gap: 20,
     alignItems: 'flex-start',
   },
-  cardEmojiContainer: {
-    backgroundColor: 'rgba(138, 43, 226, 0.3)',
-    borderWidth: 3,
-    borderColor: Colors.purpleLight,
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.purpleLight,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
   cardEmoji: {
-    fontSize: 64,
+    fontSize: 80,
   },
   cardInfo: {
     flex: 1,
   },
   cardName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
     color: Colors.gold,
-    marginBottom: 12,
-    textShadowColor: 'rgba(255, 215, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    marginBottom: 10,
   },
   reviewBox: {
-    backgroundColor: 'rgba(138, 43, 226, 0.25)',
+    backgroundColor: 'rgba(138, 43, 226, 0.2)',
     borderWidth: 2,
     borderColor: Colors.purpleLight,
-    borderRadius: 15,
+    borderRadius: 10,
     padding: 15,
+    marginTop: 10,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -276,44 +244,45 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reviewLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: Colors.lavender,
   },
   editIcon: {
-    fontSize: 20,
+    fontSize: 18,
   },
   reviewText: {
-    fontSize: 15,
+    fontSize: 16,
     color: 'white',
-    lineHeight: 22,
+    lineHeight: 24,
   },
   addReviewButton: {
-    backgroundColor: 'rgba(138, 43, 226, 0.2)',
+    backgroundColor: 'rgba(138, 43, 226, 0.3)',
     borderWidth: 2,
     borderStyle: 'dashed',
     borderColor: Colors.purpleLight,
-    borderRadius: 15,
-    padding: 15,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
     alignItems: 'center',
   },
   addReviewButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.gold,
   },
   editSection: {
-    marginTop: 5,
+    marginTop: 10,
   },
   editTextarea: {
-    backgroundColor: 'rgba(138, 43, 226, 0.15)',
+    backgroundColor: 'rgba(138, 43, 226, 0.1)',
     borderWidth: 2,
     borderColor: Colors.purpleLight,
-    borderRadius: 15,
-    padding: 15,
-    fontSize: 15,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
     color: 'white',
-    minHeight: 100,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   charCount: {
@@ -325,34 +294,34 @@ const styles = StyleSheet.create({
   editButtons: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 12,
+    marginTop: 10,
   },
   editSaveButton: {
     flex: 1,
-    backgroundColor: 'rgba(76, 175, 80, 0.25)',
+    backgroundColor: 'rgba(76, 175, 80, 0.3)',
     borderWidth: 2,
     borderColor: Colors.green,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 8,
+    padding: 10,
     alignItems: 'center',
   },
   editSaveButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: Colors.green,
   },
   editCancelButton: {
     flex: 1,
-    backgroundColor: 'rgba(244, 67, 54, 0.25)',
+    backgroundColor: 'rgba(244, 67, 54, 0.3)',
     borderWidth: 2,
     borderColor: Colors.errorRed,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 8,
+    padding: 10,
     alignItems: 'center',
   },
   editCancelButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: Colors.errorRed,
   },
   noCard: {
@@ -360,17 +329,16 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   noCardIcon: {
-    fontSize: 56,
+    fontSize: 60,
     marginBottom: 15,
-    opacity: 0.7,
+    opacity: 0.5,
   },
   noCardText: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.lavender,
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 15,
   },
   selectButton: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 25,
   },
 });
