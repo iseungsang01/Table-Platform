@@ -42,10 +42,7 @@ const LoginScreen = () => {
   const handlePhoneChange = (text) => {
     // 숫자만 추출
     const numbersOnly = text.replace(/[^0-9]/g, '');
-    
-    // 11자리까지만 허용
     const limited = numbersOnly.slice(0, 11);
-    
     setPhone(limited);
   };
 

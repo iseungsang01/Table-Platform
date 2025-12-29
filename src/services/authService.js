@@ -36,9 +36,17 @@ export const authService = {
   },
 
   async logout() {
-    // 로그아웃 시 고객 정보만 삭제
-    // remember_me와 saved_phone은 유지하여 다음 로그인 시 사용
-    await storage.remove(CUSTOMER_KEY);
+    try {
+      // 1. 현재 고객 정보 삭제
+      await storage.remove(CUSTOMER_KEY);
+      
+      // 2. 만약 자동 로그인이 의도치 않게 발생한다면 아래 세션 정보도 선택적으로 삭제
+      // await storage.remove('remember_me'); // 완전히 깨끗한 상태를 원하면 주석 해제
+      
+      console.log('Storage cleared successfully');
+    } catch (error) {
+      console.error('Logout storage error:', error);
+    }
   },
 
   async getStoredCustomer() {

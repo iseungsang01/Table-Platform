@@ -116,7 +116,8 @@ const HistoryScreen = ({ navigation }) => {
           <TouchableOpacity 
             style={styles.logoutButton} 
             onPress={handleLogout}
-            activeOpacity={0.7}
+            activeOpacity={0.5}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Text style={styles.logoutButtonText}>로그아웃</Text>
           </TouchableOpacity>
@@ -224,6 +225,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
+    zIndex: 10,
+    elevation: 5,
   },
   logoutButtonText: {
     color: '#ffb3b3',
