@@ -25,15 +25,19 @@ export const AuthProvider = ({ children }) => {
    * 앱 시작 시 저장된 인증 정보 확인
    */
   const checkStoredAuth = async () => {
-    const storedCustomer = await authService.getStoredCustomer();
-    
-    if (storedCustomer) {
-      // 저장된 고객 정보가 있으면 최신 정보로 업데이트
-      const refreshed = await authService.refreshCustomer(storedCustomer.id);
-      setCustomer(refreshed || storedCustomer);
+    try {
+      const storedCustomer = await authService.getStoredCustomer();
+      
+      if (storedCustomer) {
+        // 저장된 고객 정보가 있으면 최신 정보로 업데이트
+        const refreshed = await authService.refreshCustomer(storedCustomer.id);
+        setCustomer(refreshed || storedCustomer);
+      }
+    } catch (error) {
+      console.error('Check stored auth error:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   /**
@@ -55,8 +59,14 @@ export const AuthProvider = ({ children }) => {
    * 로그아웃
    */
   const logout = async () => {
-    await authService.logout();
-    setCustomer(null);
+    try {
+      console.log('Starting logout...');
+      await authService.logout();
+      setCustomer(null);
+      console.log('Logout successful - customer state cleared');
+    } catch (error) {
+      console.error('Logout error in context:', error);
+    }
   };
 
   /**
@@ -65,9 +75,13 @@ export const AuthProvider = ({ children }) => {
    */
   const refreshCustomer = async () => {
     if (customer) {
-      const refreshed = await authService.refreshCustomer(customer.id);
-      if (refreshed) {
-        setCustomer(refreshed);
+      try {
+        const refreshed = await authService.refreshCustomer(customer.id);
+        if (refreshed) {
+          setCustomer(refreshed);
+        }
+      } catch (error) {
+        console.error('Refresh customer error:', error);
       }
     }
   };

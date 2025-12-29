@@ -56,7 +56,12 @@ export const noticeService = {
     const { data, error } = await supabase
       .from('bug_reports')
       .insert({
-        ...reportData,
+        customer_id: reportData.customer_id || null,
+        customer_phone: reportData.customer_phone || null,
+        title: reportData.title,
+        description: reportData.description,
+        report_type: reportData.report_type,
+        category: reportData.category,
         status: '접수',
         response_read: false,
       })
