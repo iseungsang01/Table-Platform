@@ -23,7 +23,7 @@ const HistoryScreen = ({ navigation }) => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [actualCouponCount, setActualCouponCount] = useState(0);
+  const [couponCount, setCouponCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -31,15 +31,24 @@ const HistoryScreen = ({ navigation }) => {
     }, [customer])
   );
 
+  /**
+   * 데이터 로드
+   */
   const loadData = async () => {
     await Promise.all([
       loadVisits(),
       loadCouponCount(),
-      refreshCustomer(),
     ]);
+    
+    // 고객 정보는 스탬프/쿠폰 변경 시에만 새로고침
+    await refreshCustomer();
+    
     setLoading(false);
   };
 
+  /**
+   * 방문 기록 조회
+   */
   const loadVisits = async () => {
     const { data, error } = await visitService.getVisits(customer.id);
     if (!error && data) {
@@ -47,21 +56,33 @@ const HistoryScreen = ({ navigation }) => {
     }
   };
 
+  /**
+   * 쿠폰 개수 조회 (실시간 카운트)
+   */
   const loadCouponCount = async () => {
     const { count } = await couponService.getCouponCount(customer.id);
-    setActualCouponCount(count || 0);
+    setCouponCount(count || 0);
   };
 
+  /**
+   * 새로고침
+   */
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
+  /**
+   * 카드 선택 화면 이동
+   */
   const handleSelectCard = (visitId) => {
     navigation.navigate('CardSelection', { visitId });
   };
 
+  /**
+   * 방문 기록 삭제
+   */
   const handleDeleteVisit = (visitId, hasCard) => {
     const message = hasCard
       ? '이 방문 기록을 삭제하시겠습니까?\n선택한 카드와 리뷰가 모두 삭제됩니다.'
@@ -79,8 +100,8 @@ const HistoryScreen = ({ navigation }) => {
             const { error } = await visitService.deleteVisit(visitId);
             if (!error) {
               Alert.alert('알림', '🗑️ 기록이 삭제되었습니다.');
-              loadVisits();
-              refreshCustomer();
+              await loadVisits();
+              await refreshCustomer();
             }
           },
         },
@@ -88,6 +109,9 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
+  /**
+   * 로그아웃
+   */
   const handleLogout = () => {
     Alert.alert(
       '로그아웃',
@@ -105,6 +129,9 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
+  /**
+   * 헤더 렌더링
+   */
   const renderHeader = () => (
     <View>
       <View style={styles.header}>
@@ -113,6 +140,13 @@ const HistoryScreen = ({ navigation }) => {
             <Text style={styles.title}>🔮 나의 타로 기록</Text>
             <Text style={styles.customerName}>{customer.nickname}님의 방문 기록</Text>
           </View>
+          <TouchableOpacity 
+            style={styles.logoutButton} 
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.logoutButtonText}>로그아웃</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -129,7 +163,7 @@ const HistoryScreen = ({ navigation }) => {
         />
         <StatsCard
           label="보유 쿠폰"
-          value={actualCouponCount}
+          value={couponCount}
           icon="🎟️"
           onPress={() => navigation.navigate('Coupon')}
         />
@@ -137,6 +171,9 @@ const HistoryScreen = ({ navigation }) => {
     </View>
   );
 
+  /**
+   * 빈 상태 렌더링
+   */
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>🃏</Text>
@@ -155,15 +192,6 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <GradientBackground>
-      <TouchableOpacity 
-        style={styles.fixedLogoutButton} 
-        onPress={handleLogout}
-        activeOpacity={0.7}
-        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-      >
-        <Text style={styles.logoutButtonText}>로그아웃</Text>
-      </TouchableOpacity>
-
       <FlatList
         data={visits}
         keyExtractor={(item) => item.id.toString()}
@@ -192,19 +220,6 @@ const HistoryScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  fixedLogoutButton: {
-    position: 'absolute',
-    top: 50, // 상태바 아래 적절한 위치
-    right: 20,
-    backgroundColor: 'rgba(255, 69, 0, 0.6)', // 배경색을 좀 더 진하게
-    borderWidth: 1,
-    borderColor: Colors.red,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    zIndex: 999, 
-    elevation: 10,
-  },
   listContent: {
     padding: 20,
     paddingBottom: 100,
@@ -239,9 +254,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    elevation: 10,         // 안드로이드에서 다른 요소보다 위로
-    zIndex: 999,           // iOS에서 다른 요소보다 위로
-    position: 'relative',
   },
   logoutButtonText: {
     color: '#ffb3b3',

@@ -39,6 +39,9 @@ const CouponScreen = ({ navigation }) => {
     }, [])
   );
 
+  /**
+   * 쿠폰 목록 조회
+   */
   const loadCoupons = async () => {
     const { data, error } = await couponService.getCoupons(customer.id);
     if (!error && data) {
@@ -47,12 +50,18 @@ const CouponScreen = ({ navigation }) => {
     setLoading(false);
   };
 
+  /**
+   * 새로고침
+   */
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadCoupons();
     setRefreshing(false);
   };
 
+  /**
+   * 쿠폰 선택
+   */
   const handleSelectCoupon = (coupon) => {
     setSelectedCoupon(coupon);
     setShowUseForm(true);
@@ -62,6 +71,9 @@ const CouponScreen = ({ navigation }) => {
     }, 100);
   };
 
+  /**
+   * 쿠폰 사용 취소
+   */
   const handleCancelUse = () => {
     Keyboard.dismiss();
     setSelectedCoupon(null);
@@ -69,6 +81,9 @@ const CouponScreen = ({ navigation }) => {
     setPassword('');
   };
 
+  /**
+   * 쿠폰 사용
+   */
   const handleUseCoupon = async () => {
     if (!selectedCoupon) {
       Alert.alert('알림', '사용할 쿠폰을 선택해주세요.');
@@ -94,7 +109,8 @@ const CouponScreen = ({ navigation }) => {
           onPress: async () => {
             setProcessing(true);
 
-            const { error } = await couponService.useCoupon(selectedCoupon.id, customer.id);
+            // 쿠폰 삭제만 수행 (customers.coupons 업데이트 안 함)
+            const { error } = await couponService.useCoupon(selectedCoupon.id);
 
             if (error) {
               Alert.alert('오류', '쿠폰 사용 중 오류가 발생했습니다.');
@@ -105,7 +121,10 @@ const CouponScreen = ({ navigation }) => {
             Alert.alert('완료', `✅ ${couponType}이 사용되었습니다!`);
             handleCancelUse();
             await loadCoupons();
+            
+            // 고객 정보 새로고침 (스탬프 정보 업데이트)
             await refreshCustomer();
+            
             setProcessing(false);
           },
         },
@@ -113,6 +132,9 @@ const CouponScreen = ({ navigation }) => {
     );
   };
 
+  /**
+   * 쿠폰 타입 판별
+   */
   const getCouponType = (code) => {
     if (code.startsWith('BIRTHDAY') || code.startsWith('BIRTH')) return 'birthday';
     return 'stamp';

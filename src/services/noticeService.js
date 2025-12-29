@@ -3,7 +3,7 @@ import { storage } from '../utils/storage';
 
 /**
  * 공지사항 및 버그 리포트 서비스
- * 공지사항 읽음 처리는 로컬 스토리지에서 관리
+ * 공지사항 읽음 처리는 로컬 스토리지에서만 관리
  */
 export const noticeService = {
   /**
@@ -23,12 +23,13 @@ export const noticeService = {
 
   /**
    * 공지사항 읽음 처리 (로컬 스토리지만 사용)
-   * @param {number} customerId - 고객 ID (사용 안 함)
+   * 모든 공지사항을 읽음으로 표시
+   * 
    * @returns {object} { error }
    */
-  async markNoticesAsRead(customerId) {
+  async markAllNoticesAsRead() {
     try {
-      // 모든 공지사항 가져오기
+      // 1. 모든 공지사항 ID 조회
       const { data: allNotices, error: noticesError } = await supabase
         .from('notices')
         .select('id')
@@ -36,7 +37,7 @@ export const noticeService = {
 
       if (noticesError) throw noticesError;
 
-      // 로컬 스토리지에 읽음 처리
+      // 2. 로컬 스토리지에 읽음 처리
       const noticeIds = (allNotices || []).map(n => n.id);
       await storage.markNoticesAsRead(noticeIds);
 
@@ -44,6 +45,78 @@ export const noticeService = {
     } catch (error) {
       console.error('Mark notices as read error:', error);
       return { error };
+    }
+  },
+
+  /**
+   * 특정 공지사항 읽음 처리
+   * @param {number} noticeId - 공지사항 ID
+   * @returns {object} { error }
+   */
+  async markNoticeAsRead(noticeId) {
+    try {
+      await storage.markNoticeAsRead(noticeId);
+      return { error: null };
+    } catch (error) {
+      console.error('Mark notice as read error:', error);
+      return { error };
+    }
+  },
+
+  /**
+   * 안 읽은 공지사항 개수 조회 (로컬 스토리지 사용)
+   * @returns {object} { count, error }
+   */
+  async getUnreadNoticeCount() {
+    try {
+      // 1. 전체 공지사항 ID 조회
+      const { data, error } = await supabase
+        .from('notices')
+        .select('id')
+        .eq('is_published', true);
+
+      if (error) throw error;
+
+      const allNoticeIds = (data || []).map(n => n.id);
+
+      // 2. 로컬 스토리지에서 읽지 않은 개수 계산
+      const unreadCount = await storage.getUnreadNoticeCount(allNoticeIds);
+
+      return { count: unreadCount, error: null };
+    } catch (error) {
+      console.error('Get unread notice count error:', error);
+      return { count: 0, error };
+    }
+  },
+
+  /**
+   * 안 읽은 공지사항이 있는지 확인 (최적화)
+   * 개수 대신 boolean 반환으로 성능 개선
+   * 
+   * @returns {object} { hasUnread, error }
+   */
+  async hasUnreadNotices() {
+    try {
+      // 1. 전체 공지사항 ID 조회
+      const { data, error } = await supabase
+        .from('notices')
+        .select('id')
+        .eq('is_published', true);
+
+      if (error) throw error;
+
+      const allNoticeIds = (data || []).map(n => n.id);
+
+      // 2. 로컬 스토리지에서 읽은 공지사항 조회
+      const readNotices = await storage.getReadNotices();
+
+      // 3. 하나라도 안 읽은 공지사항이 있는지 확인
+      const hasUnread = allNoticeIds.some(id => !readNotices.includes(id));
+
+      return { hasUnread, error: null };
+    } catch (error) {
+      console.error('Check unread notices error:', error);
+      return { hasUnread: false, error };
     }
   },
 
@@ -56,12 +129,7 @@ export const noticeService = {
     const { data, error } = await supabase
       .from('bug_reports')
       .insert({
-        customer_id: reportData.customer_id || null,
-        customer_phone: reportData.customer_phone || null,
-        title: reportData.title,
-        description: reportData.description,
-        report_type: reportData.report_type,
-        category: reportData.category,
+        ...reportData,
         status: '접수',
         response_read: false,
       })
@@ -119,29 +187,26 @@ export const noticeService = {
   },
 
   /**
-   * 안 읽은 공지사항 개수 조회 (로컬 스토리지 사용)
-   * @param {number} customerId - 고객 ID (사용 안 함)
-   * @returns {object} { count, error }
+   * 안 읽은 답변이 있는지 확인 (최적화)
+   * @param {number} customerId - 고객 ID
+   * @returns {object} { hasUnread, error }
    */
-  async getUnreadNoticeCount(customerId) {
+  async hasUnreadResponses(customerId) {
     try {
-      // 전체 공지사항 ID 조회
       const { data, error } = await supabase
-        .from('notices')
+        .from('bug_reports')
         .select('id')
-        .eq('is_published', true);
+        .eq('customer_id', customerId)
+        .not('admin_response', 'is', null)
+        .eq('response_read', false)
+        .limit(1); // 하나만 있어도 확인 가능
 
       if (error) throw error;
 
-      const allNoticeIds = (data || []).map(n => n.id);
-
-      // 로컬 스토리지에서 읽지 않은 개수 계산
-      const unreadCount = await storage.getUnreadNoticeCount(allNoticeIds);
-
-      return { count: unreadCount, error: null };
+      return { hasUnread: (data || []).length > 0, error: null };
     } catch (error) {
-      console.error('Get unread notice count error:', error);
-      return { count: 0, error };
+      console.error('Check unread responses error:', error);
+      return { hasUnread: false, error };
     }
   },
 };

@@ -3,8 +3,8 @@ import { noticeService } from '../services/noticeService';
 import { useAuth } from './useAuth';
 
 /**
- * 알림 관리 Hook (최적화 - 빨간점만 표시)
- * 개수 대신 hasUnread 불린 값만 반환
+ * 알림 관리 Hook (최적화)
+ * 빨간 점 표시를 위한 boolean 값만 반환
  * 
  * @returns {object} { 
  *   hasUnreadNotices,
@@ -33,7 +33,8 @@ export const useNotifications = () => {
   }, [customer]);
 
   /**
-   * 알림 상태 로드
+   * 알림 상태 로드 (최적화)
+   * 개수 대신 boolean 값만 조회
    */
   const loadNotifications = async () => {
     if (!customer) return;
@@ -41,16 +42,13 @@ export const useNotifications = () => {
     setLoading(true);
 
     try {
-      // 1. 안 읽은 공지사항 있는지 확인
-      const { count: noticeCount } = await noticeService.getUnreadNoticeCount(customer.id);
-      setHasUnreadNotices(noticeCount > 0);
+      // 1. 안 읽은 공지사항 있는지 확인 (최적화)
+      const { hasUnread: hasNotices } = await noticeService.hasUnreadNotices();
+      setHasUnreadNotices(hasNotices);
 
-      // 2. 안 읽은 버그 리포트 답변 있는지 확인
-      const { data: myReports } = await noticeService.getMyReports(customer.id);
-      const hasUnread = (myReports || []).some(
-        (report) => report.admin_response && !report.response_read
-      );
-      setHasUnreadResponses(hasUnread);
+      // 2. 안 읽은 버그 리포트 답변 있는지 확인 (최적화)
+      const { hasUnread: hasResponses } = await noticeService.hasUnreadResponses(customer.id);
+      setHasUnreadResponses(hasResponses);
     } catch (error) {
       console.error('Load notifications error:', error);
     } finally {

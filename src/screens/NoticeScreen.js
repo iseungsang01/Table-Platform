@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { GradientBackground } from '../components/GradientBackground';
@@ -22,7 +20,7 @@ import { noticeService } from '../services/noticeService';
 import { Colors } from '../constants/Colors';
 
 const NoticeScreen = () => {
-  const { customer, refreshCustomer } = useAuth();
+  const { customer } = useAuth();
   const [notices, setNotices] = useState([]);
   const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +28,6 @@ const NoticeScreen = () => {
   const [showReportForm, setShowReportForm] = useState(false);
   const [showMyReports, setShowMyReports] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
-  // 마운트 상태 추적
-  const isMountedRef = useRef(true);
-  const hasLoadedRef = useRef(false);
 
   const [reportData, setReportData] = useState({
     title: '',
@@ -42,95 +36,89 @@ const NoticeScreen = () => {
     category: 'app',
   });
 
-  // 화면 포커스 시 한 번만 로드
   useFocusEffect(
-    React.useCallback(() => {
-      isMountedRef.current = true;
-
-      // 이미 로드했으면 스킵
-      if (!hasLoadedRef.current) {
-        loadInitialData();
-        hasLoadedRef.current = true;
-      }
-
-      return () => {
-        isMountedRef.current = false;
-      };
-    }, [])
+    useCallback(() => {
+      loadData();
+    }, [customer])
   );
 
-  const loadInitialData = async () => {
-    if (!isMountedRef.current) return;
-
-    try {
-      await Promise.all([
-        loadNotices(),
-        loadMyReports(),
-      ]);
-      
-      if (customer && isMountedRef.current) {
-        await noticeService.markNoticesAsRead(customer.id);
-        await refreshCustomer();
-      }
-    } catch (error) {
-      console.error('Load initial data error:', error);
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+  useEffect(() => {
+    // 내 리포트 화면 진입 시 답변 읽음 처리
+    if (showMyReports && customer) {
+      markReportsAsRead();
     }
-  };
+  }, [showMyReports]);
 
-  const loadNotices = async () => {
-    if (!isMountedRef.current) return;
-    
-    const { data, error } = await noticeService.getNotices();
-    if (!error && data && isMountedRef.current) {
-      setNotices(data);
-    }
-  };
-
-  const loadMyReports = async () => {
-    if (!customer || !isMountedRef.current) return;
-    
-    const { data, error } = await noticeService.getMyReports(customer.id);
-    if (!error && data && isMountedRef.current) {
-      setMyReports(data);
-    }
-  };
-
-  const handleRefresh = async () => {
-    if (!isMountedRef.current) return;
-    
-    setRefreshing(true);
+  /**
+   * 데이터 로드
+   */
+  const loadData = async () => {
     await Promise.all([
       loadNotices(),
       loadMyReports(),
     ]);
-    if (isMountedRef.current) {
-      setRefreshing(false);
-    }
-  };
-
-  const handleToggleReportForm = () => {
-    Keyboard.dismiss();
-    setShowReportForm(!showReportForm);
-    setShowMyReports(false);
-  };
-
-  const handleToggleMyReports = async () => {
-    Keyboard.dismiss();
-    const newState = !showMyReports;
-    setShowMyReports(newState);
-    setShowReportForm(false);
     
-    if (newState && customer) {
-      // 내 접수 내역 열 때만 읽음 처리
-      await noticeService.markReportsAsRead(customer.id, myReports);
-      await loadMyReports();
+    // 공지사항 화면 진입 시 자동으로 읽음 처리
+    if (customer) {
+      await markNoticesAsRead();
+    }
+    
+    setLoading(false);
+  };
+
+  /**
+   * 공지사항 목록 조회
+   */
+  const loadNotices = async () => {
+    const { data, error } = await noticeService.getNotices();
+    if (!error && data) {
+      setNotices(data);
     }
   };
 
+  /**
+   * 내 버그 리포트 목록 조회
+   */
+  const loadMyReports = async () => {
+    if (!customer) return;
+    
+    const { data, error } = await noticeService.getMyReports(customer.id);
+    if (!error && data) {
+      setMyReports(data);
+    }
+  };
+
+  /**
+   * 공지사항 읽음 처리
+   */
+  const markNoticesAsRead = async () => {
+    if (!customer) return;
+    
+    await noticeService.markAllNoticesAsRead();
+  };
+
+  /**
+   * 버그 리포트 답변 읽음 처리
+   */
+  const markReportsAsRead = async () => {
+    if (!customer) return;
+    
+    await noticeService.markReportsAsRead(customer.id, myReports);
+    await loadMyReports();
+  };
+
+  /**
+   * 새로고침
+   */
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  /**
+   * 카테고리 변경
+   */
   const handleCategoryChange = (category) => {
     setReportData({
       ...reportData,
@@ -139,6 +127,9 @@ const NoticeScreen = () => {
     });
   };
 
+  /**
+   * 버그 리포트 제출
+   */
   const handleSubmitReport = async () => {
     if (!reportData.title.trim()) {
       Alert.alert('알림', '제목을 입력해주세요.');
@@ -155,12 +146,12 @@ const NoticeScreen = () => {
       return;
     }
 
-    Keyboard.dismiss();
     setSubmitting(true);
 
     const { error } = await noticeService.submitReport({
       customer_id: customer?.id || null,
       customer_phone: customer?.phone_number || null,
+      customer_nickname: customer?.nickname || '익명',
       ...reportData,
     });
 
@@ -184,27 +175,9 @@ const NoticeScreen = () => {
     setSubmitting(false);
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      접수: '#ffa500',
-      처리중: '#2196f3',
-      완료: '#4caf50',
-      보류: '#9e9e9e',
-    };
-    return colors[status] || Colors.lavender;
-  };
-
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
+  /**
+   * 헤더 렌더링
+   */
   const renderHeader = () => (
     <View>
       <View style={styles.header}>
@@ -214,13 +187,19 @@ const NoticeScreen = () => {
         <View style={styles.buttonRow}>
           <CustomButton
             title={showReportForm ? '✖ 닫기' : '🛠 버그/불편사항 접수'}
-            onPress={handleToggleReportForm}
+            onPress={() => {
+              setShowReportForm(!showReportForm);
+              setShowMyReports(false);
+            }}
             variant={showReportForm ? 'secondary' : 'danger'}
             style={styles.actionButton}
           />
           <CustomButton
             title={showMyReports ? '✖ 닫기' : `📋 내 접수 내역 (${myReports.length})`}
-            onPress={handleToggleMyReports}
+            onPress={() => {
+              setShowMyReports(!showMyReports);
+              setShowReportForm(false);
+            }}
             variant="secondary"
             style={styles.actionButton}
           />
@@ -228,7 +207,7 @@ const NoticeScreen = () => {
       </View>
 
       {showReportForm && (
-        <View style={styles.reportForm}>
+        <ScrollView style={styles.reportForm} nestedScrollEnabled>
           <Text style={styles.formTitle}>🛠 버그 및 불편사항 접수</Text>
           <Text style={styles.formDescription}>
             앱 사용 중 불편하신 점이나 버그를 발견하셨다면 알려주세요.{'\n'}
@@ -242,7 +221,6 @@ const NoticeScreen = () => {
                 reportData.category === 'app' && styles.categoryButtonActive,
               ]}
               onPress={() => handleCategoryChange('app')}
-              activeOpacity={0.7}
             >
               <Text style={styles.categoryButtonText}>📱 어플 불편사항</Text>
             </TouchableOpacity>
@@ -252,7 +230,6 @@ const NoticeScreen = () => {
                 reportData.category === 'store' && styles.categoryButtonActive,
               ]}
               onPress={() => handleCategoryChange('store')}
-              activeOpacity={0.7}
             >
               <Text style={styles.categoryButtonText}>🏪 가게 불편사항</Text>
             </TouchableOpacity>
@@ -266,7 +243,6 @@ const NoticeScreen = () => {
                   <TouchableOpacity
                     style={styles.pickerOption}
                     onPress={() => setReportData({ ...reportData, report_type: '어플 버그' })}
-                    activeOpacity={0.7}
                   >
                     <Text style={styles.pickerOptionText}>
                       {reportData.report_type === '어플 버그' && '✓ '}🐛 어플 버그
@@ -275,7 +251,6 @@ const NoticeScreen = () => {
                   <TouchableOpacity
                     style={styles.pickerOption}
                     onPress={() => setReportData({ ...reportData, report_type: '어플 불편사항' })}
-                    activeOpacity={0.7}
                   >
                     <Text style={styles.pickerOptionText}>
                       {reportData.report_type === '어플 불편사항' && '✓ '}😕 어플 불편사항
@@ -284,7 +259,6 @@ const NoticeScreen = () => {
                   <TouchableOpacity
                     style={styles.pickerOption}
                     onPress={() => setReportData({ ...reportData, report_type: '어플 개선 건의' })}
-                    activeOpacity={0.7}
                   >
                     <Text style={styles.pickerOptionText}>
                       {reportData.report_type === '어플 개선 건의' && '✓ '}💡 어플 개선 건의
@@ -296,7 +270,6 @@ const NoticeScreen = () => {
                   <TouchableOpacity
                     style={styles.pickerOption}
                     onPress={() => setReportData({ ...reportData, report_type: '가게 불편사항' })}
-                    activeOpacity={0.7}
                   >
                     <Text style={styles.pickerOptionText}>
                       {reportData.report_type === '가게 불편사항' && '✓ '}😔 가게 불편사항
@@ -305,7 +278,6 @@ const NoticeScreen = () => {
                   <TouchableOpacity
                     style={styles.pickerOption}
                     onPress={() => setReportData({ ...reportData, report_type: '서비스 개선 요청' })}
-                    activeOpacity={0.7}
                   >
                     <Text style={styles.pickerOptionText}>
                       {reportData.report_type === '서비스 개선 요청' && '✓ '}✨ 서비스 개선 요청
@@ -314,7 +286,6 @@ const NoticeScreen = () => {
                   <TouchableOpacity
                     style={styles.pickerOption}
                     onPress={() => setReportData({ ...reportData, report_type: '기타 문의' })}
-                    activeOpacity={0.7}
                   >
                     <Text style={styles.pickerOptionText}>
                       {reportData.report_type === '기타 문의' && '✓ '}❓ 기타 문의
@@ -364,7 +335,7 @@ const NoticeScreen = () => {
             disabled={submitting}
             loading={submitting}
           />
-        </View>
+        </ScrollView>
       )}
 
       {showMyReports && (
@@ -416,6 +387,36 @@ const NoticeScreen = () => {
     </View>
   );
 
+  /**
+   * 상태별 색상 반환
+   */
+  const getStatusColor = (status) => {
+    const colors = {
+      접수: '#ffa500',
+      처리중: '#2196f3',
+      완료: '#4caf50',
+      보류: '#9e9e9e',
+    };
+    return colors[status] || Colors.lavender;
+  };
+
+  /**
+   * 날짜 포맷팅
+   */
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  /**
+   * 빈 상태 렌더링
+   */
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>🔭</Text>
@@ -433,30 +434,22 @@ const NoticeScreen = () => {
 
   return (
     <GradientBackground>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <FlatList
-          data={showReportForm || showMyReports ? [] : notices}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <NoticeCard notice={item} />}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={!showReportForm && !showMyReports ? renderEmpty : null}
-          contentContainerStyle={styles.listContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.gold}
-              colors={[Colors.gold]}
-            />
-          }
-        />
-      </KeyboardAvoidingView>
+      <FlatList
+        data={showReportForm || showMyReports ? [] : notices}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => <NoticeCard notice={item} />}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={!showReportForm && !showMyReports ? renderEmpty : null}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={Colors.gold}
+            colors={[Colors.gold]}
+          />
+        }
+      />
     </GradientBackground>
   );
 };
@@ -502,6 +495,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 3,
     borderColor: Colors.redSoft,
+    maxHeight: 600,
   },
   formTitle: {
     fontSize: 24,
@@ -575,7 +569,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.purpleLight,
     borderRadius: 10,
-    overflow: 'hidden',
   },
   pickerOption: {
     padding: 15,
