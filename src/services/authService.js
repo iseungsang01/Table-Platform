@@ -37,13 +37,14 @@ export const authService = {
 
   async logout() {
     try {
-      // 1. 현재 고객 정보 삭제
-      await storage.remove(CUSTOMER_KEY);
+      // 1. 모든 인증 관련 데이터 삭제 (확실하게)
+      await Promise.all([
+        storage.remove(CUSTOMER_KEY),
+        storage.remove('remember_me'),
+        storage.remove('saved_phone'), // 자동 로그인을 유발할 수 있는 번호도 일단 삭제 테스트
+      ]);
       
-      // 2. 만약 자동 로그인이 의도치 않게 발생한다면 아래 세션 정보도 선택적으로 삭제
-      // await storage.remove('remember_me'); // 완전히 깨끗한 상태를 원하면 주석 해제
-      
-      console.log('Storage cleared successfully');
+      console.log('Logout: All storage cleared');
     } catch (error) {
       console.error('Logout storage error:', error);
     }

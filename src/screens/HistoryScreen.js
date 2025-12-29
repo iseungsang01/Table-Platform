@@ -113,14 +113,6 @@ const HistoryScreen = ({ navigation }) => {
             <Text style={styles.title}>🔮 나의 타로 기록</Text>
             <Text style={styles.customerName}>{customer.nickname}님의 방문 기록</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.logoutButton} 
-            onPress={handleLogout}
-            activeOpacity={0.5}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Text style={styles.logoutButtonText}>로그아웃</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -163,6 +155,15 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <GradientBackground>
+      <TouchableOpacity 
+        style={styles.fixedLogoutButton} 
+        onPress={handleLogout}
+        activeOpacity={0.7}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+      >
+        <Text style={styles.logoutButtonText}>로그아웃</Text>
+      </TouchableOpacity>
+
       <FlatList
         data={visits}
         keyExtractor={(item) => item.id.toString()}
@@ -191,6 +192,19 @@ const HistoryScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  fixedLogoutButton: {
+    position: 'absolute',
+    top: 50, // 상태바 아래 적절한 위치
+    right: 20,
+    backgroundColor: 'rgba(255, 69, 0, 0.6)', // 배경색을 좀 더 진하게
+    borderWidth: 1,
+    borderColor: Colors.red,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    zIndex: 999, 
+    elevation: 10,
+  },
   listContent: {
     padding: 20,
     paddingBottom: 100,
@@ -225,8 +239,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    zIndex: 10,
-    elevation: 5,
+    elevation: 10,         // 안드로이드에서 다른 요소보다 위로
+    zIndex: 999,           // iOS에서 다른 요소보다 위로
+    position: 'relative',
   },
   logoutButtonText: {
     color: '#ffb3b3',
