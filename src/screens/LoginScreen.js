@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
@@ -31,7 +30,6 @@ const LoginScreen = () => {
   const loadSavedPhone = async () => {
     const savedRemember = await storage.get('remember_me');
     
-    // remember_me가 true일 때만 저장된 전화번호 불러오기
     if (savedRemember === true) {
       const savedPhone = await storage.get('saved_phone');
       if (savedPhone) {
@@ -42,12 +40,30 @@ const LoginScreen = () => {
   };
 
   const handlePhoneChange = (text) => {
-    const formatted = formatPhoneNumber(text);
-    setPhone(formatted);
+    // 숫자만 추출
+    const numbersOnly = text.replace(/[^0-9]/g, '');
+    
+    // 11자리까지만 허용
+    const limited = numbersOnly.slice(0, 11);
+    
+    setPhone(limited);
+  };
+
+  const getDisplayPhone = () => {
+    // 화면에 표시할 때만 하이픈 추가
+    if (phone.length === 11) {
+      return `${phone.slice(0, 3)}-${phone.slice(3, 7)}-${phone.slice(7)}`;
+    }
+    return phone;
   };
 
   const handleLogin = async () => {
-    if (!validatePhoneNumber(phone)) {
+    // 검증을 위해 하이픈 형식으로 변환
+    const formattedPhone = phone.length === 11 
+      ? `${phone.slice(0, 3)}-${phone.slice(3, 7)}-${phone.slice(7)}`
+      : phone;
+
+    if (!validatePhoneNumber(formattedPhone)) {
       setMessage({ text: '올바른 전화번호를 입력해주세요.', type: 'error' });
       return;
     }
@@ -55,7 +71,7 @@ const LoginScreen = () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
 
-    const result = await login(phone);
+    const result = await login(formattedPhone);
 
     if (result.success) {
       if (rememberMe) {
@@ -80,6 +96,7 @@ const LoginScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={styles.content}>
           <View style={styles.card}>
@@ -91,13 +108,15 @@ const LoginScreen = () => {
               <Text style={styles.label}>전화번호</Text>
               <TextInput
                 style={styles.input}
-                value={phone}
+                value={getDisplayPhone()}
                 onChangeText={handlePhoneChange}
-                placeholder="010-1234-5678"
+                placeholder="01012345678"
                 placeholderTextColor={Colors.purpleLight}
                 keyboardType="phone-pad"
                 maxLength={13}
                 editable={!loading}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
               />
             </View>
 
@@ -105,6 +124,7 @@ const LoginScreen = () => {
               style={styles.checkboxContainer}
               onPress={() => setRememberMe(!rememberMe)}
               activeOpacity={0.7}
+              disabled={loading}
             >
               <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                 {rememberMe && <Text style={styles.checkmark}>✓</Text>}

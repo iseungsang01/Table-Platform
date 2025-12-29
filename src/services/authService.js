@@ -36,10 +36,9 @@ export const authService = {
   },
 
   async logout() {
-    // 로그아웃 시 remember_me도 함께 삭제
+    // 로그아웃 시 고객 정보만 삭제
+    // remember_me와 saved_phone은 유지하여 다음 로그인 시 사용
     await storage.remove(CUSTOMER_KEY);
-    await storage.remove('remember_me');
-    await storage.remove('saved_phone');
   },
 
   async getStoredCustomer() {

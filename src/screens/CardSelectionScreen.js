@@ -8,6 +8,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
@@ -40,6 +42,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
       return;
     }
 
+    Keyboard.dismiss();
     setLoading(true);
 
     const { error } = await visitService.updateVisit(visitId, {
@@ -73,80 +76,87 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
   return (
     <GradientBackground>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={styles.header}>
-          <CustomButton
-            title="← 돌아가기"
-            onPress={handleBack}
-            variant="secondary"
-            style={styles.backButton}
-          />
-          <Text style={styles.title}>🔮 타로 카드 선택</Text>
-          <Text style={styles.subtitle}>오늘의 방문을 기억할 카드를 선택하세요</Text>
-        </View>
-
-        <FlatList
-          data={TAROT_CARDS}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          renderItem={({ item }) => (
-            <TarotCard
-              card={item}
-              selected={selectedCard?.id === item.id}
-              onPress={handleCardSelect}
-            />
-          )}
-          columnWrapperStyle={styles.cardRow}
-          contentContainerStyle={styles.cardGrid}
-        />
-
-        {selectedCard && (
-          <View style={styles.reviewSection}>
-            <Text style={styles.selectedCardTitle}>
-              선택한 카드: {selectedCard.emoji} {selectedCard.name}
-            </Text>
-            <Text style={styles.cardDescription}>{selectedCard.meaning}</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>오늘의 기록 (선택, 최대 100자)</Text>
-              <TextInput
-                style={styles.textarea}
-                value={review}
-                onChangeText={setReview}
-                placeholder="오늘의 방문은 어떠셨나요?"
-                placeholderTextColor={Colors.purpleLight}
-                maxLength={100}
-                multiline
-                numberOfLines={4}
-                editable={!loading}
-              />
-              <Text style={styles.charCount}>{review.length}/100</Text>
-            </View>
-
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <View style={styles.header}>
             <CustomButton
-              title={loading ? '저장 중...' : '저장하기'}
-              onPress={handleSubmit}
-              disabled={loading}
-              loading={loading}
-              style={styles.submitButton}
+              title="← 돌아가기"
+              onPress={handleBack}
+              variant="secondary"
+              style={styles.backButton}
             />
-
-            {message.text && (
-              <View
-                style={[
-                  styles.message,
-                  message.type === 'error' ? styles.messageError : styles.messageSuccess,
-                ]}
-              >
-                <Text style={styles.messageText}>{message.text}</Text>
-              </View>
-            )}
+            <Text style={styles.title}>🔮 타로 카드 선택</Text>
+            <Text style={styles.subtitle}>오늘의 방문을 기억할 카드를 선택하세요</Text>
           </View>
-        )}
-      </KeyboardAvoidingView>
+
+          <FlatList
+            data={TAROT_CARDS}
+            keyExtractor={(item) => item.id.toString()}
+            numColumns={2}
+            renderItem={({ item }) => (
+              <TarotCard
+                card={item}
+                selected={selectedCard?.id === item.id}
+                onPress={handleCardSelect}
+              />
+            )}
+            columnWrapperStyle={styles.cardRow}
+            contentContainerStyle={styles.cardGrid}
+            keyboardShouldPersistTaps="handled"
+          />
+
+          {selectedCard && (
+            <View style={styles.reviewSection}>
+              <Text style={styles.selectedCardTitle}>
+                선택한 카드: {selectedCard.emoji} {selectedCard.name}
+              </Text>
+              <Text style={styles.cardDescription}>{selectedCard.meaning}</Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>오늘의 기록 (선택, 최대 100자)</Text>
+                <TextInput
+                  style={styles.textarea}
+                  value={review}
+                  onChangeText={setReview}
+                  placeholder="오늘의 방문은 어떠셨나요?"
+                  placeholderTextColor={Colors.purpleLight}
+                  maxLength={100}
+                  multiline
+                  numberOfLines={4}
+                  editable={!loading}
+                  textAlignVertical="top"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                />
+                <Text style={styles.charCount}>{review.length}/100</Text>
+              </View>
+
+              <CustomButton
+                title={loading ? '저장 중...' : '저장하기'}
+                onPress={handleSubmit}
+                disabled={loading}
+                loading={loading}
+                style={styles.submitButton}
+              />
+
+              {message.text && (
+                <View
+                  style={[
+                    styles.message,
+                    message.type === 'error' ? styles.messageError : styles.messageSuccess,
+                  ]}
+                >
+                  <Text style={styles.messageText}>{message.text}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </GradientBackground>
   );
 };
