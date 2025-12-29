@@ -56,6 +56,7 @@ const CouponScreen = ({ navigation }) => {
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadCoupons();
+    await refreshCustomer();
     setRefreshing(false);
   };
 
@@ -97,7 +98,9 @@ const CouponScreen = ({ navigation }) => {
 
     Keyboard.dismiss();
 
-    const couponType = selectedCoupon.coupon_code.startsWith('BIRTHDAY') ? '생일 쿠폰' : '스탬프 쿠폰';
+    const couponType = selectedCoupon.coupon_code.startsWith('BIRTHDAY') 
+      ? '생일 쿠폰' 
+      : '스탬프 쿠폰';
 
     Alert.alert(
       '쿠폰 사용',
@@ -109,7 +112,7 @@ const CouponScreen = ({ navigation }) => {
           onPress: async () => {
             setProcessing(true);
 
-            // 쿠폰 삭제만 수행 (customers.coupons 업데이트 안 함)
+            // 쿠폰 삭제만 수행 (customers.coupons 컬럼 없음)
             const { error } = await couponService.useCoupon(selectedCoupon.id);
 
             if (error) {
@@ -122,7 +125,7 @@ const CouponScreen = ({ navigation }) => {
             handleCancelUse();
             await loadCoupons();
             
-            // 고객 정보 새로고침 (스탬프 정보 업데이트)
+            // 고객 정보 새로고침
             await refreshCustomer();
             
             setProcessing(false);
@@ -294,7 +297,7 @@ const CouponScreen = ({ navigation }) => {
             • 쿠폰을 탭하면 사용 화면이 나타납니다{'\n'}
             • 관리자에게 화면을 보여주세요{'\n'}
             • 스탬프 쿠폰: 무제한 사용 가능{'\n'}
-            • 생일 쿠폰: 생일 전후 15일간 사용 가능
+            • 생일 쿠폰: 유효기간 내 사용 가능
           </Text>
         </View>
       </ScrollView>
