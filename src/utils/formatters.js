@@ -4,31 +4,54 @@
  */
 
 /**
- * 전화번호 포맷팅
+ * 전화번호 포맷팅 (통일: 010-1234-5678)
  * 숫자만 입력받아 010-1234-5678 형식으로 변환
  * 
- * @param {string} value - 입력된 전화번호
- * @returns {string} 포맷된 전화번호
+ * @param {string} value - 입력된 전화번호 (숫자 또는 하이픈 포함)
+ * @returns {string} 포맷된 전화번호 (010-1234-5678)
  * 
  * @example
- * formatPhoneNumber('01012345678') // '010-1234-5678'
- * formatPhoneNumber('010-1234-5678') // '010-1234-5678'
- * formatPhoneNumber('010123') // '010-123'
+ * formatPhoneNumber('01012345678')     // '010-1234-5678'
+ * formatPhoneNumber('010-1234-5678')   // '010-1234-5678'
+ * formatPhoneNumber('010123')          // '010-123'
+ * formatPhoneNumber('0101234')         // '010-1234'
  */
-// utils/formatters.js 수정
 export const formatPhoneNumber = (value) => {
-  // 하이픈 제거 후 숫자만
-  return value.replace(/[^0-9]/g, '').slice(0, 11);
+  // 1. 숫자만 추출
+  const numbers = value.replace(/[^0-9]/g, '');
+  
+  // 2. 길이에 따라 포맷팅
+  if (numbers.length <= 3) {
+    return numbers;
+  } else if (numbers.length <= 7) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  } else {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  }
 };
 
-// 표시용 포맷팅 (UI에만)
-export const displayPhoneNumber = (phone) => {
-  // 01012345678 → 010-1234-5678
-  if (phone.length === 11) {
-    return `${phone.slice(0, 3)}-${phone.slice(3, 7)}-${phone.slice(7)}`;
+/**
+ * 전화번호 저장 형식으로 변환 (DB 저장용)
+ * 입력값을 정규화하여 010-1234-5678 형식 반환
+ * 
+ * @param {string} phone - 전화번호
+ * @returns {string} 정규화된 전화번호 (010-1234-5678 또는 빈 문자열)
+ * 
+ * @example
+ * normalizePhoneNumber('01012345678')     // '010-1234-5678'
+ * normalizePhoneNumber('010-1234-5678')   // '010-1234-5678'
+ * normalizePhoneNumber('010123')          // '' (11자리 미만)
+ */
+export const normalizePhoneNumber = (phone) => {
+  const numbers = phone.replace(/[^0-9]/g, '');
+  
+  if (numbers.length !== 11) {
+    return phone; // 11자리가 아니면 원본 반환 (검증은 validator에서)
   }
-  return phone;
+  
+  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
 };
+
 /**
  * 날짜 포맷팅 (전체)
  * ISO 문자열을 한국어 형식으로 변환

@@ -4,7 +4,7 @@
  */
 
 /**
- * 전화번호 검증
+ * 전화번호 검증 (통일: 010-1234-5678)
  * 010-1234-5678 형식 확인
  * 
  * @param {string} phone - 전화번호
@@ -12,8 +12,8 @@
  * 
  * @example
  * validatePhoneNumber('010-1234-5678') // true
- * validatePhoneNumber('010-123-4567') // false
- * validatePhoneNumber('01012345678') // false
+ * validatePhoneNumber('010-123-4567')  // false
+ * validatePhoneNumber('01012345678')   // false (하이픈 필수)
  */
 export const validatePhoneNumber = (phone) => {
   return /^010-\d{4}-\d{4}$/.test(phone);

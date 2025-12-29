@@ -3,13 +3,25 @@ import { storage } from '../utils/storage';
 
 const CUSTOMER_KEY = 'tarot_customer';
 
+/**
+ * 인증 서비스
+ * 로그인, 로그아웃, 고객 정보 관리
+ */
 export const authService = {
+  /**
+   * 로그인
+   * 전화번호로 고객 조회 (010-1234-5678 형식)
+   * 
+   * @param {string} phoneNumber - 전화번호 (010-1234-5678)
+   * @returns {object} { success, customer?, message? }
+   */
   async login(phoneNumber) {
     try {
+      // 전화번호는 이미 010-1234-5678 형식으로 포맷팅됨
       const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('phone_number', phoneNumber)
+        .eq('phone_number', phoneNumber) // 010-1234-5678 그대로 조회
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -23,6 +35,7 @@ export const authService = {
         };
       }
 
+      // 로컬 스토리지에 고객 정보 저장
       await storage.save(CUSTOMER_KEY, data);
 
       return { success: true, customer: data };
@@ -35,25 +48,33 @@ export const authService = {
     }
   },
 
+  /**
+   * 로그아웃
+   * 로컬 스토리지에서 고객 정보 및 저장된 전화번호 삭제
+   */
   async logout() {
-    try {
-      // 1. 모든 인증 관련 데이터 삭제 (확실하게)
-      await Promise.all([
-        storage.remove(CUSTOMER_KEY),
-        storage.remove('remember_me'),
-        storage.remove('saved_phone'), // 자동 로그인을 유발할 수 있는 번호도 일단 삭제 테스트
-      ]);
-      
-      console.log('Logout: All storage cleared');
-    } catch (error) {
-      console.error('Logout storage error:', error);
-    }
+    await storage.remove(CUSTOMER_KEY);
+    await storage.remove('remember_me');
+    await storage.remove('saved_phone');
   },
 
+  /**
+   * 저장된 고객 정보 조회
+   * 로컬 스토리지에서 고객 정보 가져오기
+   * 
+   * @returns {object|null} 고객 정보 또는 null
+   */
   async getStoredCustomer() {
     return await storage.get(CUSTOMER_KEY);
   },
 
+  /**
+   * 고객 정보 새로고침
+   * DB에서 최신 정보 조회 후 로컬 스토리지 업데이트
+   * 
+   * @param {number} customerId - 고객 ID
+   * @returns {object|null} 갱신된 고객 정보 또는 null
+   */
   async refreshCustomer(customerId) {
     try {
       const { data, error } = await supabase

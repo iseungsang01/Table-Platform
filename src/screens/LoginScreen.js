@@ -27,50 +27,52 @@ const LoginScreen = () => {
     loadSavedPhone();
   }, []);
 
+  /**
+   * 저장된 전화번호 불러오기
+   */
   const loadSavedPhone = async () => {
     const savedRemember = await storage.get('remember_me');
     
+    // remember_me가 true일 때만 저장된 전화번호 불러오기
     if (savedRemember === true) {
       const savedPhone = await storage.get('saved_phone');
       if (savedPhone) {
-        setPhone(savedPhone);
+        setPhone(savedPhone); // 010-1234-5678 형식 그대로
         setRememberMe(true);
       }
     }
   };
 
+  /**
+   * 전화번호 입력 처리
+   * 실시간으로 010-1234-5678 형식으로 포맷팅
+   */
   const handlePhoneChange = (text) => {
-    // 숫자만 추출
-    const numbersOnly = text.replace(/[^0-9]/g, '');
-    const limited = numbersOnly.slice(0, 11);
-    setPhone(limited);
+    const formatted = formatPhoneNumber(text);
+    setPhone(formatted);
   };
 
-  const getDisplayPhone = () => {
-    // 화면에 표시할 때만 하이픈 추가
-    if (phone.length === 11) {
-      return `${phone.slice(0, 3)}-${phone.slice(3, 7)}-${phone.slice(7)}`;
-    }
-    return phone;
-  };
-
+  /**
+   * 로그인 처리
+   */
   const handleLogin = async () => {
-    // 검증을 위해 하이픈 형식으로 변환
-    const formattedPhone = phone.length === 11 
-      ? `${phone.slice(0, 3)}-${phone.slice(3, 7)}-${phone.slice(7)}`
-      : phone;
-
-    if (!validatePhoneNumber(formattedPhone)) {
-      setMessage({ text: '올바른 전화번호를 입력해주세요.', type: 'error' });
+    // 1. 전화번호 형식 검증
+    if (!validatePhoneNumber(phone)) {
+      setMessage({ 
+        text: '올바른 전화번호를 입력해주세요. (010-1234-5678)', 
+        type: 'error' 
+      });
       return;
     }
 
     setLoading(true);
     setMessage({ text: '', type: '' });
 
-    const result = await login(formattedPhone);
+    // 2. 로그인 시도 (phone은 이미 010-1234-5678 형식)
+    const result = await login(phone);
 
     if (result.success) {
+      // 3. 로그인 정보 저장 여부 처리
       if (rememberMe) {
         await storage.save('saved_phone', phone);
         await storage.save('remember_me', true);
@@ -93,7 +95,6 @@ const LoginScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={styles.content}>
           <View style={styles.card}>
@@ -105,15 +106,13 @@ const LoginScreen = () => {
               <Text style={styles.label}>전화번호</Text>
               <TextInput
                 style={styles.input}
-                value={getDisplayPhone()}
+                value={phone}
                 onChangeText={handlePhoneChange}
-                placeholder="01012345678"
+                placeholder="010-1234-5678"
                 placeholderTextColor={Colors.purpleLight}
                 keyboardType="phone-pad"
-                maxLength={13}
+                maxLength={13} // 010-1234-5678 = 13자
                 editable={!loading}
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
               />
             </View>
 
