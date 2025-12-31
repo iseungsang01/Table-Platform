@@ -3,14 +3,11 @@ import { supabase } from './supabase';
 /**
  * 쿠폰 서비스
  * 쿠폰 조회, 사용, 발급
- * 
- * 주의: customers.coupons 컬럼은 사용하지 않음
- * 항상 coupon_history 테이블에서 실시간 카운트
  */
 export const couponService = {
   /**
-   * 고객의 쿠폰 목록 조회
-   * @param {number} customerId - 고객 ID
+   * 고객의 쿠폰 목록 조회 (사용하지 않은 쿠폰만)
+   * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { data, error }
    */
   async getCoupons(customerId) {
@@ -18,43 +15,43 @@ export const couponService = {
       .from('coupon_history')
       .select('*')
       .eq('customer_id', customerId)
+      .eq('is_used', false)
       .order('issued_at', { ascending: false });
 
     return { data, error };
   },
 
   /**
-   * 고객의 쿠폰 개수 조회
-   * coupon_history에서 실시간 카운트
-   * 
-   * @param {number} customerId - 고객 ID
+   * 고객의 쿠폰 개수 조회 (사용하지 않은 쿠폰만)
+   * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { count, error }
    */
   async getCouponCount(customerId) {
     const { count, error } = await supabase
       .from('coupon_history')
       .select('*', { count: 'exact', head: true })
-      .eq('customer_id', customerId);
+      .eq('customer_id', customerId)
+      .eq('is_used', false);
 
     return { count: count || 0, error };
   },
 
   /**
-   * 쿠폰 사용 (삭제만 수행)
-   * customers.coupons 컬럼은 업데이트하지 않음
-   * 
+   * 쿠폰 사용
    * @param {number} couponId - 쿠폰 ID
    * @returns {object} { error }
    */
   async useCoupon(couponId) {
     try {
-      // 쿠폰 삭제만 수행
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('coupon_history')
-        .delete()
+        .update({
+          is_used: true,
+          used_at: new Date().toISOString(),
+        })
         .eq('id', couponId);
 
-      if (deleteError) throw deleteError;
+      if (error) throw error;
 
       return { error: null };
     } catch (error) {
@@ -69,6 +66,13 @@ export const couponService = {
    * @returns {object} { data, error }
    */
   async issueCoupon(couponData) {
+    // coupon_code가 없으면 자동 생성
+    if (!couponData.coupon_code) {
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      couponData.coupon_code = `STAMP-${timestamp}-${random}`;
+    }
+
     const { data, error } = await supabase
       .from('coupon_history')
       .insert(couponData)
@@ -86,14 +90,15 @@ export const couponService = {
     const { error } = await supabase
       .from('coupon_history')
       .delete()
-      .lt('valid_until', new Date().toISOString());
+      .lt('valid_until', new Date().toISOString())
+      .eq('is_used', false);
 
     return { error };
   },
 
   /**
-   * 유효한 쿠폰만 조회 (만료되지 않은 쿠폰)
-   * @param {number} customerId - 고객 ID
+   * 유효한 쿠폰만 조회 (만료되지 않고 사용하지 않은 쿠폰)
+   * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { data, error }
    */
   async getValidCoupons(customerId) {
@@ -103,6 +108,7 @@ export const couponService = {
       .from('coupon_history')
       .select('*')
       .eq('customer_id', customerId)
+      .eq('is_used', false)
       .or(`valid_until.is.null,valid_until.gte.${now}`)
       .order('issued_at', { ascending: false });
 
@@ -110,8 +116,8 @@ export const couponService = {
   },
 
   /**
-   * 유효한 쿠폰 개수 조회 (만료되지 않은 쿠폰만)
-   * @param {number} customerId - 고객 ID
+   * 유효한 쿠폰 개수 조회 (만료되지 않고 사용하지 않은 쿠폰만)
+   * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { count, error }
    */
   async getValidCouponCount(customerId) {
@@ -121,6 +127,7 @@ export const couponService = {
       .from('coupon_history')
       .select('*', { count: 'exact', head: true })
       .eq('customer_id', customerId)
+      .eq('is_used', false)
       .or(`valid_until.is.null,valid_until.gte.${now}`);
 
     return { count: count || 0, error };

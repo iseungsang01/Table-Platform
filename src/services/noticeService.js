@@ -91,8 +91,6 @@ export const noticeService = {
 
   /**
    * 안 읽은 공지사항이 있는지 확인 (최적화)
-   * 개수 대신 boolean 반환으로 성능 개선
-   * 
    * @returns {object} { hasUnread, error }
    */
   async hasUnreadNotices() {
@@ -121,7 +119,7 @@ export const noticeService = {
   },
 
   /**
-   * 버그 리포트 제출
+   * 버그 리포트 제출 (간소화된 구조)
    * @param {object} reportData - 리포트 데이터
    * @returns {object} { data, error }
    */
@@ -129,9 +127,11 @@ export const noticeService = {
     const { data, error } = await supabase
       .from('bug_reports')
       .insert({
-        ...reportData,
+        customer_id: reportData.customer_id || null,
+        title: reportData.title,
+        description: reportData.description,
+        report_type: reportData.report_type,
         status: '접수',
-        response_read: false,
       })
       .select()
       .single();
@@ -141,7 +141,7 @@ export const noticeService = {
 
   /**
    * 내 버그 리포트 목록 조회
-   * @param {number} customerId - 고객 ID
+   * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { data, error }
    */
   async getMyReports(customerId) {
@@ -152,61 +152,5 @@ export const noticeService = {
       .order('created_at', { ascending: false });
 
     return { data, error };
-  },
-
-  /**
-   * 버그 리포트 답변 읽음 처리
-   * @param {number} customerId - 고객 ID
-   * @param {array} reports - 리포트 목록
-   * @returns {object} { error }
-   */
-  async markReportsAsRead(customerId, reports) {
-    try {
-      // 답변이 있고 읽지 않은 리포트만 처리
-      const unreadReports = reports.filter(
-        (report) => report.admin_response && !report.response_read
-      );
-
-      if (unreadReports.length === 0) {
-        return { error: null };
-      }
-
-      // 각 리포트를 읽음 처리
-      for (const report of unreadReports) {
-        await supabase
-          .from('bug_reports')
-          .update({ response_read: true })
-          .eq('id', report.id);
-      }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Mark reports as read error:', error);
-      return { error };
-    }
-  },
-
-  /**
-   * 안 읽은 답변이 있는지 확인 (최적화)
-   * @param {number} customerId - 고객 ID
-   * @returns {object} { hasUnread, error }
-   */
-  async hasUnreadResponses(customerId) {
-    try {
-      const { data, error } = await supabase
-        .from('bug_reports')
-        .select('id')
-        .eq('customer_id', customerId)
-        .not('admin_response', 'is', null)
-        .eq('response_read', false)
-        .limit(1); // 하나만 있어도 확인 가능
-
-      if (error) throw error;
-
-      return { hasUnread: (data || []).length > 0, error: null };
-    } catch (error) {
-      console.error('Check unread responses error:', error);
-      return { hasUnread: false, error };
-    }
   },
 };
