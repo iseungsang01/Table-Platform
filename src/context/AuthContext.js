@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }) => {
       console.log('Checking stored auth...');
       const storedCustomer = await authService.getStoredCustomer();
       
-      if (storedCustomer) {
-        console.log('Found stored customer:', storedCustomer.nickname);
+      if (storedCustomer && storedCustomer.id) {
+        console.log('Found stored customer:', storedCustomer.nickname, 'UUID:', storedCustomer.id);
         // 저장된 고객 정보가 있으면 최신 정보로 업데이트 시도
         const refreshed = await authService.refreshCustomer(storedCustomer.id);
         setCustomer(refreshed || storedCustomer);
@@ -55,6 +55,11 @@ export const AuthProvider = ({ children }) => {
     
     if (result.success) {
       console.log('AuthContext: Login successful, setting customer');
+      console.log('Customer data:', {
+        id: result.customer.id,
+        nickname: result.customer.nickname,
+        phone: result.customer.phone_number
+      });
       setCustomer(result.customer);
     } else {
       console.log('AuthContext: Login failed:', result.message);
@@ -82,9 +87,9 @@ export const AuthProvider = ({ children }) => {
    * 스탬프/쿠폰 변경 시 호출
    */
   const refreshCustomer = async () => {
-    if (customer) {
+    if (customer && customer.id) {
       try {
-        console.log('AuthContext: Refreshing customer data...');
+        console.log('AuthContext: Refreshing customer data for UUID:', customer.id);
         const refreshed = await authService.refreshCustomer(customer.id);
         if (refreshed) {
           setCustomer(refreshed);
