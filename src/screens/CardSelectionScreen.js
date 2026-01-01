@@ -4,36 +4,118 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  FlatList,
   Alert,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Image,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
-import { TarotCard } from '../components/TarotCard';
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
-import { TAROT_CARDS } from '../constants/TarotCards';
 import { Colors } from '../constants/Colors';
 
 const CardSelectionScreen = ({ route, navigation }) => {
   const { visitId } = route.params;
   const { customer } = useAuth();
-  const [selectedCard, setSelectedCard] = useState(null);
+  const [imageUri, setImageUri] = useState(null);
   const [review, setReview] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  const handleCardSelect = (card) => {
-    setSelectedCard(card);
+  /**
+   * 카메라로 사진 촬영
+   */
+  const handleTakePhoto = async () => {
+    try {
+      // 카메라 권한 요청
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
+        return;
+      }
+
+      // 카메라 실행
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7, // 이미지 크기 최적화
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+        setMessage({ text: '', type: '' });
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('오류', '사진 촬영 중 오류가 발생했습니다.');
+    }
   };
 
+  /**
+   * 갤러리에서 사진 선택
+   */
+  const handlePickImage = async () => {
+    try {
+      // 갤러리 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      // 갤러리 열기
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7, // 이미지 크기 최적화
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+        setMessage({ text: '', type: '' });
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('오류', '사진 선택 중 오류가 발생했습니다.');
+    }
+  };
+
+  /**
+   * 이미지를 Base64로 변환
+   */
+  const convertImageToBase64 = async (uri) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Image conversion error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * 저장하기
+   */
   const handleSubmit = async () => {
-    if (!selectedCard) {
-      Alert.alert('알림', '카드를 선택해주세요.');
+    if (!imageUri) {
+      Alert.alert('알림', '사진을 선택해주세요.');
       return;
     }
 
@@ -45,34 +127,50 @@ const CardSelectionScreen = ({ route, navigation }) => {
     Keyboard.dismiss();
     setLoading(true);
 
-    // 로컬 스토리지에만 저장 (visitService가 자동으로 처리)
-    const { error } = await visitService.updateVisit(visitId, {
-      selected_card: selectedCard.name,
-      card_review: review || null,
-    });
+    try {
+      // 이미지를 Base64로 변환
+      const base64Image = await convertImageToBase64(imageUri);
 
-    if (error) {
+      // 방문 기록 업데이트 (로컬 스토리지에 이미지 저장)
+      const { error } = await visitService.updateVisit(visitId, {
+        card_image: base64Image,
+        card_review: review || null,
+      });
+
+      if (error) {
+        Alert.alert('오류', '저장 중 오류가 발생했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      setMessage({ text: '✨ 사진이 저장되었습니다!', type: 'success' });
+
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
+    } catch (error) {
+      console.error('Submit error:', error);
       Alert.alert('오류', '저장 중 오류가 발생했습니다.');
       setLoading(false);
-      return;
     }
-
-    setMessage({ text: '✨ 카드가 저장되었습니다!', type: 'success' });
-
-    setTimeout(() => {
-      navigation.goBack();
-    }, 1500);
   };
 
+  /**
+   * 뒤로 가기
+   */
   const handleBack = () => {
-    Alert.alert(
-      '확인',
-      '카드 선택을 취소하고 돌아가시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '돌아가기', onPress: () => navigation.goBack() },
-      ]
-    );
+    if (imageUri || review) {
+      Alert.alert(
+        '확인',
+        '작성 중인 내용이 있습니다. 돌아가시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          { text: '돌아가기', onPress: () => navigation.goBack() },
+        ]
+      );
+    } else {
+      navigation.goBack();
+    }
   };
 
   return (
@@ -83,40 +181,59 @@ const CardSelectionScreen = ({ route, navigation }) => {
           style={styles.container}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          <View style={styles.header}>
-            <CustomButton
-              title="← 돌아가기"
-              onPress={handleBack}
-              variant="secondary"
-              style={styles.backButton}
-            />
-            <Text style={styles.title}>🔮 타로 카드 선택</Text>
-            <Text style={styles.subtitle}>오늘의 방문을 기억할 카드를 선택하세요</Text>
-          </View>
-
-          <FlatList
-            data={TAROT_CARDS}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={2}
-            renderItem={({ item }) => (
-              <TarotCard
-                card={item}
-                selected={selectedCard?.id === item.id}
-                onPress={handleCardSelect}
-              />
-            )}
-            columnWrapperStyle={styles.cardRow}
-            contentContainerStyle={styles.cardGrid}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
-          />
+          >
+            <View style={styles.header}>
+              <CustomButton
+                title="← 돌아가기"
+                onPress={handleBack}
+                variant="secondary"
+                style={styles.backButton}
+              />
+              <Text style={styles.title}>📸 사진 업로드</Text>
+              <Text style={styles.subtitle}>오늘의 방문을 기억할 사진을 업로드하세요</Text>
+            </View>
 
-          {selectedCard && (
+            {/* 사진 미리보기 */}
+            {imageUri ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => setImageUri(null)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.removeImageText}>✕ 사진 제거</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.placeholderIcon}>📷</Text>
+                <Text style={styles.placeholderText}>사진을 선택해주세요</Text>
+              </View>
+            )}
+
+            {/* 사진 선택 버튼 */}
+            <View style={styles.buttonGroup}>
+              <CustomButton
+                title="📷 카메라"
+                onPress={handleTakePhoto}
+                style={styles.imageButton}
+                disabled={loading}
+              />
+              <CustomButton
+                title="🖼️ 갤러리"
+                onPress={handlePickImage}
+                variant="secondary"
+                style={styles.imageButton}
+                disabled={loading}
+              />
+            </View>
+
+            {/* 리뷰 입력 */}
             <View style={styles.reviewSection}>
-              <Text style={styles.selectedCardTitle}>
-                선택한 카드: {selectedCard.emoji} {selectedCard.name}
-              </Text>
-              <Text style={styles.cardDescription}>{selectedCard.meaning}</Text>
-
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>오늘의 기록 (선택, 최대 100자)</Text>
                 <TextInput
@@ -139,7 +256,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
               <CustomButton
                 title={loading ? '저장 중...' : '저장하기'}
                 onPress={handleSubmit}
-                disabled={loading}
+                disabled={loading || !imageUri}
                 loading={loading}
                 style={styles.submitButton}
               />
@@ -155,7 +272,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
                 </View>
               )}
             </View>
-          )}
+          </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </GradientBackground>
@@ -166,11 +283,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    padding: 20,
+  },
   header: {
     backgroundColor: Colors.purpleMid,
     borderRadius: 20,
     padding: 30,
-    margin: 20,
+    marginBottom: 20,
     borderWidth: 3,
     borderColor: Colors.gold,
     alignItems: 'center',
@@ -191,33 +311,70 @@ const styles = StyleSheet.create({
     color: Colors.lavender,
     textAlign: 'center',
   },
-  cardGrid: {
-    padding: 20,
-  },
-  cardRow: {
-    justifyContent: 'space-between',
+  imagePlaceholder: {
+    backgroundColor: Colors.purpleMid,
+    borderRadius: 20,
+    padding: 60,
     marginBottom: 20,
+    borderWidth: 3,
+    borderStyle: 'dashed',
+    borderColor: Colors.purpleLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 300,
+  },
+  placeholderIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+    opacity: 0.5,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: Colors.lavender,
+    opacity: 0.7,
+  },
+  imagePreviewContainer: {
+    backgroundColor: Colors.purpleMid,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 3,
+    borderColor: Colors.gold,
+    alignItems: 'center',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 300,
+    borderRadius: 15,
+    marginBottom: 15,
+  },
+  removeImageButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.3)',
+    borderWidth: 2,
+    borderColor: Colors.redSoft,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  removeImageText: {
+    color: Colors.redSoft,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 20,
+  },
+  imageButton: {
+    flex: 1,
   },
   reviewSection: {
     backgroundColor: Colors.purpleMid,
     borderRadius: 20,
     padding: 30,
-    margin: 20,
     borderWidth: 3,
-    borderColor: Colors.gold,
-  },
-  selectedCardTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.gold,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  cardDescription: {
-    fontSize: 16,
-    color: Colors.lavender,
-    textAlign: 'center',
-    marginBottom: 25,
+    borderColor: Colors.purpleLight,
   },
   inputGroup: {
     marginBottom: 20,

@@ -1,21 +1,19 @@
 import { supabase } from './supabase';
-import { storage, STORAGE_KEYS } from '../utils/storage';
+import { storage } from '../utils/storage';
 
 /**
  * 방문 기록 서비스
  * 방문 기록 조회, 수정, 삭제
- * selected_card와 card_review는 로컬 스토리지에서 관리
+ * card_image와 card_review는 로컬 스토리지에서 관리
  */
 export const visitService = {
   /**
-   * 고객의 방문 기록 목록 조회 (카드 정보는 로컬에서 병합)
+   * 고객의 방문 기록 목록 조회 (이미지/리뷰는 로컬에서 병합)
    * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { data, error }
    */
   async getVisits(customerId) {
     try {
-      console.log('Fetching visits for customer:', customerId);
-
       // 1. Supabase에서 방문 기록 조회
       const { data, error } = await supabase
         .from('visit_history')
@@ -23,37 +21,28 @@ export const visitService = {
         .eq('customer_id', customerId)
         .order('visit_date', { ascending: false });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Fetched visits from DB:', data?.length || 0);
-
-      // 2. 로컬 스토리지에서 카드 정보 가져오기
-      const allCards = await storage.getAllSelectedCards();
+      // 2. 로컬 스토리지에서 이미지/리뷰 가져오기
+      const allImages = await storage.getAllCardImages();
       const allReviews = await storage.getAllCardReviews();
 
-      console.log('Local cards:', Object.keys(allCards).length);
-      console.log('Local reviews:', Object.keys(allReviews).length);
-
       // 3. 데이터 병합
-      const visitsWithCardData = (data || []).map(visit => ({
+      const visitsWithLocalData = (data || []).map(visit => ({
         ...visit,
-        selected_card: allCards[visit.id] || null,
+        card_image: allImages[visit.id] || null,
         card_review: allReviews[visit.id] || null,
       }));
 
       // 4. 캐시 저장
-      await storage.cacheVisits(visitsWithCardData);
+      await storage.cacheVisits(visitsWithLocalData);
 
-      return { data: visitsWithCardData, error: null };
+      return { data: visitsWithLocalData, error: null };
     } catch (error) {
       console.error('Get visits error:', error);
       
       // 오류 시 캐시된 데이터 반환
       const cachedVisits = await storage.getCachedVisits();
-      console.log('Returning cached visits:', cachedVisits.length);
       return { data: cachedVisits, error };
     }
   },
@@ -73,14 +62,14 @@ export const visitService = {
 
       if (error) throw error;
 
-      // 로컬 스토리지에서 카드 정보 가져오기
-      const selectedCard = await storage.getSelectedCard(visitId);
+      // 로컬 스토리지에서 이미지/리뷰 가져오기
+      const cardImage = await storage.getCardImage(visitId);
       const review = await storage.getCardReview(visitId);
 
       return { 
         data: { 
           ...data, 
-          selected_card: selectedCard,
+          card_image: cardImage,
           card_review: review 
         }, 
         error: null 
@@ -92,24 +81,22 @@ export const visitService = {
   },
 
   /**
-   * 방문 기록 수정 (카드 선택과 리뷰는 로컬에만 저장)
+   * 방문 기록 수정 (이미지와 리뷰는 로컬에만 저장)
    * @param {number} visitId - 방문 기록 ID
    * @param {object} updates - 수정할 필드들
    * @returns {object} { data, error }
    */
   async updateVisit(visitId, updates) {
     try {
-      console.log('Updating visit:', visitId, updates);
+      // card_image와 card_review는 로컬에만 저장
+      const { card_image, card_review, ...serverUpdates } = updates;
 
-      // selected_card와 card_review는 로컬에만 저장
-      const { selected_card, card_review, ...serverUpdates } = updates;
-
-      // 1. 선택한 카드 저장 (로컬)
-      if (selected_card !== undefined) {
-        if (selected_card) {
-          await storage.saveSelectedCard(visitId, selected_card);
+      // 1. 이미지 저장 (로컬)
+      if (card_image !== undefined) {
+        if (card_image) {
+          await storage.saveCardImage(visitId, card_image);
         } else {
-          await storage.deleteSelectedCard(visitId);
+          await storage.deleteCardImage(visitId);
         }
       }
 
@@ -134,15 +121,13 @@ export const visitService = {
         if (error) throw error;
 
         // 4. 로컬 데이터 포함하여 반환
-        const savedCard = await storage.getSelectedCard(visitId);
+        const savedImage = await storage.getCardImage(visitId);
         const savedReview = await storage.getCardReview(visitId);
-        
-        console.log('Visit updated successfully');
         
         return { 
           data: { 
             ...data, 
-            selected_card: savedCard,
+            card_image: savedImage,
             card_review: savedReview 
           }, 
           error: null 
@@ -150,15 +135,13 @@ export const visitService = {
       }
 
       // 로컬 데이터만 업데이트한 경우
-      const savedCard = await storage.getSelectedCard(visitId);
+      const savedImage = await storage.getCardImage(visitId);
       const savedReview = await storage.getCardReview(visitId);
-      
-      console.log('Local data updated successfully');
       
       return { 
         data: { 
           id: visitId, 
-          selected_card: savedCard,
+          card_image: savedImage,
           card_review: savedReview 
         }, 
         error: null 
@@ -176,8 +159,6 @@ export const visitService = {
    */
   async deleteVisit(visitId) {
     try {
-      console.log('Deleting visit:', visitId);
-
       // 1. Supabase에서 삭제
       const { error } = await supabase
         .from('visit_history')
@@ -187,10 +168,8 @@ export const visitService = {
       if (error) throw error;
 
       // 2. 로컬 데이터도 삭제
-      await storage.deleteSelectedCard(visitId);
+      await storage.deleteCardImage(visitId);
       await storage.deleteCardReview(visitId);
-
-      console.log('Visit deleted successfully');
 
       return { error: null };
     } catch (error) {
@@ -215,13 +194,11 @@ export const visitService = {
   },
 
   /**
-   * 로컬 데이터 정리 (삭제된 방문 기록의 카드/리뷰 제거)
+   * 로컬 데이터 정리 (삭제된 방문 기록의 이미지/리뷰 제거)
    * @param {string} customerId - 고객 ID (UUID)
    */
   async cleanupLocalData(customerId) {
     try {
-      console.log('Cleaning up local data for customer:', customerId);
-
       // 1. 현재 유효한 방문 기록 ID 목록 가져오기
       const { data, error } = await supabase
         .from('visit_history')
@@ -233,10 +210,8 @@ export const visitService = {
       const validVisitIds = (data || []).map(v => v.id);
 
       // 2. 로컬 스토리지 정리
-      await storage.cleanupOrphanedCards(validVisitIds);
+      await storage.cleanupOrphanedImages(validVisitIds);
       await storage.cleanupOrphanedReviews(validVisitIds);
-
-      console.log('Local data cleanup completed');
     } catch (error) {
       console.error('Cleanup local data error:', error);
     }

@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   Keyboard,
+  Image,
 } from 'react-native';
 import { CustomButton } from './CustomButton';
 import { visitService } from '../services/visitService';
-import { getTarotEmoji } from '../constants/TarotCards';
 import { formatDate } from '../utils/formatters';
 import { Colors } from '../constants/Colors';
 
@@ -80,22 +80,25 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
           )}
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => onDelete(visit.id, !!visit.selected_card)}
+            onPress={() => onDelete(visit.id, !!visit.card_image)}
           >
             <Text style={styles.deleteButtonText}>🗑️</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 카드 선택된 경우 */}
-      {visit.selected_card ? (
+      {/* 사진이 있는 경우 */}
+      {visit.card_image ? (
         <View style={styles.cardDisplay}>
-          <View style={styles.cardEmojiContainer}>
-            <Text style={styles.cardEmoji}>{getTarotEmoji(visit.selected_card)}</Text>
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ uri: visit.card_image }} 
+              style={styles.cardImage}
+              resizeMode="cover"
+            />
           </View>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardName}>{visit.selected_card}</Text>
 
+          <View style={styles.cardInfo}>
             {/* 리뷰 수정 모드 */}
             {isEditing ? (
               <View style={styles.editSection}>
@@ -161,12 +164,12 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
           </View>
         </View>
       ) : (
-        /* 카드 미선택 */
+        /* 사진 미업로드 */
         <View style={styles.noCard}>
-          <Text style={styles.noCardIcon}>🃏</Text>
-          <Text style={styles.noCardText}>아직 카드를 선택하지 않았습니다</Text>
+          <Text style={styles.noCardIcon}>📷</Text>
+          <Text style={styles.noCardText}>아직 사진을 업로드하지 않았습니다</Text>
           <CustomButton
-            title="카드 선택하기"
+            title="사진 업로드"
             onPress={() => onSelectCard(visit.id)}
             style={styles.selectButton}
           />
@@ -237,38 +240,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   cardDisplay: {
-    flexDirection: 'row',
     gap: 15,
-    alignItems: 'flex-start',
   },
-  cardEmojiContainer: {
+  imageContainer: {
     backgroundColor: 'rgba(138, 43, 226, 0.3)',
     borderWidth: 3,
     borderColor: Colors.purpleLight,
     borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
     shadowColor: Colors.purpleLight,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
-  cardEmoji: {
-    fontSize: 64,
+  cardImage: {
+    width: '100%',
+    height: 250,
   },
   cardInfo: {
     flex: 1,
-  },
-  cardName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.gold,
-    marginBottom: 12,
-    textShadowColor: 'rgba(255, 215, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   reviewBox: {
     backgroundColor: 'rgba(138, 43, 226, 0.25)',

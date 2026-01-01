@@ -13,7 +13,7 @@ import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
 import { formatPhoneNumber } from '../utils/formatters';
 import { validatePhoneNumber } from '../utils/validators';
-import { storage, STORAGE_KEYS } from '../utils/storage';
+import { storage } from '../utils/storage';
 import { Colors } from '../constants/Colors';
 
 const LoginScreen = () => {
@@ -32,15 +32,15 @@ const LoginScreen = () => {
    */
   const loadSavedPhone = async () => {
     try {
-      const savedRemember = await storage.get(STORAGE_KEYS.REMEMBER_ME);
+      const savedRemember = await storage.get('remember_me');
       
       // remember_me가 true일 때만 저장된 전화번호 불러오기
       if (savedRemember === true) {
-        const savedPhone = await storage.get(STORAGE_KEYS.SAVED_PHONE);
+        const savedPhone = await storage.get('saved_phone');
         if (savedPhone) {
-          setPhone(savedPhone); // 010-1234-5678 형식 그대로
+          console.log('📱 저장된 전화번호 불러오기:', savedPhone);
+          setPhone(savedPhone);
           setRememberMe(true);
-          console.log('Loaded saved phone:', savedPhone);
         }
       }
     } catch (error) {
@@ -55,14 +55,16 @@ const LoginScreen = () => {
   const handlePhoneChange = (text) => {
     const formatted = formatPhoneNumber(text);
     setPhone(formatted);
+    // 메시지 초기화
+    if (message.text) {
+      setMessage({ text: '', type: '' });
+    }
   };
 
   /**
    * 로그인 처리
    */
   const handleLogin = async () => {
-    console.log('Login button pressed');
-    
     // 1. 전화번호 형식 검증
     if (!validatePhoneNumber(phone)) {
       setMessage({ 
@@ -73,30 +75,25 @@ const LoginScreen = () => {
     }
 
     setLoading(true);
-    setMessage({ text: '', type: '' });
+    setMessage({ text: '로그인 중...', type: 'info' });
 
-    console.log('Attempting login with:', phone);
-
-    // 2. 로그인 시도 (phone은 이미 010-1234-5678 형식)
+    // 2. 로그인 시도
     const result = await login(phone);
 
-    console.log('Login result:', result);
-
     if (result.success) {
-      console.log('Login successful!');
       // 3. 로그인 정보 저장 여부 처리
       if (rememberMe) {
-        await storage.save(STORAGE_KEYS.SAVED_PHONE, phone);
-        await storage.save(STORAGE_KEYS.REMEMBER_ME, true);
-        console.log('Saved login info');
+        await storage.save('saved_phone', phone);
+        await storage.save('remember_me', true);
+        console.log('✅ 로그인 정보 저장 완료');
       } else {
-        await storage.remove(STORAGE_KEYS.SAVED_PHONE);
-        await storage.remove(STORAGE_KEYS.REMEMBER_ME);
-        console.log('Removed login info');
+        await storage.remove('saved_phone');
+        await storage.remove('remember_me');
+        console.log('🗑️ 로그인 정보 삭제 완료');
       }
-      // 로그인 성공 시 메시지는 표시하지 않고 자동으로 다음 화면으로 이동
+      
+      setMessage({ text: '✅ 로그인 성공!', type: 'success' });
     } else {
-      console.log('Login failed:', result.message);
       setMessage({ 
         text: result.message || '로그인 중 오류가 발생했습니다.', 
         type: 'error' 
@@ -127,9 +124,8 @@ const LoginScreen = () => {
                 placeholder="010-1234-5678"
                 placeholderTextColor={Colors.purpleLight}
                 keyboardType="phone-pad"
-                maxLength={13} // 010-1234-5678 = 13자
+                maxLength={13}
                 editable={!loading}
-                autoFocus={false}
               />
             </View>
 
@@ -156,14 +152,17 @@ const LoginScreen = () => {
             {message.text && (
               <View style={[
                 styles.message,
-                message.type === 'error' ? styles.messageError : styles.messageSuccess
+                message.type === 'error' && styles.messageError,
+                message.type === 'success' && styles.messageSuccess,
+                message.type === 'info' && styles.messageInfo,
               ]}>
                 <Text style={styles.messageText}>{message.text}</Text>
               </View>
             )}
 
             <Text style={styles.helpText}>
-              * 매장 방문 시 등록한 전화번호를 입력해주세요
+              * 매장 방문 시 등록한 전화번호를 입력해주세요{'\n'}
+              * DB 연결 상태를 확인하려면 아무 번호나 입력해보세요
             </Text>
           </View>
         </View>
@@ -272,16 +271,19 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginBottom: 20,
+    borderWidth: 2,
   },
   messageError: {
     backgroundColor: 'rgba(244, 67, 54, 0.2)',
-    borderWidth: 2,
     borderColor: Colors.errorRed,
   },
   messageSuccess: {
     backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderWidth: 2,
     borderColor: Colors.green,
+  },
+  messageInfo: {
+    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+    borderColor: '#2196f3',
   },
   messageText: {
     textAlign: 'center',
@@ -294,6 +296,7 @@ const styles = StyleSheet.create({
     color: Colors.lavender,
     textAlign: 'center',
     opacity: 0.8,
+    lineHeight: 20,
   },
 });
 
