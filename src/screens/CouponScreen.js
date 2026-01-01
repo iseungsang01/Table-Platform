@@ -112,7 +112,7 @@ const CouponScreen = ({ navigation }) => {
           onPress: async () => {
             setProcessing(true);
 
-            // 쿠폰 삭제만 수행 (customers.coupons 컬럼 없음)
+            // is_used = true, used_at = 현재 시각으로 업데이트
             const { error } = await couponService.useCoupon(selectedCoupon.id);
 
             if (error) {

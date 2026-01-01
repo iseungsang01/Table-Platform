@@ -26,12 +26,16 @@ export const AuthProvider = ({ children }) => {
    */
   const checkStoredAuth = async () => {
     try {
+      console.log('Checking stored auth...');
       const storedCustomer = await authService.getStoredCustomer();
       
       if (storedCustomer) {
-        // 저장된 고객 정보가 있으면 최신 정보로 업데이트
+        console.log('Found stored customer:', storedCustomer.nickname);
+        // 저장된 고객 정보가 있으면 최신 정보로 업데이트 시도
         const refreshed = await authService.refreshCustomer(storedCustomer.id);
         setCustomer(refreshed || storedCustomer);
+      } else {
+        console.log('No stored customer found');
       }
     } catch (error) {
       console.error('Check stored auth error:', error);
@@ -46,10 +50,14 @@ export const AuthProvider = ({ children }) => {
    * @returns {object} { success, message? }
    */
   const login = async (phoneNumber) => {
+    console.log('AuthContext: Login attempt with', phoneNumber);
     const result = await authService.login(phoneNumber);
     
     if (result.success) {
+      console.log('AuthContext: Login successful, setting customer');
       setCustomer(result.customer);
+    } else {
+      console.log('AuthContext: Login failed:', result.message);
     }
     
     return result;
@@ -60,12 +68,12 @@ export const AuthProvider = ({ children }) => {
    */
   const logout = async () => {
     try {
-      console.log('Starting logout...');
+      console.log('AuthContext: Starting logout...');
       await authService.logout();
       setCustomer(null);
-      console.log('Logout successful - customer state cleared');
+      console.log('AuthContext: Logout successful - customer state cleared');
     } catch (error) {
-      console.error('Logout error in context:', error);
+      console.error('AuthContext: Logout error:', error);
     }
   };
 
@@ -76,12 +84,14 @@ export const AuthProvider = ({ children }) => {
   const refreshCustomer = async () => {
     if (customer) {
       try {
+        console.log('AuthContext: Refreshing customer data...');
         const refreshed = await authService.refreshCustomer(customer.id);
         if (refreshed) {
           setCustomer(refreshed);
+          console.log('AuthContext: Customer data refreshed');
         }
       } catch (error) {
-        console.error('Refresh customer error:', error);
+        console.error('AuthContext: Refresh customer error:', error);
       }
     }
   };

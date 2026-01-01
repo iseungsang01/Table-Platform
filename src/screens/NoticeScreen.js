@@ -42,13 +42,6 @@ const NoticeScreen = () => {
     }, [customer])
   );
 
-  useEffect(() => {
-    // 내 리포트 화면 진입 시 답변 읽음 처리
-    if (showMyReports && customer) {
-      markReportsAsRead();
-    }
-  }, [showMyReports]);
-
   /**
    * 데이터 로드
    */
@@ -98,16 +91,6 @@ const NoticeScreen = () => {
   };
 
   /**
-   * 버그 리포트 답변 읽음 처리
-   */
-  const markReportsAsRead = async () => {
-    if (!customer) return;
-    
-    await noticeService.markReportsAsRead(customer.id, myReports);
-    await loadMyReports();
-  };
-
-  /**
    * 새로고침
    */
   const handleRefresh = async () => {
@@ -150,9 +133,9 @@ const NoticeScreen = () => {
 
     const { error } = await noticeService.submitReport({
       customer_id: customer?.id || null,
-      customer_phone: customer?.phone_number || null,
-      customer_nickname: customer?.nickname || '익명',
-      ...reportData,
+      title: reportData.title,
+      description: reportData.description,
+      report_type: reportData.report_type,
     });
 
     if (error) {
@@ -356,9 +339,6 @@ const NoticeScreen = () => {
               <View key={report.id} style={styles.reportCard}>
                 <View style={styles.reportHeader}>
                   <View style={styles.reportBadges}>
-                    <Text style={styles.reportCategory}>
-                      {report.category === 'app' ? '📱 어플' : '🏪 가게'}
-                    </Text>
                     <Text style={styles.reportType}>{report.report_type}</Text>
                   </View>
                   <View style={[styles.statusBadge, { borderColor: getStatusColor(report.status) }]}>
@@ -370,13 +350,6 @@ const NoticeScreen = () => {
 
                 <Text style={styles.reportTitle}>{report.title}</Text>
                 <Text style={styles.reportDescription}>{report.description}</Text>
-
-                {report.admin_response && (
-                  <View style={styles.responseBox}>
-                    <Text style={styles.responseLabel}>💬 관리자 답변</Text>
-                    <Text style={styles.responseText}>{report.admin_response}</Text>
-                  </View>
-                )}
 
                 <Text style={styles.reportDate}>접수일: {formatDate(report.created_at)}</Text>
               </View>
@@ -393,7 +366,7 @@ const NoticeScreen = () => {
   const getStatusColor = (status) => {
     const colors = {
       접수: '#ffa500',
-      처리중: '#2196f3',
+      확인중: '#2196f3',
       완료: '#4caf50',
       보류: '#9e9e9e',
     };
@@ -625,11 +598,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  reportCategory: {
-    fontSize: 12,
-    color: Colors.gold,
-    fontWeight: '600',
-  },
   reportType: {
     fontSize: 12,
     color: Colors.lavender,
@@ -656,25 +624,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 10,
   },
-  responseBox: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderWidth: 2,
-    borderColor: Colors.green,
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 10,
-  },
-  responseLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.green,
-    marginBottom: 5,
-  },
-  responseText: {
-    fontSize: 14,
-    color: 'white',
-    lineHeight: 20,
-  },
   reportDate: {
     fontSize: 12,
     color: Colors.lavender,
@@ -697,11 +646,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: Colors.gold,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: Colors.lavender,
-    textAlign: 'center',
   },
 });
 

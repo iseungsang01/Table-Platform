@@ -5,10 +5,10 @@ import { useAuth } from './useAuth';
 /**
  * 알림 관리 Hook (최적화)
  * 빨간 점 표시를 위한 boolean 값만 반환
+ * bug_reports의 admin_response 기능 제거로 인해 hasUnreadResponses는 항상 false
  * 
  * @returns {object} { 
  *   hasUnreadNotices,
- *   hasUnreadResponses,
  *   hasAnyUnread,
  *   loading,
  *   refresh 
@@ -23,7 +23,6 @@ import { useAuth } from './useAuth';
 export const useNotifications = () => {
   const { customer } = useAuth();
   const [hasUnreadNotices, setHasUnreadNotices] = useState(false);
-  const [hasUnreadResponses, setHasUnreadResponses] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -42,13 +41,9 @@ export const useNotifications = () => {
     setLoading(true);
 
     try {
-      // 1. 안 읽은 공지사항 있는지 확인 (최적화)
+      // 안 읽은 공지사항 있는지 확인
       const { hasUnread: hasNotices } = await noticeService.hasUnreadNotices();
       setHasUnreadNotices(hasNotices);
-
-      // 2. 안 읽은 버그 리포트 답변 있는지 확인 (최적화)
-      const { hasUnread: hasResponses } = await noticeService.hasUnreadResponses(customer.id);
-      setHasUnreadResponses(hasResponses);
     } catch (error) {
       console.error('Load notifications error:', error);
     } finally {
@@ -65,13 +60,13 @@ export const useNotifications = () => {
 
   /**
    * 하나라도 안 읽은 알림이 있는지
+   * (현재는 공지사항만 확인)
    */
-  const hasAnyUnread = hasUnreadNotices || hasUnreadResponses;
+  const hasAnyUnread = hasUnreadNotices;
 
   return {
     hasUnreadNotices,      // 안 읽은 공지사항 있음
-    hasUnreadResponses,    // 안 읽은 답변 있음
-    hasAnyUnread,          // 둘 중 하나라도 있음
+    hasAnyUnread,          // 안 읽은 알림 있음 (현재는 공지사항만)
     loading,
     refresh,
   };

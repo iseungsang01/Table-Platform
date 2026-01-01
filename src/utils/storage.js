@@ -12,6 +12,9 @@ export const STORAGE_KEYS = {
   SAVED_PHONE: 'saved_phone',
   REMEMBER_ME: 'remember_me',
   
+  // 카드 선택 (방문 ID를 키로 사용)
+  SELECTED_CARDS: 'selected_cards', // { visitId: cardName }
+  
   // 카드 리뷰 (방문 ID를 키로 사용)
   CARD_REVIEWS: 'card_reviews', // { visitId: reviewText }
   
@@ -36,6 +39,7 @@ export const storage = {
   async save(key, value) {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(value));
+      console.log(`Storage saved: ${key}`);
     } catch (error) {
       console.error('Storage save error:', error);
     }
@@ -63,6 +67,7 @@ export const storage = {
   async remove(key) {
     try {
       await AsyncStorage.removeItem(key);
+      console.log(`Storage removed: ${key}`);
     } catch (error) {
       console.error('Storage remove error:', error);
     }
@@ -74,6 +79,7 @@ export const storage = {
   async clear() {
     try {
       await AsyncStorage.clear();
+      console.log('Storage cleared');
     } catch (error) {
       console.error('Storage clear error:', error);
     }
@@ -93,6 +99,69 @@ export const storage = {
   },
 
   // ========================================
+  // 선택한 카드 관련 (로컬 전용)
+  // ========================================
+
+  /**
+   * 선택한 카드 저장
+   * @param {number} visitId - 방문 기록 ID
+   * @param {string} cardName - 카드 이름
+   */
+  async saveSelectedCard(visitId, cardName) {
+    try {
+      const cards = await this.get(STORAGE_KEYS.SELECTED_CARDS) || {};
+      cards[visitId] = cardName;
+      await this.save(STORAGE_KEYS.SELECTED_CARDS, cards);
+      console.log(`Saved card for visit ${visitId}: ${cardName}`);
+    } catch (error) {
+      console.error('Save selected card error:', error);
+    }
+  },
+
+  /**
+   * 선택한 카드 조회
+   * @param {number} visitId - 방문 기록 ID
+   * @returns {string|null} 카드 이름
+   */
+  async getSelectedCard(visitId) {
+    try {
+      const cards = await this.get(STORAGE_KEYS.SELECTED_CARDS) || {};
+      return cards[visitId] || null;
+    } catch (error) {
+      console.error('Get selected card error:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 모든 선택한 카드 조회
+   * @returns {object} { visitId: cardName }
+   */
+  async getAllSelectedCards() {
+    try {
+      return await this.get(STORAGE_KEYS.SELECTED_CARDS) || {};
+    } catch (error) {
+      console.error('Get all selected cards error:', error);
+      return {};
+    }
+  },
+
+  /**
+   * 선택한 카드 삭제
+   * @param {number} visitId - 방문 기록 ID
+   */
+  async deleteSelectedCard(visitId) {
+    try {
+      const cards = await this.get(STORAGE_KEYS.SELECTED_CARDS) || {};
+      delete cards[visitId];
+      await this.save(STORAGE_KEYS.SELECTED_CARDS, cards);
+      console.log(`Deleted card for visit ${visitId}`);
+    } catch (error) {
+      console.error('Delete selected card error:', error);
+    }
+  },
+
+  // ========================================
   // 카드 리뷰 관련 (로컬 전용)
   // ========================================
 
@@ -106,6 +175,7 @@ export const storage = {
       const reviews = await this.get(STORAGE_KEYS.CARD_REVIEWS) || {};
       reviews[visitId] = review;
       await this.save(STORAGE_KEYS.CARD_REVIEWS, reviews);
+      console.log(`Saved review for visit ${visitId}`);
     } catch (error) {
       console.error('Save card review error:', error);
     }
@@ -148,6 +218,7 @@ export const storage = {
       const reviews = await this.get(STORAGE_KEYS.CARD_REVIEWS) || {};
       delete reviews[visitId];
       await this.save(STORAGE_KEYS.CARD_REVIEWS, reviews);
+      console.log(`Deleted review for visit ${visitId}`);
     } catch (error) {
       console.error('Delete card review error:', error);
     }
@@ -360,6 +431,28 @@ export const storage = {
   },
 
   /**
+   * 삭제된 방문 기록의 카드 및 리뷰 정리
+   * @param {number[]} validVisitIds - 유효한 방문 기록 ID 배열
+   */
+  async cleanupOrphanedCards(validVisitIds) {
+    try {
+      const cards = await this.getAllSelectedCards();
+      const cleanedCards = {};
+
+      Object.keys(cards).forEach(visitId => {
+        if (validVisitIds.includes(parseInt(visitId))) {
+          cleanedCards[visitId] = cards[visitId];
+        }
+      });
+
+      await this.save(STORAGE_KEYS.SELECTED_CARDS, cleanedCards);
+      console.log('Cleaned up orphaned cards');
+    } catch (error) {
+      console.error('Cleanup orphaned cards error:', error);
+    }
+  },
+
+  /**
    * 삭제된 방문 기록의 리뷰 정리
    * @param {number[]} validVisitIds - 유효한 방문 기록 ID 배열
    */
@@ -375,6 +468,7 @@ export const storage = {
       });
 
       await this.save(STORAGE_KEYS.CARD_REVIEWS, cleanedReviews);
+      console.log('Cleaned up orphaned reviews');
     } catch (error) {
       console.error('Cleanup orphaned reviews error:', error);
     }

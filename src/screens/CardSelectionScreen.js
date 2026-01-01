@@ -45,6 +45,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
     Keyboard.dismiss();
     setLoading(true);
 
+    // 로컬 스토리지에만 저장 (visitService가 자동으로 처리)
     const { error } = await visitService.updateVisit(visitId, {
       selected_card: selectedCard.name,
       card_review: review || null,

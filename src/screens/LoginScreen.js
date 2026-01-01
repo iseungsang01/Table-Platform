@@ -13,7 +13,7 @@ import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
 import { formatPhoneNumber } from '../utils/formatters';
 import { validatePhoneNumber } from '../utils/validators';
-import { storage } from '../utils/storage';
+import { storage, STORAGE_KEYS } from '../utils/storage';
 import { Colors } from '../constants/Colors';
 
 const LoginScreen = () => {
@@ -31,15 +31,20 @@ const LoginScreen = () => {
    * 저장된 전화번호 불러오기
    */
   const loadSavedPhone = async () => {
-    const savedRemember = await storage.get('remember_me');
-    
-    // remember_me가 true일 때만 저장된 전화번호 불러오기
-    if (savedRemember === true) {
-      const savedPhone = await storage.get('saved_phone');
-      if (savedPhone) {
-        setPhone(savedPhone); // 010-1234-5678 형식 그대로
-        setRememberMe(true);
+    try {
+      const savedRemember = await storage.get(STORAGE_KEYS.REMEMBER_ME);
+      
+      // remember_me가 true일 때만 저장된 전화번호 불러오기
+      if (savedRemember === true) {
+        const savedPhone = await storage.get(STORAGE_KEYS.SAVED_PHONE);
+        if (savedPhone) {
+          setPhone(savedPhone); // 010-1234-5678 형식 그대로
+          setRememberMe(true);
+          console.log('Loaded saved phone:', savedPhone);
+        }
       }
+    } catch (error) {
+      console.error('Load saved phone error:', error);
     }
   };
 
@@ -56,6 +61,8 @@ const LoginScreen = () => {
    * 로그인 처리
    */
   const handleLogin = async () => {
+    console.log('Login button pressed');
+    
     // 1. 전화번호 형식 검증
     if (!validatePhoneNumber(phone)) {
       setMessage({ 
@@ -68,19 +75,28 @@ const LoginScreen = () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
 
+    console.log('Attempting login with:', phone);
+
     // 2. 로그인 시도 (phone은 이미 010-1234-5678 형식)
     const result = await login(phone);
 
+    console.log('Login result:', result);
+
     if (result.success) {
+      console.log('Login successful!');
       // 3. 로그인 정보 저장 여부 처리
       if (rememberMe) {
-        await storage.save('saved_phone', phone);
-        await storage.save('remember_me', true);
+        await storage.save(STORAGE_KEYS.SAVED_PHONE, phone);
+        await storage.save(STORAGE_KEYS.REMEMBER_ME, true);
+        console.log('Saved login info');
       } else {
-        await storage.remove('saved_phone');
-        await storage.remove('remember_me');
+        await storage.remove(STORAGE_KEYS.SAVED_PHONE);
+        await storage.remove(STORAGE_KEYS.REMEMBER_ME);
+        console.log('Removed login info');
       }
+      // 로그인 성공 시 메시지는 표시하지 않고 자동으로 다음 화면으로 이동
     } else {
+      console.log('Login failed:', result.message);
       setMessage({ 
         text: result.message || '로그인 중 오류가 발생했습니다.', 
         type: 'error' 
@@ -113,6 +129,7 @@ const LoginScreen = () => {
                 keyboardType="phone-pad"
                 maxLength={13} // 010-1234-5678 = 13자
                 editable={!loading}
+                autoFocus={false}
               />
             </View>
 

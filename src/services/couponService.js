@@ -11,14 +11,28 @@ export const couponService = {
    * @returns {object} { data, error }
    */
   async getCoupons(customerId) {
-    const { data, error } = await supabase
-      .from('coupon_history')
-      .select('*')
-      .eq('customer_id', customerId)
-      .eq('is_used', false)
-      .order('issued_at', { ascending: false });
+    try {
+      console.log('Fetching coupons for customer:', customerId);
 
-    return { data, error };
+      const { data, error } = await supabase
+        .from('coupon_history')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('is_used', false)
+        .order('issued_at', { ascending: false });
+
+      if (error) {
+        console.error('Fetch coupons error:', error);
+        throw error;
+      }
+
+      console.log('Fetched coupons:', data?.length || 0);
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Get coupons error:', error);
+      return { data: [], error };
+    }
   },
 
   /**
@@ -27,13 +41,27 @@ export const couponService = {
    * @returns {object} { count, error }
    */
   async getCouponCount(customerId) {
-    const { count, error } = await supabase
-      .from('coupon_history')
-      .select('*', { count: 'exact', head: true })
-      .eq('customer_id', customerId)
-      .eq('is_used', false);
+    try {
+      console.log('Counting coupons for customer:', customerId);
 
-    return { count: count || 0, error };
+      const { count, error } = await supabase
+        .from('coupon_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', customerId)
+        .eq('is_used', false);
+
+      if (error) {
+        console.error('Count coupons error:', error);
+        throw error;
+      }
+
+      console.log('Coupon count:', count || 0);
+
+      return { count: count || 0, error: null };
+    } catch (error) {
+      console.error('Get coupon count error:', error);
+      return { count: 0, error };
+    }
   },
 
   /**
@@ -43,6 +71,8 @@ export const couponService = {
    */
   async useCoupon(couponId) {
     try {
+      console.log('Using coupon:', couponId);
+
       const { error } = await supabase
         .from('coupon_history')
         .update({
@@ -51,7 +81,12 @@ export const couponService = {
         })
         .eq('id', couponId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Use coupon error:', error);
+        throw error;
+      }
+
+      console.log('Coupon used successfully');
 
       return { error: null };
     } catch (error) {
@@ -66,20 +101,25 @@ export const couponService = {
    * @returns {object} { data, error }
    */
   async issueCoupon(couponData) {
-    // coupon_code가 없으면 자동 생성
-    if (!couponData.coupon_code) {
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      couponData.coupon_code = `STAMP-${timestamp}-${random}`;
+    try {
+      // coupon_code가 없으면 자동 생성
+      if (!couponData.coupon_code) {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+        couponData.coupon_code = `STAMP-${timestamp}-${random}`;
+      }
+
+      const { data, error } = await supabase
+        .from('coupon_history')
+        .insert(couponData)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      console.error('Issue coupon error:', error);
+      return { data: null, error };
     }
-
-    const { data, error } = await supabase
-      .from('coupon_history')
-      .insert(couponData)
-      .select()
-      .single();
-
-    return { data, error };
   },
 
   /**
@@ -87,13 +127,18 @@ export const couponService = {
    * @returns {object} { error }
    */
   async deleteExpiredCoupons() {
-    const { error } = await supabase
-      .from('coupon_history')
-      .delete()
-      .lt('valid_until', new Date().toISOString())
-      .eq('is_used', false);
+    try {
+      const { error } = await supabase
+        .from('coupon_history')
+        .delete()
+        .lt('valid_until', new Date().toISOString())
+        .eq('is_used', false);
 
-    return { error };
+      return { error };
+    } catch (error) {
+      console.error('Delete expired coupons error:', error);
+      return { error };
+    }
   },
 
   /**
@@ -102,17 +147,22 @@ export const couponService = {
    * @returns {object} { data, error }
    */
   async getValidCoupons(customerId) {
-    const now = new Date().toISOString();
+    try {
+      const now = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from('coupon_history')
-      .select('*')
-      .eq('customer_id', customerId)
-      .eq('is_used', false)
-      .or(`valid_until.is.null,valid_until.gte.${now}`)
-      .order('issued_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('coupon_history')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('is_used', false)
+        .or(`valid_until.is.null,valid_until.gte.${now}`)
+        .order('issued_at', { ascending: false });
 
-    return { data, error };
+      return { data, error };
+    } catch (error) {
+      console.error('Get valid coupons error:', error);
+      return { data: [], error };
+    }
   },
 
   /**
@@ -121,15 +171,20 @@ export const couponService = {
    * @returns {object} { count, error }
    */
   async getValidCouponCount(customerId) {
-    const now = new Date().toISOString();
+    try {
+      const now = new Date().toISOString();
 
-    const { count, error } = await supabase
-      .from('coupon_history')
-      .select('*', { count: 'exact', head: true })
-      .eq('customer_id', customerId)
-      .eq('is_used', false)
-      .or(`valid_until.is.null,valid_until.gte.${now}`);
+      const { count, error } = await supabase
+        .from('coupon_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', customerId)
+        .eq('is_used', false)
+        .or(`valid_until.is.null,valid_until.gte.${now}`);
 
-    return { count: count || 0, error };
+      return { count: count || 0, error };
+    } catch (error) {
+      console.error('Get valid coupon count error:', error);
+      return { count: 0, error };
+    }
   },
 };

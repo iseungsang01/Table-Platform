@@ -1,7 +1,5 @@
 import { supabase } from './supabase';
-import { storage } from '../utils/storage';
-
-const CUSTOMER_KEY = 'tarot_customer';
+import { storage, STORAGE_KEYS } from '../utils/storage';
 
 /**
  * 인증 서비스
@@ -17,14 +15,26 @@ export const authService = {
    */
   async login(phoneNumber) {
     try {
-      // 전화번호는 이미 010-1234-5678 형식으로 포맷팅됨
+      console.log('Attempting login with phone:', phoneNumber);
+
+      // 전화번호로 고객 조회
       const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('phone_number', phoneNumber) // 010-1234-5678 그대로 조회
+        .eq('phone_number', phoneNumber)
+        .is('deleted_at', null)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
+      console.log('Supabase response:', { data, error });
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // 데이터가 없음
+          return {
+            success: false,
+            message: '등록되지 않은 전화번호입니다. 매장에 문의해주세요.',
+          };
+        }
         throw error;
       }
 
@@ -36,7 +46,8 @@ export const authService = {
       }
 
       // 로컬 스토리지에 고객 정보 저장
-      await storage.save(CUSTOMER_KEY, data);
+      await storage.save(STORAGE_KEYS.CUSTOMER, data);
+      console.log('Customer data saved to storage');
 
       return { success: true, customer: data };
     } catch (error) {
@@ -53,9 +64,14 @@ export const authService = {
    * 로컬 스토리지에서 고객 정보 및 저장된 전화번호 삭제
    */
   async logout() {
-    await storage.remove(CUSTOMER_KEY);
-    await storage.remove('remember_me');
-    await storage.remove('saved_phone');
+    try {
+      await storage.remove(STORAGE_KEYS.CUSTOMER);
+      await storage.remove(STORAGE_KEYS.REMEMBER_ME);
+      await storage.remove(STORAGE_KEYS.SAVED_PHONE);
+      console.log('Logout completed - all storage cleared');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   },
 
   /**
@@ -65,28 +81,42 @@ export const authService = {
    * @returns {object|null} 고객 정보 또는 null
    */
   async getStoredCustomer() {
-    return await storage.get(CUSTOMER_KEY);
+    try {
+      const customer = await storage.get(STORAGE_KEYS.CUSTOMER);
+      console.log('Retrieved stored customer:', customer ? 'Found' : 'Not found');
+      return customer;
+    } catch (error) {
+      console.error('Get stored customer error:', error);
+      return null;
+    }
   },
 
   /**
    * 고객 정보 새로고침
    * DB에서 최신 정보 조회 후 로컬 스토리지 업데이트
    * 
-   * @param {number} customerId - 고객 ID
+   * @param {string} customerId - 고객 ID (UUID)
    * @returns {object|null} 갱신된 고객 정보 또는 null
    */
   async refreshCustomer(customerId) {
     try {
+      console.log('Refreshing customer:', customerId);
+
       const { data, error } = await supabase
         .from('customers')
         .select('*')
         .eq('id', customerId)
+        .is('deleted_at', null)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Refresh customer error:', error);
+        throw error;
+      }
 
       if (data) {
-        await storage.save(CUSTOMER_KEY, data);
+        await storage.save(STORAGE_KEYS.CUSTOMER, data);
+        console.log('Customer data refreshed');
       }
 
       return data;
