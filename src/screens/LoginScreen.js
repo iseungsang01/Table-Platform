@@ -66,13 +66,15 @@ const LoginScreen = () => {
       });
       return;
     }
+    
+    console.log("입력된 비번:", password); // 여기서 비번이 찍히는지 확인!
+    console.log("🕵️ 현재 호출하는 login 함수의 정체:", login.toString());
 
     setLoading(true);
     setMessage({ text: '로그인 중...', type: 'info' });
 
     // 3. 로그인 시도
     const result = await login(phone, password);
-
     if (result.success) {
       setMessage({ text: '✅ 로그인 성공!', type: 'success' });
     } else {
