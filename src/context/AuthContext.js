@@ -18,31 +18,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkStoredAuth();
+    // 앱 시작 시 로딩만 완료하고 자동 로그인 하지 않음
+    setLoading(false);
   }, []);
-
-  /**
-   * 앱 시작 시 저장된 인증 정보 확인
-   */
-  const checkStoredAuth = async () => {
-    try {
-      console.log('Checking stored auth...');
-      const storedCustomer = await authService.getStoredCustomer();
-      
-      if (storedCustomer && storedCustomer.id) {
-        console.log('Found stored customer:', storedCustomer.nickname, 'UUID:', storedCustomer.id);
-        // 저장된 고객 정보가 있으면 최신 정보로 업데이트 시도
-        const refreshed = await authService.refreshCustomer(storedCustomer.id);
-        setCustomer(refreshed || storedCustomer);
-      } else {
-        console.log('No stored customer found');
-      }
-    } catch (error) {
-      console.error('Check stored auth error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   /**
    * 로그인
@@ -50,19 +28,14 @@ export const AuthProvider = ({ children }) => {
    * @returns {object} { success, message? }
    */
   const login = async (phoneNumber) => {
-    console.log('AuthContext: Login attempt with', phoneNumber);
+    console.log('🔐 로그인 시도:', phoneNumber);
     const result = await authService.login(phoneNumber);
     
     if (result.success) {
-      console.log('AuthContext: Login successful, setting customer');
-      console.log('Customer data:', {
-        id: result.customer.id,
-        nickname: result.customer.nickname,
-        phone: result.customer.phone_number
-      });
+      console.log('✅ 로그인 성공:', result.customer.nickname);
       setCustomer(result.customer);
     } else {
-      console.log('AuthContext: Login failed:', result.message);
+      console.log('❌ 로그인 실패:', result.message);
     }
     
     return result;
@@ -70,34 +43,34 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * 로그아웃
+   * 저장된 정보도 모두 삭제
    */
   const logout = async () => {
     try {
-      console.log('AuthContext: Starting logout...');
+      console.log('🚪 로그아웃 중...');
       await authService.logout();
       setCustomer(null);
-      console.log('AuthContext: Logout successful - customer state cleared');
+      console.log('✅ 로그아웃 완료');
     } catch (error) {
-      console.error('AuthContext: Logout error:', error);
+      console.error('❌ 로그아웃 오류:', error);
     }
   };
 
   /**
    * 고객 정보 새로고침
-   * 스탬프/쿠폰 변경 시 호출
+   * 스탬프/쿠폰 변경 시에만 명시적으로 호출
    */
   const refreshCustomer = async () => {
-    if (customer && customer.id) {
-      try {
-        console.log('AuthContext: Refreshing customer data for UUID:', customer.id);
-        const refreshed = await authService.refreshCustomer(customer.id);
-        if (refreshed) {
-          setCustomer(refreshed);
-          console.log('AuthContext: Customer data refreshed');
-        }
-      } catch (error) {
-        console.error('AuthContext: Refresh customer error:', error);
+    if (!customer) return;
+    
+    try {
+      const refreshed = await authService.refreshCustomer(customer.id);
+      if (refreshed) {
+        setCustomer(refreshed);
+        console.log('✅ 정보 갱신 완료');
       }
+    } catch (error) {
+      console.error('❌ 정보 갱신 오류:', error);
     }
   };
 

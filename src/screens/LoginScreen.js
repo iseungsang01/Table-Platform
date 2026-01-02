@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,47 +6,19 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
 } from 'react-native';
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
 import { formatPhoneNumber } from '../utils/formatters';
 import { validatePhoneNumber } from '../utils/validators';
-import { storage } from '../utils/storage';
 import { Colors } from '../constants/Colors';
 
 const LoginScreen = () => {
   const [phone, setPhone] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-
-  useEffect(() => {
-    loadSavedPhone();
-  }, []);
-
-  /**
-   * 저장된 전화번호 불러오기
-   */
-  const loadSavedPhone = async () => {
-    try {
-      const savedRemember = await storage.get('remember_me');
-      
-      // remember_me가 true일 때만 저장된 전화번호 불러오기
-      if (savedRemember === true) {
-        const savedPhone = await storage.get('saved_phone');
-        if (savedPhone) {
-          console.log('📱 저장된 전화번호 불러오기:', savedPhone);
-          setPhone(savedPhone);
-          setRememberMe(true);
-        }
-      }
-    } catch (error) {
-      console.error('Load saved phone error:', error);
-    }
-  };
 
   /**
    * 전화번호 입력 처리
@@ -81,17 +53,6 @@ const LoginScreen = () => {
     const result = await login(phone);
 
     if (result.success) {
-      // 3. 로그인 정보 저장 여부 처리
-      if (rememberMe) {
-        await storage.save('saved_phone', phone);
-        await storage.save('remember_me', true);
-        console.log('✅ 로그인 정보 저장 완료');
-      } else {
-        await storage.remove('saved_phone');
-        await storage.remove('remember_me');
-        console.log('🗑️ 로그인 정보 삭제 완료');
-      }
-      
       setMessage({ text: '✅ 로그인 성공!', type: 'success' });
     } else {
       setMessage({ 
@@ -129,18 +90,6 @@ const LoginScreen = () => {
               />
             </View>
 
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setRememberMe(!rememberMe)}
-              activeOpacity={0.7}
-              disabled={loading}
-            >
-              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                {rememberMe && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>로그인 정보 저장</Text>
-            </TouchableOpacity>
-
             <CustomButton
               title={loading ? '로그인 중...' : '로그인'}
               onPress={handleLogin}
@@ -161,8 +110,7 @@ const LoginScreen = () => {
             )}
 
             <Text style={styles.helpText}>
-              * 매장 방문 시 등록한 전화번호를 입력해주세요{'\n'}
-              * DB 연결 상태를 확인하려면 아무 번호나 입력해보세요
+              * 매장 방문 시 등록한 전화번호를 입력해주세요
             </Text>
           </View>
         </View>
@@ -235,34 +183,6 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     fontWeight: '600',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: Colors.purpleLight,
-    borderRadius: 6,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.gold,
-    borderColor: Colors.gold,
-  },
-  checkmark: {
-    color: Colors.purpleDark,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: Colors.lavender,
   },
   button: {
     marginBottom: 20,

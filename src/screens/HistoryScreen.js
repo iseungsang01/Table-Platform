@@ -25,10 +25,14 @@ const HistoryScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
 
+  /**
+   * 화면 포커스 시 데이터 로드
+   */
   useFocusEffect(
     useCallback(() => {
+      console.log('📱 HistoryScreen 포커스');
       loadData();
-    }, [customer])
+    }, [])
   );
 
   /**
@@ -40,9 +44,6 @@ const HistoryScreen = ({ navigation }) => {
       loadCouponCount(),
     ]);
     
-    // 고객 정보는 스탬프/쿠폰 변경 시에만 새로고침
-    await refreshCustomer();
-    
     setLoading(false);
   };
 
@@ -50,6 +51,8 @@ const HistoryScreen = ({ navigation }) => {
    * 방문 기록 조회
    */
   const loadVisits = async () => {
+    if (!customer) return;
+    
     const { data, error } = await visitService.getVisits(customer.id);
     if (!error && data) {
       setVisits(data);
@@ -60,6 +63,8 @@ const HistoryScreen = ({ navigation }) => {
    * 쿠폰 개수 조회 (실시간 카운트)
    */
   const loadCouponCount = async () => {
+    if (!customer) return;
+    
     const { count } = await couponService.getCouponCount(customer.id);
     setCouponCount(count || 0);
   };
@@ -69,7 +74,11 @@ const HistoryScreen = ({ navigation }) => {
    */
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await Promise.all([
+      loadVisits(),
+      loadCouponCount(),
+      refreshCustomer(),
+    ]);
     setRefreshing(false);
   };
 
