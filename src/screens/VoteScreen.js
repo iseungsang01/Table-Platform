@@ -287,17 +287,19 @@ const VoteScreen = () => {
             )}
           </View>
 
-          {/* KEY PROP 수정: option.id 사용 */}
-          {options.map((option) => {
-            const votes = voteResults[option.id] || 0;
-            const percentage = getOptionPercentage(option.id);
-            const isMyChoice = myVote && myVote.selected_options?.includes(option.id);
-            const isSelected = selectedOptions.includes(option.id);
+          {/* ✅ KEY PROP 수정: option.id를 명시적으로 사용 */}
+          {options.map((option, index) => {
+            // option.id가 없는 경우를 대비해 인덱스를 fallback으로 사용
+            const optionKey = option.id !== undefined ? option.id : index;
+            const votes = voteResults[optionKey] || 0;
+            const percentage = getOptionPercentage(optionKey);
+            const isMyChoice = myVote && myVote.selected_options?.includes(optionKey);
+            const isSelected = selectedOptions.includes(optionKey);
 
             if (showResults && !isEditMode) {
               return (
                 <View
-                  key={`result-${option.id}`}
+                  key={`result-${optionKey}`}
                   style={[styles.optionCard, isMyChoice && styles.optionCardMy]}
                 >
                   <View style={[styles.optionProgress, { width: `${percentage}%` }]} />
@@ -316,9 +318,9 @@ const VoteScreen = () => {
             } else {
               return (
                 <TouchableOpacity
-                  key={`vote-${option.id}`}
+                  key={`vote-${optionKey}`}
                   style={[styles.optionCard, isSelected && styles.optionCardSelected]}
-                  onPress={() => handleOptionToggle(option.id)}
+                  onPress={() => handleOptionToggle(optionKey)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.optionRow}>

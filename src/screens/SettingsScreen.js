@@ -15,7 +15,7 @@ import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
 import { customerService } from '../services/customerService';
-import { AdminPassword } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { Colors } from '../constants/Colors';
 
 const SettingsScreen = () => {
@@ -29,16 +29,11 @@ const SettingsScreen = () => {
   const [processing, setProcessing] = useState(false);
 
   /**
-   * 비밀번호 재설정
+   * 비밀번호 재설정 (수정됨 ✅)
    */
   const handlePasswordReset = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('알림', '모든 필드를 입력해주세요.');
-      return;
-    }
-
-    if (currentPassword !== AdminPassword) {
-      Alert.alert('오류', '현재 비밀번호가 올바르지 않습니다.');
       return;
     }
 
@@ -53,31 +48,58 @@ const SettingsScreen = () => {
     }
 
     Keyboard.dismiss();
+    setProcessing(true);
 
-    Alert.alert(
-      '비밀번호 재설정',
-      '비밀번호를 재설정하시겠습니까?\n\n⚠️ 이 기능은 관리자에게 문의하여 수동으로 변경해야 합니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '확인',
-          onPress: () => {
-            Alert.alert(
-              '안내',
-              `새 비밀번호: ${newPassword}\n\n관리자에게 위 비밀번호로 변경을 요청해주세요.`
-            );
-            setShowPasswordReset(false);
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-          },
-        },
-      ]
-    );
+    try {
+      // 1. 현재 비밀번호 검증
+      const { data: isValid, error: verifyError } = await supabase
+        .rpc('verify_password', {
+          customer_uuid: customer.id,
+          input_password: currentPassword
+        });
+
+      if (verifyError) {
+        console.error('비밀번호 검증 오류:', verifyError);
+        Alert.alert('오류', '비밀번호 검증 중 오류가 발생했습니다.');
+        setProcessing(false);
+        return;
+      }
+
+      if (!isValid) {
+        Alert.alert('오류', '현재 비밀번호가 올바르지 않습니다.');
+        setProcessing(false);
+        return;
+      }
+
+      // 2. 새 비밀번호로 변경 (RPC 함수 호출)
+      const { error: updateError } = await supabase
+        .rpc('update_customer_password', {
+          customer_uuid: customer.id,
+          new_password: newPassword
+        });
+
+      if (updateError) {
+        console.error('비밀번호 변경 오류:', updateError);
+        Alert.alert('오류', '비밀번호 변경 중 오류가 발생했습니다.');
+        setProcessing(false);
+        return;
+      }
+
+      Alert.alert('완료', '✅ 비밀번호가 변경되었습니다!');
+      setShowPasswordReset(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setProcessing(false);
+    } catch (error) {
+      console.error('비밀번호 재설정 오류:', error);
+      Alert.alert('오류', '예상치 못한 오류가 발생했습니다.');
+      setProcessing(false);
+    }
   };
 
   /**
-   * 회원 탈퇴
+   * 회원 탈퇴 (수정됨 ✅ - 본인 비밀번호로 변경)
    */
   const handleDeleteAccount = async () => {
     if (!deleteConfirmPassword) {
@@ -85,46 +107,71 @@ const SettingsScreen = () => {
       return;
     }
 
-    if (deleteConfirmPassword !== AdminPassword) {
-      Alert.alert('오류', '비밀번호가 올바르지 않습니다.');
-      return;
-    }
-
     Keyboard.dismiss();
+    setProcessing(true);
 
-    Alert.alert(
-      '회원 탈퇴',
-      '정말로 탈퇴하시겠습니까?\n\n모든 데이터가 삭제되며 복구할 수 없습니다.\n(스탬프, 쿠폰, 방문 기록 등)',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '탈퇴',
-          style: 'destructive',
-          onPress: async () => {
-            setProcessing(true);
+    try {
+      // 1. 본인 비밀번호 검증
+      const { data: isValid, error: verifyError } = await supabase
+        .rpc('verify_password', {
+          customer_uuid: customer.id,
+          input_password: deleteConfirmPassword
+        });
 
-            const { error } = await customerService.deleteCustomer(customer.id);
+      if (verifyError) {
+        console.error('비밀번호 검증 오류:', verifyError);
+        Alert.alert('오류', '비밀번호 검증 중 오류가 발생했습니다.');
+        setProcessing(false);
+        return;
+      }
 
-            if (error) {
-              Alert.alert('오류', '탈퇴 처리 중 오류가 발생했습니다.');
-              setProcessing(false);
-              return;
-            }
+      if (!isValid) {
+        Alert.alert('오류', '비밀번호가 올바르지 않습니다.');
+        setProcessing(false);
+        return;
+      }
 
-            Alert.alert('완료', '회원 탈퇴가 완료되었습니다.', [
-              {
-                text: '확인',
-                onPress: async () => {
-                  await logout();
-                },
-              },
-            ]);
-
-            setProcessing(false);
+      // 2. 탈퇴 확인
+      Alert.alert(
+        '회원 탈퇴',
+        '정말로 탈퇴하시겠습니까?\n\n모든 데이터가 삭제되며 복구할 수 없습니다.\n(스탬프, 쿠폰, 방문 기록 등)',
+        [
+          { 
+            text: '취소', 
+            style: 'cancel',
+            onPress: () => setProcessing(false)
           },
-        },
-      ]
-    );
+          {
+            text: '탈퇴',
+            style: 'destructive',
+            onPress: async () => {
+              const { error } = await customerService.deleteCustomer(customer.id);
+
+              if (error) {
+                Alert.alert('오류', '탈퇴 처리 중 오류가 발생했습니다.');
+                setProcessing(false);
+                return;
+              }
+
+              Alert.alert('완료', '회원 탈퇴가 완료되었습니다.', [
+                {
+                  text: '확인',
+                  onPress: async () => {
+                    await logout();
+                  },
+                },
+              ]);
+
+              setProcessing(false);
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('회원 탈퇴 오류:', error);
+      Alert.alert('오류', '예상치 못한 오류가 발생했습니다.');
+      setProcessing(false);
+    }
   };
 
   /**
@@ -196,7 +243,7 @@ const SettingsScreen = () => {
           {showPasswordReset && (
             <View style={styles.formCard}>
               <Text style={styles.formDescription}>
-                관리자 비밀번호 변경을 요청할 수 있습니다.
+                현재 비밀번호를 확인한 후 새 비밀번호로 변경할 수 있습니다.
               </Text>
 
               <View style={styles.inputGroup}>
@@ -245,9 +292,10 @@ const SettingsScreen = () => {
               </View>
 
               <CustomButton
-                title="비밀번호 재설정 요청"
+                title={processing ? '처리 중...' : '비밀번호 변경'}
                 onPress={handlePasswordReset}
                 disabled={processing}
+                loading={processing}
                 style={styles.submitButton}
               />
             </View>
@@ -274,7 +322,7 @@ const SettingsScreen = () => {
               </Text>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.labelDanger}>관리자 비밀번호 확인</Text>
+                <Text style={styles.labelDanger}>본인 확인을 위해 비밀번호를 입력해주세요</Text>
                 <TextInput
                   style={styles.inputDanger}
                   value={deleteConfirmPassword}
