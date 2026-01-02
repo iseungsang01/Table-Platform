@@ -287,6 +287,7 @@ const VoteScreen = () => {
             )}
           </View>
 
+          {/* KEY PROP 수정: option.id 사용 */}
           {options.map((option) => {
             const votes = voteResults[option.id] || 0;
             const percentage = getOptionPercentage(option.id);
@@ -296,7 +297,7 @@ const VoteScreen = () => {
             if (showResults && !isEditMode) {
               return (
                 <View
-                  key={option.id}
+                  key={`result-${option.id}`}
                   style={[styles.optionCard, isMyChoice && styles.optionCardMy]}
                 >
                   <View style={[styles.optionProgress, { width: `${percentage}%` }]} />
@@ -315,7 +316,7 @@ const VoteScreen = () => {
             } else {
               return (
                 <TouchableOpacity
-                  key={option.id}
+                  key={`vote-${option.id}`}
                   style={[styles.optionCard, isSelected && styles.optionCardSelected]}
                   onPress={() => handleOptionToggle(option.id)}
                   activeOpacity={0.7}

@@ -16,6 +16,7 @@ import { Colors } from '../constants/Colors';
 
 const LoginScreen = () => {
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -27,6 +28,17 @@ const LoginScreen = () => {
   const handlePhoneChange = (text) => {
     const formatted = formatPhoneNumber(text);
     setPhone(formatted);
+    // 메시지 초기화
+    if (message.text) {
+      setMessage({ text: '', type: '' });
+    }
+  };
+
+  /**
+   * 비밀번호 입력 처리
+   */
+  const handlePasswordChange = (text) => {
+    setPassword(text);
     // 메시지 초기화
     if (message.text) {
       setMessage({ text: '', type: '' });
@@ -46,11 +58,20 @@ const LoginScreen = () => {
       return;
     }
 
+    // 2. 비밀번호 입력 확인
+    if (!password.trim()) {
+      setMessage({ 
+        text: '비밀번호를 입력해주세요.', 
+        type: 'error' 
+      });
+      return;
+    }
+
     setLoading(true);
     setMessage({ text: '로그인 중...', type: 'info' });
 
-    // 2. 로그인 시도
-    const result = await login(phone);
+    // 3. 로그인 시도
+    const result = await login(phone, password);
 
     if (result.success) {
       setMessage({ text: '✅ 로그인 성공!', type: 'success' });
@@ -87,6 +108,25 @@ const LoginScreen = () => {
                 keyboardType="phone-pad"
                 maxLength={13}
                 editable={!loading}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>비밀번호</Text>
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={handlePasswordChange}
+                placeholder="비밀번호 입력"
+                placeholderTextColor={Colors.purpleLight}
+                secureTextEntry
+                editable={!loading}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
               />
             </View>
 
@@ -110,7 +150,7 @@ const LoginScreen = () => {
             )}
 
             <Text style={styles.helpText}>
-              * 매장 방문 시 등록한 전화번호를 입력해주세요
+              * 매장 방문 시 등록한 전화번호와 비밀번호를 입력해주세요
             </Text>
           </View>
         </View>

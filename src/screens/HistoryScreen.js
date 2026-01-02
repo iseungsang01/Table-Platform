@@ -19,26 +19,32 @@ import { couponService } from '../services/couponService';
 import { Colors } from '../constants/Colors';
 
 const HistoryScreen = ({ navigation }) => {
-  const { customer, logout, refreshCustomer } = useAuth();
+  const { customer, refreshCustomer } = useAuth();
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
 
+  /**
+   * 화면 포커스 시 데이터 로드 (최적화)
+   * refreshCustomer 제거 - 필요할 때만 명시적으로 호출
+   */
   useFocusEffect(
     useCallback(() => {
       console.log('📱 HistoryScreen 포커스');
       loadData();
-    }, [customer])
+    }, [])
   );
 
   /**
-   * 데이터 로드 (최초 1회만 쿠폰 카운트 조회)
+   * 데이터 로드
    */
   const loadData = async () => {
-    await loadVisits();
-    await loadCouponCount();
-    await refreshCustomer();
+    await Promise.all([
+      loadVisits(),
+      loadCouponCount(),
+    ]);
+    
     setLoading(false);
   };
 
@@ -46,6 +52,8 @@ const HistoryScreen = ({ navigation }) => {
    * 방문 기록 조회
    */
   const loadVisits = async () => {
+    if (!customer) return;
+    
     const { data, error } = await visitService.getVisits(customer.id);
     if (!error && data) {
       setVisits(data);
@@ -56,16 +64,22 @@ const HistoryScreen = ({ navigation }) => {
    * 쿠폰 개수 조회 (실시간 카운트)
    */
   const loadCouponCount = async () => {
+    if (!customer) return;
+    
     const { count } = await couponService.getCouponCount(customer.id);
     setCouponCount(count || 0);
   };
 
   /**
    * 새로고침
+   * 필요한 경우에만 refreshCustomer 호출
    */
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await Promise.all([
+      loadVisits(),
+      loadCouponCount(),
+    ]);
     setRefreshing(false);
   };
 
@@ -97,6 +111,7 @@ const HistoryScreen = ({ navigation }) => {
             if (!error) {
               Alert.alert('알림', '🗑️ 기록이 삭제되었습니다.');
               await loadVisits();
+              // 스탬프가 변경되었으므로 고객 정보 갱신
               await refreshCustomer();
             }
           },
@@ -106,27 +121,7 @@ const HistoryScreen = ({ navigation }) => {
   };
 
   /**
-   * 로그아웃
-   */
-  const handleLogout = () => {
-    Alert.alert(
-      '로그아웃',
-      '로그아웃 하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '로그아웃',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-          },
-        },
-      ]
-    );
-  };
-
-  /**
-   * 헤더 렌더링
+   * 헤더 렌더링 (로그아웃 버튼 제거)
    */
   const renderHeader = () => (
     <View>
@@ -136,13 +131,6 @@ const HistoryScreen = ({ navigation }) => {
             <Text style={styles.title}>🔮 나의 타로 기록</Text>
             <Text style={styles.customerName}>{customer.nickname}님의 방문 기록</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.logoutButton} 
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.logoutButtonText}>로그아웃</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -242,19 +230,6 @@ const styles = StyleSheet.create({
   customerName: {
     fontSize: 16,
     color: Colors.lavender,
-  },
-  logoutButton: {
-    backgroundColor: 'rgba(255, 69, 0, 0.3)',
-    borderWidth: 2,
-    borderColor: Colors.red,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  logoutButtonText: {
-    color: '#ffb3b3',
-    fontSize: 14,
-    fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',
