@@ -35,12 +35,13 @@ const CouponScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('🎟️ CouponScreen 포커스');
       loadCoupons();
     }, [])
   );
 
   /**
-   * 쿠폰 목록 조회
+   * 쿠폰 목록 조회 (포커스될 때만 호출)
    */
   const loadCoupons = async () => {
     const { data, error } = await couponService.getCoupons(customer.id);
@@ -112,7 +113,6 @@ const CouponScreen = ({ navigation }) => {
           onPress: async () => {
             setProcessing(true);
 
-            // is_used = true, used_at = 현재 시각으로 업데이트
             const { error } = await couponService.useCoupon(selectedCoupon.id);
 
             if (error) {
@@ -124,10 +124,7 @@ const CouponScreen = ({ navigation }) => {
             Alert.alert('완료', `✅ ${couponType}이 사용되었습니다!`);
             handleCancelUse();
             await loadCoupons();
-            
-            // 고객 정보 새로고침
             await refreshCustomer();
-            
             setProcessing(false);
           },
         },

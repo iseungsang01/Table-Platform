@@ -10,6 +10,7 @@ import HistoryScreen from '../screens/HistoryScreen';
 import CouponScreen from '../screens/CouponScreen';
 import VoteScreen from '../screens/VoteScreen';
 import NoticeScreen from '../screens/NoticeScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import CardSelectionScreen from '../screens/CardSelectionScreen';
 
 const Stack = createStackNavigator();
@@ -89,6 +90,16 @@ const TabNavigator = () => {
           tabBarLabel: '공지',
           tabBarIcon: ({ focused }) => (
             <TabIcon emoji="📢" hasNotification={hasAnyUnread} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarLabel: '설정',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="⚙️" hasNotification={false} />
           ),
         }}
       />
