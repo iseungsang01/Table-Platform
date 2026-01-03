@@ -53,62 +53,145 @@ export const authService = {
    */
   async login(phoneNumber, password) {
     try {
-      // 🔍 [추가된 로그] 함수에 인자가 어떻게 들어오는지 바로 확인
-      console.log('📌 함수 인자 체크:', { phoneNumber, password }); 
+      console.log('========================================');
+      console.log('🔐 [authService] 로그인 시작');
+      console.log('========================================');
+      console.log('📞 [authService] 전화번호:', phoneNumber);
+      console.log('🔑 [authService] 비밀번호:', password ? '입력됨' : '입력 안됨');
       
-      console.log('🔐 로그인 시도:', phoneNumber);
       const normalizedPhone = phoneNumber.trim();
+      console.log('📞 [authService] 정규화된 전화번호:', normalizedPhone);
 
-      // 1. 전화번호로 고객 조회 (생략... 기존 코드 그대로)
+      // 1. 전화번호로 고객 조회
+      console.log('🔍 [authService] 고객 조회 중...');
+      
       const { data, error } = await supabase
         .from('customers')
         .select('*')
         .eq('phone_number', normalizedPhone)
         .is('deleted_at', null);
 
+      if (error) {
+        console.error('❌ [authService] 조회 오류:', error);
+        return { success: false, message: '데이터베이스 오류가 발생했습니다.' };
+      }
+
+      console.log('📊 [authService] 조회 결과:', data?.length || 0, '건');
+
       const customer = data?.[0];
-      if (!customer) return { success: false, message: '등록되지 않은 번호입니다.' };
+      if (!customer) {
+        console.log('❌ [authService] 등록되지 않은 번호');
+        return { success: false, message: '등록되지 않은 번호입니다.' };
+      }
+
+      console.log('✅ [authService] 고객 조회 성공:', {
+        id: customer.id,
+        nickname: customer.nickname,
+        phone: customer.phone_number
+      });
 
       // 2. 비밀번호 검증 (RPC)
-      // 여기서 password가 undefined면 SQL 함수를 못 찾는 에러(PGRST202)가 납니다.
+      console.log('🔑 [authService] 비밀번호 검증 중...');
+      console.log('🔑 [authService] Customer UUID:', customer.id);
+      console.log('🔑 [authService] Password:', password || '(empty)');
+      
       const { data: passwordCheck, error: passwordError } = await supabase
         .rpc('verify_password', {
           customer_uuid: customer.id,
-          input_password: password || '' // 비번이 없으면 빈 문자열이라도 보냄
+          input_password: password || ''
         });
 
-      if (passwordError) throw passwordError;
+      if (passwordError) {
+        console.error('❌ [authService] RPC 오류:', passwordError);
+        return { success: false, message: '비밀번호 검증 중 오류가 발생했습니다.' };
+      }
+
+      console.log('🔑 [authService] 비밀번호 검증 결과:', passwordCheck);
       
       if (passwordCheck) {
+        console.log('✅ [authService] 로그인 성공!');
+        console.log('💾 [authService] 로컬 스토리지 저장 중...');
+        
         await storage.save(CUSTOMER_KEY, customer);
+        
+        console.log('✅ [authService] 로컬 스토리지 저장 완료');
+        console.log('========================================');
+        
         return { success: true, customer };
       }
+      
+      console.log('❌ [authService] 비밀번호 불일치');
+      console.log('========================================');
+      
       return { success: false, message: '비밀번호가 틀렸습니다.' };
 
     } catch (error) {
-      console.error('❌ 로그인 오류:', error);
+      console.error('========================================');
+      console.error('❌ [authService] 로그인 전체 오류:', error);
+      console.error('❌ [authService] 오류 메시지:', error.message);
+      console.error('❌ [authService] 오류 스택:', error.stack);
+      console.error('========================================');
+      
       return { success: false, message: '오류가 발생했습니다.' };
     }
   },
 
+  /**
+   * 로그아웃
+   */
   async logout() {
+    console.log('🚪 [authService] 로그아웃 시작');
     await storage.remove(CUSTOMER_KEY);
+    console.log('✅ [authService] 로그아웃 완료');
   },
 
+  /**
+   * 저장된 고객 정보 조회
+   */
   async getStoredCustomer() {
-    return await storage.get(CUSTOMER_KEY);
+    console.log('📥 [authService] 저장된 고객 정보 조회');
+    const customer = await storage.get(CUSTOMER_KEY);
+    
+    if (customer) {
+      console.log('✅ [authService] 저장된 고객:', customer.nickname);
+    } else {
+      console.log('❌ [authService] 저장된 고객 없음');
+    }
+    
+    return customer;
   },
 
+  /**
+   * 고객 정보 새로고침
+   */
   async refreshCustomer(customerId) {
-    if (!customerId) return null;
-    const { data } = await supabase
+    if (!customerId) {
+      console.log('❌ [authService] refreshCustomer: customerId 없음');
+      return null;
+    }
+    
+    console.log('🔄 [authService] 고객 정보 새로고침:', customerId);
+    
+    const { data, error } = await supabase
       .from('customers')
       .select('*')
       .eq('id', customerId)
       .is('deleted_at', null);
     
+    if (error) {
+      console.error('❌ [authService] 새로고침 오류:', error);
+      return null;
+    }
+    
     const customer = data && data.length > 0 ? data[0] : null;
-    if (customer) await storage.save(CUSTOMER_KEY, customer);
+    
+    if (customer) {
+      console.log('✅ [authService] 새로고침 성공:', customer.nickname);
+      await storage.save(CUSTOMER_KEY, customer);
+    } else {
+      console.log('❌ [authService] 고객 정보 없음');
+    }
+    
     return customer;
   },
 };
