@@ -175,6 +175,32 @@ const VoteScreen = () => {
     });
   };
 
+  /**
+   * ✅ 버그 수정: options 데이터 정규화
+   * options가 객체인 경우 배열로 변환
+   */
+  const normalizeOptions = (options) => {
+    if (!options) return [];
+    
+    // 이미 배열인 경우
+    if (Array.isArray(options)) {
+      return options.map((opt, index) => ({
+        id: index,
+        text: typeof opt === 'string' ? opt : opt.text || opt
+      }));
+    }
+    
+    // 객체인 경우 배열로 변환
+    if (typeof options === 'object') {
+      return Object.entries(options).map(([key, value]) => ({
+        id: parseInt(key),
+        text: value
+      }));
+    }
+    
+    return [];
+  };
+
   const renderVoteList = () => (
     <View>
       <View style={styles.header}>
@@ -188,34 +214,38 @@ const VoteScreen = () => {
           <Text style={styles.emptyTitle}>진행 중인 투표가 없습니다</Text>
         </View>
       ) : (
-        votes.map((vote) => (
-          <TouchableOpacity
-            key={vote.id}
-            style={styles.voteCard}
-            onPress={() => handleVoteSelect(vote)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.voteCardHeader}>
-              <View style={styles.voteBadges}>
-                <Text style={styles.voteBadge}>
-                  {vote.allow_multiple ? `복수선택 (최대 ${vote.max_selections}개)` : '단일선택'}
-                </Text>
-                {vote.is_anonymous && <Text style={styles.voteBadgeAnonymous}>익명투표</Text>}
+        votes.map((vote) => {
+          const normalizedOptions = normalizeOptions(vote.options);
+          
+          return (
+            <TouchableOpacity
+              key={vote.id}
+              style={styles.voteCard}
+              onPress={() => handleVoteSelect(vote)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.voteCardHeader}>
+                <View style={styles.voteBadges}>
+                  <Text style={styles.voteBadge}>
+                    {vote.allow_multiple ? `복수선택 (최대 ${vote.max_selections}개)` : '단일선택'}
+                  </Text>
+                  {vote.is_anonymous && <Text style={styles.voteBadgeAnonymous}>익명투표</Text>}
+                </View>
               </View>
-            </View>
 
-            <Text style={styles.voteTitle}>{vote.title}</Text>
+              <Text style={styles.voteTitle}>{vote.title}</Text>
 
-            {vote.description && (
-              <Text style={styles.voteDescription}>{vote.description}</Text>
-            )}
+              {vote.description && (
+                <Text style={styles.voteDescription}>{vote.description}</Text>
+              )}
 
-            <View style={styles.voteFooter}>
-              <Text style={styles.voteDate}>📅 마감: {formatDate(vote.ends_at)}</Text>
-              <Text style={styles.voteOptionsCount}>{vote.options?.length || 0}개 항목</Text>
-            </View>
-          </TouchableOpacity>
-        ))
+              <View style={styles.voteFooter}>
+                <Text style={styles.voteDate}>📅 마감: {formatDate(vote.ends_at)}</Text>
+                <Text style={styles.voteOptionsCount}>{normalizedOptions.length}개 항목</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })
       )}
     </View>
   );
@@ -223,9 +253,12 @@ const VoteScreen = () => {
   const renderVoteDetail = () => {
     if (!selectedVote) return null;
 
-    const options = selectedVote.options || [];
+    // ✅ 버그 수정: options 정규화
+    const options = normalizeOptions(selectedVote.options);
     const totalVotes = getTotalVotes();
     const hasVoted = myVote !== null;
+
+    console.log('🗳️ [VoteScreen] 투표 옵션:', options);
 
     return (
       <View>
@@ -287,19 +320,18 @@ const VoteScreen = () => {
             )}
           </View>
 
-          {/* ✅ KEY PROP 수정: option.id를 명시적으로 사용 */}
-          {options.map((option, index) => {
-            // option.id가 없는 경우를 대비해 인덱스를 fallback으로 사용
-            const optionKey = option.id !== undefined ? option.id : index;
-            const votes = voteResults[optionKey] || 0;
-            const percentage = getOptionPercentage(optionKey);
-            const isMyChoice = myVote && myVote.selected_options?.includes(optionKey);
-            const isSelected = selectedOptions.includes(optionKey);
+          {/* ✅ 버그 수정: 정규화된 옵션 사용 */}
+          {options.map((option) => {
+            const optionId = option.id;
+            const votes = voteResults[optionId] || 0;
+            const percentage = getOptionPercentage(optionId);
+            const isMyChoice = myVote && myVote.selected_options?.includes(optionId);
+            const isSelected = selectedOptions.includes(optionId);
 
             if (showResults && !isEditMode) {
               return (
                 <View
-                  key={`result-${optionKey}`}
+                  key={`result-${optionId}`}
                   style={[styles.optionCard, isMyChoice && styles.optionCardMy]}
                 >
                   <View style={[styles.optionProgress, { width: `${percentage}%` }]} />
@@ -318,9 +350,9 @@ const VoteScreen = () => {
             } else {
               return (
                 <TouchableOpacity
-                  key={`vote-${optionKey}`}
+                  key={`vote-${optionId}`}
                   style={[styles.optionCard, isSelected && styles.optionCardSelected]}
-                  onPress={() => handleOptionToggle(optionKey)}
+                  onPress={() => handleOptionToggle(optionId)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.optionRow}>

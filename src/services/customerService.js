@@ -56,16 +56,39 @@ export const customerService = {
   },
 
   /**
-   * 고객 탈퇴 (Soft Delete)
-   * @param {number} customerId - 고객 ID
-   * @returns {object} { error }
+   * 고객 탈퇴 (Soft Delete - RPC 함수 사용)
+   * ✅ 버그 수정: RLS 우회를 위해 SQL 함수 사용
+   * @param {string} customerId - 고객 ID (UUID)
+   * @returns {object} { success, error }
    */
   async deleteCustomer(customerId) {
-    const { error } = await supabase
-      .from('customers')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', customerId);
+    try {
+      console.log('🗑️ [customerService] 탈퇴 시작:', customerId);
+      
+      // RPC 함수 호출로 RLS 우회
+      const { data, error } = await supabase
+        .rpc('soft_delete_customer', {
+          customer_uuid: customerId
+        });
 
-    return { error };
+      if (error) {
+        console.error('❌ [customerService] RPC 오류:', error);
+        return { success: false, error };
+      }
+
+      if (data === false) {
+        console.error('❌ [customerService] 탈퇴 실패: 이미 탈퇴되었거나 존재하지 않는 계정');
+        return { 
+          success: false, 
+          error: { message: '이미 탈퇴되었거나 존재하지 않는 계정입니다.' }
+        };
+      }
+
+      console.log('✅ [customerService] 탈퇴 성공');
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('❌ [customerService] 탈퇴 오류:', error);
+      return { success: false, error };
+    }
   },
 };

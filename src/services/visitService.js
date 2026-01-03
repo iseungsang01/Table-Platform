@@ -14,14 +14,26 @@ export const visitService = {
    */
   async getVisits(customerId) {
     try {
+      console.log('🔍 [visitService] 방문 기록 조회 시작:', customerId);
+      console.log('🔍 [visitService] customerId 타입:', typeof customerId);
+      
+      // ✅ 버그 수정: customer_id를 문자열로 변환
+      const customerIdString = String(customerId);
+      console.log('🔍 [visitService] 변환된 customerId:', customerIdString);
+
       // 1. Supabase에서 방문 기록 조회
       const { data, error } = await supabase
         .from('visit_history')
         .select('*')
-        .eq('customer_id', customerId)
+        .eq('customer_id', customerIdString)
         .order('visit_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [visitService] Supabase 조회 오류:', error);
+        throw error;
+      }
+
+      console.log('✅ [visitService] Supabase 조회 성공:', data?.length || 0, '건');
 
       // 2. 로컬 스토리지에서 이미지/리뷰 가져오기
       const allImages = await storage.getAllCardImages();
@@ -34,15 +46,18 @@ export const visitService = {
         card_review: allReviews[visit.id] || null,
       }));
 
+      console.log('✅ [visitService] 로컬 데이터 병합 완료:', visitsWithLocalData.length, '건');
+
       // 4. 캐시 저장
       await storage.cacheVisits(visitsWithLocalData);
 
       return { data: visitsWithLocalData, error: null };
     } catch (error) {
-      console.error('Get visits error:', error);
+      console.error('❌ [visitService] 전체 오류:', error);
       
       // 오류 시 캐시된 데이터 반환
       const cachedVisits = await storage.getCachedVisits();
+      console.log('🔄 [visitService] 캐시 데이터 반환:', cachedVisits.length, '건');
       return { data: cachedVisits, error };
     }
   },
@@ -199,11 +214,14 @@ export const visitService = {
    */
   async cleanupLocalData(customerId) {
     try {
+      // ✅ 버그 수정: customer_id를 문자열로 변환
+      const customerIdString = String(customerId);
+      
       // 1. 현재 유효한 방문 기록 ID 목록 가져오기
       const { data, error } = await supabase
         .from('visit_history')
         .select('id')
-        .eq('customer_id', customerId);
+        .eq('customer_id', customerIdString);
 
       if (error) throw error;
 
