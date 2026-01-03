@@ -262,4 +262,24 @@ const styles = StyleSheet.create({
   },
 });
 
+// HistoryScreen.js의 loadData 함수만 수정
+
+/**
+ * 데이터 로드
+ */
+const loadData = async () => {
+  // 🔍 임시 디버깅 실행
+  console.log('🔍 [HistoryScreen] 디버깅 시작');
+  const debugResult = await visitService.debugVisits(customer.id);
+  console.log('🔍 [HistoryScreen] 디버깅 결과:', debugResult);
+  
+  // 기존 코드
+  await Promise.all([
+    loadVisits(),
+    loadCouponCount(),
+  ]);
+  
+  setLoading(false);
+};
+
 export default HistoryScreen;

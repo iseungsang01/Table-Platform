@@ -16,16 +16,12 @@ export const visitService = {
     try {
       console.log('🔍 [visitService] 방문 기록 조회 시작:', customerId);
       console.log('🔍 [visitService] customerId 타입:', typeof customerId);
-      
-      // ✅ 버그 수정: customer_id를 문자열로 변환
-      const customerIdString = String(customerId);
-      console.log('🔍 [visitService] 변환된 customerId:', customerIdString);
 
-      // 1. Supabase에서 방문 기록 조회
+      // ✅ UUID로 변환하여 쿼리 (문자열 비교가 아닌 UUID 비교)
       const { data, error } = await supabase
         .from('visit_history')
         .select('*')
-        .eq('customer_id', customerIdString)
+        .eq('customer_id', customerId)
         .order('visit_date', { ascending: false });
 
       if (error) {
@@ -34,6 +30,11 @@ export const visitService = {
       }
 
       console.log('✅ [visitService] Supabase 조회 성공:', data?.length || 0, '건');
+      
+      // 🔍 디버깅: 실제 데이터 내용 확인
+      if (data && data.length > 0) {
+        console.log('📋 [visitService] 첫 번째 방문 기록:', data[0]);
+      }
 
       // 2. 로컬 스토리지에서 이미지/리뷰 가져오기
       const allImages = await storage.getAllCardImages();
@@ -214,24 +215,69 @@ export const visitService = {
    */
   async cleanupLocalData(customerId) {
     try {
-      // ✅ 버그 수정: customer_id를 문자열로 변환
-      const customerIdString = String(customerId);
+      console.log('🧹 [visitService] 로컬 데이터 정리 시작:', customerId);
       
       // 1. 현재 유효한 방문 기록 ID 목록 가져오기
       const { data, error } = await supabase
         .from('visit_history')
         .select('id')
-        .eq('customer_id', customerIdString);
+        .eq('customer_id', customerId);
 
       if (error) throw error;
 
       const validVisitIds = (data || []).map(v => v.id);
 
+      console.log('📋 [visitService] 유효한 방문 ID:', validVisitIds);
+
       // 2. 로컬 스토리지 정리
       await storage.cleanupOrphanedImages(validVisitIds);
       await storage.cleanupOrphanedReviews(validVisitIds);
+      
+      console.log('✅ [visitService] 로컬 데이터 정리 완료');
     } catch (error) {
-      console.error('Cleanup local data error:', error);
+      console.error('❌ [visitService] 정리 오류:', error);
+    }
+  },
+
+  /**
+   * 🔍 디버깅: 데이터베이스 직접 조회 테스트
+   * @param {string} customerId - 고객 ID (UUID)
+   */
+  async debugVisits(customerId) {
+    try {
+      console.log('🔍 [DEBUG] 방문 기록 디버깅 시작');
+      console.log('🔍 [DEBUG] Customer ID:', customerId);
+      
+      // 1. 전체 방문 기록 조회 (필터 없이)
+      const { data: allVisits, error: allError } = await supabase
+        .from('visit_history')
+        .select('*');
+      
+      console.log('📊 [DEBUG] 전체 방문 기록 개수:', allVisits?.length || 0);
+      
+      if (allVisits && allVisits.length > 0) {
+        console.log('📋 [DEBUG] 첫 번째 방문 기록:', allVisits[0]);
+        console.log('🔍 [DEBUG] customer_id 타입:', typeof allVisits[0].customer_id);
+        console.log('🔍 [DEBUG] customer_id 값:', allVisits[0].customer_id);
+      }
+      
+      // 2. 특정 고객 방문 기록 조회
+      const { data: myVisits, error: myError } = await supabase
+        .from('visit_history')
+        .select('*')
+        .eq('customer_id', customerId);
+      
+      console.log('📊 [DEBUG] 내 방문 기록 개수:', myVisits?.length || 0);
+      
+      if (myError) {
+        console.error('❌ [DEBUG] 조회 오류:', myError);
+      }
+      
+      return { allVisits, myVisits };
+    } catch (error) {
+      console.error('❌ [DEBUG] 디버깅 오류:', error);
+      return null;
     }
   },
 };
+
