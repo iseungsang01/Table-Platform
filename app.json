@@ -26,12 +26,23 @@
       },
       "package": "com.tarotstamp.app",
       "versionCode": 1,
-      "permissions": []
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "타로 도장을 찍기 위해 사진 갤러리에 접근합니다.",
+          "cameraPermission": "타로 도장을 찍기 위해 카메라에 접근합니다."
+        }
+      ],
       [
         "expo-build-properties",
         {
