@@ -53,9 +53,9 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
         return;
       }
 
-      // 갤러리 열기
+      // 갤러리 열기 - ✅ mediaTypes 업데이트
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'], // ✅ 배열 형태로 변경
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,

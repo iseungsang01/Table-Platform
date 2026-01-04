@@ -42,9 +42,9 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 카메라 실행
+      // 카메라 실행 - ✅ mediaTypes 업데이트
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'], // ✅ 배열 형태로 변경
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
@@ -73,9 +73,9 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 갤러리 열기
+      // 갤러리 열기 - ✅ mediaTypes 업데이트
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'], // ✅ 배열 형태로 변경
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
@@ -475,5 +475,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ default export 추가
 export default CardSelectionScreen;
