@@ -19,7 +19,7 @@ export const STAMP_CONFIG = {
 };
 
 export const REVIEW_CONFIG = {
-  maxLength: 100,
+  maxLength: 5000, // ✅ 5000자로 증가
   minLength: 0,
 };
 

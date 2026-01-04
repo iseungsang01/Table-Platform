@@ -1,18 +1,10 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Keyboard,
-  Image,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Keyboard, Image } from 'react-native';
 import { CustomButton } from './CustomButton';
 import { visitService } from '../services/visitService';
 import { formatDate } from '../utils/formatters';
 import { Colors } from '../constants/Colors';
+import { REVIEW_CONFIG } from '../constants/Config';
 
 export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -25,38 +17,27 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
   };
 
   const handleEditSave = async () => {
-    if (editReview.trim().length > 100) {
-      Alert.alert('알림', '리뷰는 100자 이내로 작성해주세요.');
-      return;
+    const trimmedReview = editReview.trim();
+    if (trimmedReview.length > REVIEW_CONFIG.maxLength) {
+      return Alert.alert('알림', `리뷰는 ${REVIEW_CONFIG.maxLength}자 이내로 작성해주세요.`);
     }
 
     Keyboard.dismiss();
     setSaving(true);
 
     try {
-      const reviewValue = editReview.trim() === '' ? null : editReview.trim();
-      
-      const { data, error } = await visitService.updateVisit(visit.id, {
-        card_review: reviewValue,
+      const { error } = await visitService.updateVisit(visit.id, {
+        card_review: trimmedReview === '' ? null : trimmedReview,
       });
 
-      if (error) {
-        console.error('Update error:', error);
-        Alert.alert('오류', '수정 중 오류가 발생했습니다.');
-        setSaving(false);
-        return;
-      }
+      if (error) throw error;
 
       Alert.alert('완료', '✨ 리뷰가 저장되었습니다!');
       setIsEditing(false);
-      setSaving(false);
-      
-      if (onRefresh) {
-        await onRefresh();
-      }
+      if (onRefresh) await onRefresh();
     } catch (err) {
-      console.error('Unexpected error:', err);
-      Alert.alert('오류', '예상치 못한 오류가 발생했습니다.');
+      Alert.alert('오류', '수정 중 오류가 발생했습니다.');
+    } finally {
       setSaving(false);
     }
   };
@@ -69,7 +50,6 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
 
   return (
     <View style={styles.card}>
-      {/* 카드 헤더 */}
       <View style={styles.header}>
         <Text style={styles.date}>{formatDate(visit.visit_date)}</Text>
         <View style={styles.actions}>
@@ -87,22 +67,15 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
         </View>
       </View>
 
-      {/* ✅ 사진 또는 리뷰가 있는 경우 */}
       {visit.card_image || visit.card_review ? (
         <View style={styles.cardDisplay}>
-          {/* 사진이 있는 경우 표시 */}
           {visit.card_image && (
             <View style={styles.imageContainer}>
-              <Image 
-                source={{ uri: visit.card_image }} 
-                style={styles.cardImage}
-                resizeMode="cover"
-              />
+              <Image source={{ uri: visit.card_image }} style={styles.cardImage} resizeMode="cover" />
             </View>
           )}
 
           <View style={styles.cardInfo}>
-            {/* 리뷰 수정 모드 */}
             {isEditing ? (
               <View style={styles.editSection}>
                 <TextInput
@@ -111,72 +84,45 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                   onChangeText={setEditReview}
                   placeholder="리뷰를 입력하세요"
                   placeholderTextColor={Colors.purpleLight}
-                  maxLength={100}
+                  maxLength={REVIEW_CONFIG.maxLength}
                   multiline
                   numberOfLines={3}
                   editable={!saving}
                   autoFocus
                   textAlignVertical="top"
-                  returnKeyType="done"
-                  blurOnSubmit={true}
                 />
-                <Text style={styles.charCount}>{editReview.length}/100</Text>
+                <Text style={styles.charCount}>{editReview.length}/{REVIEW_CONFIG.maxLength}</Text>
                 <View style={styles.editButtons}>
-                  <TouchableOpacity
-                    style={styles.editSaveButton}
-                    onPress={handleEditSave}
-                    disabled={saving}
-                    activeOpacity={0.7}
-                  >
+                  <TouchableOpacity style={styles.editSaveButton} onPress={handleEditSave} disabled={saving}>
                     <Text style={styles.editSaveButtonText}>{saving ? '...' : '✓'}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.editCancelButton}
-                    onPress={handleEditCancel}
-                    disabled={saving}
-                    activeOpacity={0.7}
-                  >
+                  <TouchableOpacity style={styles.editCancelButton} onPress={handleEditCancel} disabled={saving}>
                     <Text style={styles.editCancelButtonText}>✕</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
-              <>
-                {/* 리뷰 표시 */}
-                {visit.card_review ? (
-                  <View style={styles.reviewBox}>
-                    <View style={styles.reviewHeader}>
-                      <Text style={styles.reviewLabel}>📝 기록</Text>
-                      <TouchableOpacity onPress={handleEditStart} activeOpacity={0.7}>
-                        <Text style={styles.editIcon}>✏️</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.reviewText}>{visit.card_review}</Text>
+              visit.card_review ? (
+                <View style={styles.reviewBox}>
+                  <View style={styles.reviewHeader}>
+                    <Text style={styles.reviewLabel}>📝 기록</Text>
+                    <TouchableOpacity onPress={handleEditStart}><Text style={styles.editIcon}>✏️</Text></TouchableOpacity>
                   </View>
-                ) : (
-                  // ✅ 사진만 있고 리뷰가 없는 경우
-                  <TouchableOpacity 
-                    style={styles.addReviewButton} 
-                    onPress={handleEditStart}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.addReviewButtonText}>+ 리뷰 추가하기</Text>
-                  </TouchableOpacity>
-                )}
-              </>
+                  <Text style={styles.reviewText}>{visit.card_review}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.addReviewButton} onPress={handleEditStart}>
+                  <Text style={styles.addReviewButtonText}>+ 리뷰 추가하기</Text>
+                </TouchableOpacity>
+              )
             )}
           </View>
         </View>
       ) : (
-        /* ✅ 사진과 리뷰가 모두 없는 경우 */
         <View style={styles.noCard}>
           <Text style={styles.noCardIcon}>📝</Text>
           <Text style={styles.noCardText}>아직 사진이나 리뷰를 추가하지 않았습니다</Text>
-          <CustomButton
-            title="추가하기"
-            onPress={() => onSelectCard(visit.id)}
-            style={styles.selectButton}
-          />
+          <CustomButton title="추가하기" onPress={() => onSelectCard(visit.id)} style={styles.selectButton} />
         </View>
       )}
     </View>
@@ -191,10 +137,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
-    shadowColor: Colors.purpleLight,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
     elevation: 8,
   },
   header: {
@@ -206,16 +148,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'rgba(138, 43, 226, 0.4)',
   },
-  date: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.gold,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
+  date: { fontSize: 16, fontWeight: '700', color: Colors.gold },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stampsBadge: {
     backgroundColor: 'rgba(255, 215, 0, 0.25)',
     borderWidth: 2,
@@ -224,47 +158,28 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
-  stampsBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.gold,
-  },
+  stampsBadgeText: { fontSize: 14, fontWeight: '700', color: Colors.gold },
   deleteButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.25)',
     borderWidth: 2,
     borderColor: Colors.redSoft,
     borderRadius: 10,
-    padding: 8,
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteButtonText: {
-    fontSize: 18,
-  },
-  cardDisplay: {
-    gap: 15,
-  },
+  deleteButtonText: { fontSize: 18 },
+  cardDisplay: { gap: 15 },
   imageContainer: {
     backgroundColor: 'rgba(138, 43, 226, 0.3)',
     borderWidth: 3,
     borderColor: Colors.purpleLight,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: Colors.purpleLight,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  cardImage: {
-    width: '100%',
-    height: 250,
-  },
-  cardInfo: {
-    flex: 1,
-  },
+  cardImage: { width: '100%', height: 250 },
+  cardInfo: { flex: 1 },
   reviewBox: {
     backgroundColor: 'rgba(138, 43, 226, 0.25)',
     borderWidth: 2,
@@ -272,25 +187,10 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 15,
   },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  reviewLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.lavender,
-  },
-  editIcon: {
-    fontSize: 20,
-  },
-  reviewText: {
-    fontSize: 15,
-    color: 'white',
-    lineHeight: 22,
-  },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  reviewLabel: { fontSize: 13, fontWeight: '700', color: Colors.lavender },
+  editIcon: { fontSize: 20 },
+  reviewText: { fontSize: 15, color: 'white', lineHeight: 22 },
   addReviewButton: {
     backgroundColor: 'rgba(138, 43, 226, 0.2)',
     borderWidth: 2,
@@ -300,14 +200,8 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
   },
-  addReviewButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.gold,
-  },
-  editSection: {
-    marginTop: 5,
-  },
+  addReviewButtonText: { fontSize: 14, fontWeight: '700', color: Colors.gold },
+  editSection: { marginTop: 5 },
   editTextarea: {
     backgroundColor: 'rgba(138, 43, 226, 0.15)',
     borderWidth: 2,
@@ -317,19 +211,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'white',
     minHeight: 100,
-    textAlignVertical: 'top',
   },
-  charCount: {
-    fontSize: 12,
-    color: Colors.lavender,
-    textAlign: 'right',
-    marginTop: 5,
-  },
-  editButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-  },
+  charCount: { fontSize: 12, color: Colors.lavender, textAlign: 'right', marginTop: 5 },
+  editButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },
   editSaveButton: {
     flex: 1,
     backgroundColor: 'rgba(76, 175, 80, 0.25)',
@@ -339,11 +223,7 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
   },
-  editSaveButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.green,
-  },
+  editSaveButtonText: { fontSize: 18, fontWeight: '700', color: Colors.green },
   editCancelButton: {
     flex: 1,
     backgroundColor: 'rgba(244, 67, 54, 0.25)',
@@ -353,27 +233,9 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
   },
-  editCancelButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.errorRed,
-  },
-  noCard: {
-    alignItems: 'center',
-    padding: 30,
-  },
-  noCardIcon: {
-    fontSize: 56,
-    marginBottom: 15,
-    opacity: 0.7,
-  },
-  noCardText: {
-    fontSize: 15,
-    color: Colors.lavender,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  selectButton: {
-    paddingHorizontal: 30,
-  },
+  editCancelButtonText: { fontSize: 18, fontWeight: '700', color: Colors.errorRed },
+  noCard: { alignItems: 'center', padding: 30 },
+  noCardIcon: { fontSize: 56, marginBottom: 15, opacity: 0.7 },
+  noCardText: { fontSize: 15, color: Colors.lavender, marginBottom: 20, textAlign: 'center' },
+  selectButton: { paddingHorizontal: 30 },
 });
