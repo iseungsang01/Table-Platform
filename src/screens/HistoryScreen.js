@@ -319,7 +319,7 @@ const HistoryScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   listContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   header: {
     backgroundColor: Colors.purpleMid,

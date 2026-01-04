@@ -285,6 +285,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 140, // ✅ 하단 여백 증가 (100 → 140)
   },
   header: {
     backgroundColor: Colors.purpleMid,

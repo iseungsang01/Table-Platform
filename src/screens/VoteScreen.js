@@ -149,7 +149,7 @@ const VoteScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  listContent: { padding: 20, paddingBottom: 100 },
+  listContent: { padding: 20, paddingBottom: 140 },
   header: { backgroundColor: Colors.purpleMid, borderRadius: 20, padding: 30, marginBottom: 20, borderWidth: 3, borderColor: Colors.gold, alignItems: 'center' },
   title: { fontSize: 32, fontWeight: '700', color: Colors.gold, marginBottom: 10 },
   subtitle: { fontSize: 16, color: Colors.lavender },
