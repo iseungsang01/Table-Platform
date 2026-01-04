@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * AsyncStorage 헬퍼 - 로컬 스토리지 활용 최대화
+ * 텍스트 메모 기능 추가
  */
 
 export const STORAGE_KEYS = {
@@ -16,6 +17,7 @@ export const STORAGE_KEYS = {
   VISIT_CACHE: 'visit_cache',
   COUPON_CACHE: 'coupon_cache',
   LAST_SYNC: 'last_sync',
+  TEXT_NOTES: 'text_notes', // 새로운 키: 텍스트 메모
 };
 
 export const storage = {
@@ -72,6 +74,20 @@ export const storage = {
   async getAllCardReviews() { return await this.get(STORAGE_KEYS.CARD_REVIEWS) || {}; },
   async deleteCardReview(visitId) { await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, null, true); },
 
+  // 텍스트 메모 관련 (새로운 기능)
+  async saveTextNote(noteId, noteContent) { 
+    await this._updateMap(STORAGE_KEYS.TEXT_NOTES, noteId, {
+      content: noteContent,
+      updatedAt: new Date().toISOString()
+    }); 
+  },
+  async getTextNote(noteId) { 
+    const notes = await this.get(STORAGE_KEYS.TEXT_NOTES) || {};
+    return notes[noteId] || null;
+  },
+  async getAllTextNotes() { return await this.get(STORAGE_KEYS.TEXT_NOTES) || {}; },
+  async deleteTextNote(noteId) { await this._updateMap(STORAGE_KEYS.TEXT_NOTES, noteId, null, true); },
+
   // 공지사항 관련
   async markNoticeAsRead(noticeId) { await this.markNoticesAsRead([noticeId]); },
   async markNoticesAsRead(noticeIds) {
@@ -119,4 +135,5 @@ export const storage = {
   async cleanupOrphanedCards(ids) { await this._cleanup(STORAGE_KEYS.SELECTED_CARDS, ids); },
   async cleanupOrphanedReviews(ids) { await this._cleanup(STORAGE_KEYS.CARD_REVIEWS, ids); },
   async cleanupOrphanedImages(ids) { await this._cleanup(STORAGE_KEYS.CARD_IMAGES, ids); },
+  async cleanupOrphanedNotes(ids) { await this._cleanup(STORAGE_KEYS.TEXT_NOTES, ids); },
 };

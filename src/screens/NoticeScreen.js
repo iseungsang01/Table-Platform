@@ -14,13 +14,12 @@ const NoticeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 1. 공지사항 로드 및 읽음 처리 로직만 유지
+  // 공지사항 로드 및 읽음 처리
   const loadData = async () => {
-    // 내역 조회(rRes) 부분 제거
-    const nRes = await noticeService.getNotices();
+    const { data, error } = await noticeService.getNotices();
     
-    if (!nRes.error) {
-      setNotices(nRes.data);
+    if (!error) {
+      setNotices(data);
     }
     
     if (customer) {
@@ -41,7 +40,7 @@ const NoticeScreen = () => {
     setRefreshing(false);
   };
 
-  // 2. 헤더 섹션 (공지사항 타이틀)
+  // 헤더 섹션 (공지사항 타이틀)
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.title}>📢 공지사항</Text>
@@ -58,7 +57,6 @@ const NoticeScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <NoticeCard notice={item} />}
         ListHeaderComponent={renderHeader}
-        // 3. 접수 폼 및 내역 버튼이 있던 ListFooterComponent 제거
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>🔭</Text>
@@ -82,7 +80,7 @@ const NoticeScreen = () => {
 const styles = StyleSheet.create({
   listContent: { 
     padding: 20, 
-    paddingBottom: 40 // 하단 여백 최적화
+    paddingBottom: 140
   },
   header: { 
     backgroundColor: Colors.purpleMid, 

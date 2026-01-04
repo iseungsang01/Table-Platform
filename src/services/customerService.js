@@ -57,7 +57,7 @@ export const customerService = {
 
   /**
    * 고객 탈퇴 (Soft Delete - RPC 함수 사용)
-   * ✅ 버그 수정: RLS 우회를 위해 SQL 함수 사용
+   * ✅ RLS 우회를 위해 SQL 함수 사용
    * @param {string} customerId - 고객 ID (UUID)
    * @returns {object} { success, error }
    */
