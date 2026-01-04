@@ -17,7 +17,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tarotstamp.app",
-      "buildNumber": "1.0.0"
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "타로 도장을 찍기 위해 사진 갤러리에 접근합니다.",
+        "NSCameraUsageDescription": "타로 도장을 찍기 위해 카메라에 접근합니다.",
+        "UIUserInterfaceStyle": "Light"
+      }
     },
     "android": {
       "adaptiveIcon": {

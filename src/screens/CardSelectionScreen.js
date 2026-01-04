@@ -19,7 +19,6 @@ import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { Colors } from '../constants/Colors';
-import { REVIEW_CONFIG } from '../constants/Config';
 
 const CardSelectionScreen = ({ route, navigation }) => {
   const { visitId } = route.params;
@@ -47,7 +46,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.7, // 이미지 크기 최적화
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -78,7 +77,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.7, // 이미지 크기 최적화
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -113,18 +112,15 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
   /**
    * 저장하기
-   * ✅ 이미지 없이 리뷰만 저장 가능
-   * ✅ 리뷰 5000자 제한 적용
    */
   const handleSubmit = async () => {
-    // ✅ 이미지와 리뷰가 둘 다 없으면 경고
     if (!imageUri && !review.trim()) {
       Alert.alert('알림', '사진 또는 리뷰 중 하나는 입력해주세요.');
       return;
     }
 
-    if (review.length > REVIEW_CONFIG.maxLength) {
-      Alert.alert('알림', `리뷰는 ${REVIEW_CONFIG.maxLength}자 이내로 작성해주세요.`);
+    if (review.length > 100) {
+      Alert.alert('알림', '리뷰는 100자 이내로 작성해주세요.');
       return;
     }
 
@@ -132,18 +128,15 @@ const CardSelectionScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      // 업데이트할 데이터 준비
       const updateData = {
         card_review: review.trim() || null,
       };
 
-      // 이미지가 있으면 Base64로 변환하여 추가
       if (imageUri) {
         const base64Image = await convertImageToBase64(imageUri);
         updateData.card_image = base64Image;
       }
 
-      // 방문 기록 업데이트 (로컬 스토리지에 저장)
       const { error } = await visitService.updateVisit(visitId, updateData);
 
       if (error) {
@@ -152,7 +145,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // ✅ 성공 메시지 개선
       const successMsg = imageUri && review.trim()
         ? '✨ 사진과 리뷰가 저장되었습니다!'
         : imageUri
@@ -251,14 +243,14 @@ const CardSelectionScreen = ({ route, navigation }) => {
             {/* 리뷰 입력 */}
             <View style={styles.reviewSection}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 {REVIEW_CONFIG.maxLength}자)</Text>
+                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 100자)</Text>
                 <TextInput
                   style={styles.textarea}
                   value={review}
                   onChangeText={setReview}
                   placeholder="오늘의 방문은 어떠셨나요?"
                   placeholderTextColor={Colors.purpleLight}
-                  maxLength={REVIEW_CONFIG.maxLength}
+                  maxLength={100}
                   multiline
                   numberOfLines={4}
                   editable={!loading}
@@ -266,7 +258,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
                   returnKeyType="done"
                   blurOnSubmit={true}
                 />
-                <Text style={styles.charCount}>{review.length}/{REVIEW_CONFIG.maxLength}</Text>
+                <Text style={styles.charCount}>{review.length}/100</Text>
               </View>
 
               <CustomButton
@@ -308,7 +300,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40, // ✅ 140 → 40으로 줄임 (홈버튼 영역 겹침 방지)
+    paddingBottom: 40, // ✅ 140 → 40 으로 수정 (하단 버튼이 UI를 가리지 않도록)
   },
   header: {
     backgroundColor: Colors.purpleMid,
