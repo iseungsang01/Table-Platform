@@ -112,10 +112,12 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
   /**
    * 저장하기
+   * ✅ 이미지 없이 리뷰만 저장 가능하도록 수정
    */
   const handleSubmit = async () => {
-    if (!imageUri) {
-      Alert.alert('알림', '사진을 선택해주세요.');
+    // ✅ 이미지와 리뷰가 둘 다 없으면 경고
+    if (!imageUri && !review.trim()) {
+      Alert.alert('알림', '사진 또는 리뷰 중 하나는 입력해주세요.');
       return;
     }
 
@@ -128,14 +130,19 @@ const CardSelectionScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      // 이미지를 Base64로 변환
-      const base64Image = await convertImageToBase64(imageUri);
+      // 업데이트할 데이터 준비
+      const updateData = {
+        card_review: review.trim() || null,
+      };
 
-      // 방문 기록 업데이트 (로컬 스토리지에 이미지 저장)
-      const { error } = await visitService.updateVisit(visitId, {
-        card_image: base64Image,
-        card_review: review || null,
-      });
+      // 이미지가 있으면 Base64로 변환하여 추가
+      if (imageUri) {
+        const base64Image = await convertImageToBase64(imageUri);
+        updateData.card_image = base64Image;
+      }
+
+      // 방문 기록 업데이트 (로컬 스토리지에 저장)
+      const { error } = await visitService.updateVisit(visitId, updateData);
 
       if (error) {
         Alert.alert('오류', '저장 중 오류가 발생했습니다.');
@@ -143,7 +150,14 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      setMessage({ text: '✨ 사진이 저장되었습니다!', type: 'success' });
+      // ✅ 성공 메시지 개선
+      const successMsg = imageUri && review.trim()
+        ? '✨ 사진과 리뷰가 저장되었습니다!'
+        : imageUri
+        ? '✨ 사진이 저장되었습니다!'
+        : '✨ 리뷰가 저장되었습니다!';
+
+      setMessage({ text: successMsg, type: 'success' });
 
       setTimeout(() => {
         navigation.goBack();
@@ -192,8 +206,8 @@ const CardSelectionScreen = ({ route, navigation }) => {
                 variant="secondary"
                 style={styles.backButton}
               />
-              <Text style={styles.title}>📸 사진 업로드</Text>
-              <Text style={styles.subtitle}>오늘의 방문을 기억할 사진을 업로드하세요</Text>
+              <Text style={styles.title}>📸 방문 기록</Text>
+              <Text style={styles.subtitle}>사진 또는 리뷰를 남겨보세요 (선택 사항)</Text>
             </View>
 
             {/* 사진 미리보기 */}
@@ -211,7 +225,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
             ) : (
               <View style={styles.imagePlaceholder}>
                 <Text style={styles.placeholderIcon}>📷</Text>
-                <Text style={styles.placeholderText}>사진을 선택해주세요</Text>
+                <Text style={styles.placeholderText}>사진을 선택해주세요 (선택 사항)</Text>
               </View>
             )}
 
@@ -235,7 +249,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
             {/* 리뷰 입력 */}
             <View style={styles.reviewSection}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>오늘의 기록 (선택, 최대 100자)</Text>
+                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 100자)</Text>
                 <TextInput
                   style={styles.textarea}
                   value={review}
@@ -256,7 +270,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
               <CustomButton
                 title={loading ? '저장 중...' : '저장하기'}
                 onPress={handleSubmit}
-                disabled={loading || !imageUri}
+                disabled={loading || (!imageUri && !review.trim())}
                 loading={loading}
                 style={styles.submitButton}
               />
@@ -271,6 +285,13 @@ const CardSelectionScreen = ({ route, navigation }) => {
                   <Text style={styles.messageText}>{message.text}</Text>
                 </View>
               )}
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  💡 사진과 리뷰는 선택 사항입니다.{'\n'}
+                  하나만 입력해도 저장할 수 있어요!
+                </Text>
+              </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -285,7 +306,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 140, // ✅ 하단 여백 증가 (100 → 140)
+    paddingBottom: 140,
   },
   header: {
     backgroundColor: Colors.purpleMid,
@@ -409,6 +430,7 @@ const styles = StyleSheet.create({
   message: {
     padding: 15,
     borderRadius: 10,
+    marginBottom: 15,
   },
   messageSuccess: {
     backgroundColor: 'rgba(76, 175, 80, 0.2)',
@@ -425,6 +447,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
+  },
+  infoBox: {
+    backgroundColor: 'rgba(138, 43, 226, 0.2)',
+    borderWidth: 2,
+    borderColor: Colors.purpleLight,
+    borderRadius: 10,
+    padding: 15,
+  },
+  infoText: {
+    fontSize: 13,
+    color: Colors.lavender,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

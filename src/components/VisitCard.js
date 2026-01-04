@@ -80,23 +80,26 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
           )}
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => onDelete(visit.id, !!visit.card_image)}
+            onPress={() => onDelete(visit.id, !!(visit.card_image || visit.card_review))}
           >
             <Text style={styles.deleteButtonText}>🗑️</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 사진이 있는 경우 */}
-      {visit.card_image ? (
+      {/* ✅ 사진 또는 리뷰가 있는 경우 */}
+      {visit.card_image || visit.card_review ? (
         <View style={styles.cardDisplay}>
-          <View style={styles.imageContainer}>
-            <Image 
-              source={{ uri: visit.card_image }} 
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
-          </View>
+          {/* 사진이 있는 경우 표시 */}
+          {visit.card_image && (
+            <View style={styles.imageContainer}>
+              <Image 
+                source={{ uri: visit.card_image }} 
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
 
           <View style={styles.cardInfo}>
             {/* 리뷰 수정 모드 */}
@@ -151,6 +154,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                     <Text style={styles.reviewText}>{visit.card_review}</Text>
                   </View>
                 ) : (
+                  // ✅ 사진만 있고 리뷰가 없는 경우
                   <TouchableOpacity 
                     style={styles.addReviewButton} 
                     onPress={handleEditStart}
@@ -164,12 +168,12 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
           </View>
         </View>
       ) : (
-        /* 사진 미업로드 */
+        /* ✅ 사진과 리뷰가 모두 없는 경우 */
         <View style={styles.noCard}>
-          <Text style={styles.noCardIcon}>📷</Text>
-          <Text style={styles.noCardText}>아직 사진을 업로드하지 않았습니다</Text>
+          <Text style={styles.noCardIcon}>📝</Text>
+          <Text style={styles.noCardText}>아직 사진이나 리뷰를 추가하지 않았습니다</Text>
           <CustomButton
-            title="사진 업로드"
+            title="추가하기"
             onPress={() => onSelectCard(visit.id)}
             style={styles.selectButton}
           />
