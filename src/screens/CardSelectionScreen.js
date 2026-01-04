@@ -12,6 +12,7 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { GradientBackground } from '../components/GradientBackground';
@@ -183,6 +184,12 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
   return (
     <GradientBackground>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
+      
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -223,7 +230,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* 사진 선택 버튼 */}
+            {/* 사진 선택 버튼 - 항상 표시 */}
             <View style={styles.buttonGroup}>
               <CustomButton
                 title="📷 카메라"
@@ -283,7 +290,8 @@ const CardSelectionScreen = ({ route, navigation }) => {
               <View style={styles.infoBox}>
                 <Text style={styles.infoText}>
                   💡 사진과 리뷰는 선택 사항입니다.{'\n'}
-                  하나만 입력해도 저장할 수 있어요!
+                  하나만 입력해도 저장할 수 있어요!{'\n'}
+                  사진은 언제든 변경하거나 추가할 수 있습니다.
                 </Text>
               </View>
             </View>
@@ -300,7 +308,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40, // ✅ 140 → 40 으로 수정 (하단 버튼이 UI를 가리지 않도록)
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
+    paddingBottom: 40,
   },
   header: {
     backgroundColor: Colors.purpleMid,
@@ -310,6 +319,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.gold,
     alignItems: 'center',
+    shadowColor: Colors.gold,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -321,11 +335,15 @@ const styles = StyleSheet.create({
     color: Colors.gold,
     marginBottom: 10,
     textAlign: 'center',
+    textShadowColor: 'rgba(255, 215, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 16,
     color: Colors.lavender,
     textAlign: 'center',
+    opacity: 0.9,
   },
   imagePlaceholder: {
     backgroundColor: Colors.purpleMid,
@@ -457,4 +475,5 @@ const styles = StyleSheet.create({
   },
 });
 
+// ✅ default export 추가
 export default CardSelectionScreen;
