@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { Colors } from '../constants/Colors';
@@ -26,15 +27,58 @@ const CardSelectionScreen = ({ route, navigation }) => {
   const { customer } = useAuth();
   const [imageUri, setImageUri] = useState(null);
   const [review, setReview] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalData, setOriginalData] = useState({ image: null, review: null });
+
+  /**
+   * 기존 데이터 로드
+   */
+  useEffect(() => {
+    loadVisitData();
+  }, [visitId]);
+
+  const loadVisitData = async () => {
+    setLoading(true);
+    
+    try {
+      const { data, error } = await visitService.getVisit(visitId);
+      
+      if (error) {
+        console.error('Load visit error:', error);
+        Alert.alert('오류', '데이터를 불러오는 중 오류가 발생했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        // 기존 데이터가 있으면 수정 모드
+        if (data.card_image || data.card_review) {
+          setIsEditMode(true);
+          setImageUri(data.card_image);
+          setReview(data.card_review || '');
+          setOriginalData({
+            image: data.card_image,
+            review: data.card_review,
+          });
+        }
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Load visit error:', error);
+      Alert.alert('오류', '데이터를 불러오는 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
+  };
 
   /**
    * 카메라로 사진 촬영
    */
   const handleTakePhoto = async () => {
     try {
-      // 카메라 권한 요청
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       
       if (status !== 'granted') {
@@ -42,7 +86,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 카메라 실행
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -65,7 +108,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
    */
   const handlePickImage = async () => {
     try {
-      // 갤러리 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (status !== 'granted') {
@@ -73,7 +115,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 갤러리 열기
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -112,6 +153,24 @@ const CardSelectionScreen = ({ route, navigation }) => {
   };
 
   /**
+   * 사진 제거
+   */
+  const handleRemoveImage = () => {
+    if (isEditMode && originalData.image) {
+      Alert.alert(
+        '사진 삭제',
+        '사진을 삭제하시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          { text: '삭제', style: 'destructive', onPress: () => setImageUri(null) },
+        ]
+      );
+    } else {
+      setImageUri(null);
+    }
+  };
+
+  /**
    * 저장하기
    */
   const handleSubmit = async () => {
@@ -126,32 +185,38 @@ const CardSelectionScreen = ({ route, navigation }) => {
     }
 
     Keyboard.dismiss();
-    setLoading(true);
+    setSaving(true);
 
     try {
       const updateData = {
         card_review: review.trim() || null,
       };
 
+      // 이미지 처리
       if (imageUri) {
-        const base64Image = await convertImageToBase64(imageUri);
-        updateData.card_image = base64Image;
+        // 새로운 이미지인 경우 (로컬 URI)
+        if (imageUri.startsWith('file://') || imageUri.startsWith('content://')) {
+          const base64Image = await convertImageToBase64(imageUri);
+          updateData.card_image = base64Image;
+        } 
+        // 기존 이미지인 경우 (Base64)
+        else {
+          updateData.card_image = imageUri;
+        }
+      } else {
+        // 이미지를 제거한 경우
+        updateData.card_image = null;
       }
 
       const { error } = await visitService.updateVisit(visitId, updateData);
 
       if (error) {
         Alert.alert('오류', '저장 중 오류가 발생했습니다.');
-        setLoading(false);
+        setSaving(false);
         return;
       }
 
-      const successMsg = imageUri && review.trim()
-        ? '✨ 사진과 리뷰가 저장되었습니다!'
-        : imageUri
-        ? '✨ 사진이 저장되었습니다!'
-        : '✨ 리뷰가 저장되었습니다!';
-
+      const successMsg = isEditMode ? '✨ 수정되었습니다!' : '✨ 저장되었습니다!';
       setMessage({ text: successMsg, type: 'success' });
 
       setTimeout(() => {
@@ -160,7 +225,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('Submit error:', error);
       Alert.alert('오류', '저장 중 오류가 발생했습니다.');
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -168,10 +233,14 @@ const CardSelectionScreen = ({ route, navigation }) => {
    * 뒤로 가기
    */
   const handleBack = () => {
-    if (imageUri || review) {
+    const hasChanges = 
+      (imageUri !== originalData.image) || 
+      (review !== (originalData.review || ''));
+
+    if (hasChanges) {
       Alert.alert(
         '확인',
-        '작성 중인 내용이 있습니다. 돌아가시겠습니까?',
+        '변경 사항이 있습니다. 돌아가시겠습니까?',
         [
           { text: '취소', style: 'cancel' },
           { text: '돌아가기', onPress: () => navigation.goBack() },
@@ -181,6 +250,14 @@ const CardSelectionScreen = ({ route, navigation }) => {
       navigation.goBack();
     }
   };
+
+  if (loading) {
+    return (
+      <GradientBackground>
+        <LoadingSpinner message="데이터 로딩 중..." />
+      </GradientBackground>
+    );
+  }
 
   return (
     <GradientBackground>
@@ -207,8 +284,14 @@ const CardSelectionScreen = ({ route, navigation }) => {
                 variant="secondary"
                 style={styles.backButton}
               />
-              <Text style={styles.title}>📸 방문 기록</Text>
-              <Text style={styles.subtitle}>사진 또는 리뷰를 남겨보세요 (선택 사항)</Text>
+              <Text style={styles.title}>
+                {isEditMode ? '✏️ 방문 기록 수정' : '📸 방문 기록 추가'}
+              </Text>
+              <Text style={styles.subtitle}>
+                {isEditMode 
+                  ? '사진과 리뷰를 수정하거나 삭제할 수 있습니다' 
+                  : '사진 또는 리뷰를 남겨보세요 (선택 사항)'}
+              </Text>
             </View>
 
             {/* 사진 미리보기 */}
@@ -217,7 +300,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
                 <TouchableOpacity
                   style={styles.removeImageButton}
-                  onPress={() => setImageUri(null)}
+                  onPress={handleRemoveImage}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.removeImageText}>✕ 사진 제거</Text>
@@ -226,24 +309,26 @@ const CardSelectionScreen = ({ route, navigation }) => {
             ) : (
               <View style={styles.imagePlaceholder}>
                 <Text style={styles.placeholderIcon}>📷</Text>
-                <Text style={styles.placeholderText}>사진을 선택해주세요 (선택 사항)</Text>
+                <Text style={styles.placeholderText}>
+                  {isEditMode ? '사진을 추가하거나 변경하세요' : '사진을 선택해주세요 (선택 사항)'}
+                </Text>
               </View>
             )}
 
-            {/* 사진 선택 버튼 - 항상 표시 */}
+            {/* 사진 선택 버튼 */}
             <View style={styles.buttonGroup}>
               <CustomButton
                 title="📷 카메라"
                 onPress={handleTakePhoto}
                 style={styles.imageButton}
-                disabled={loading}
+                disabled={saving}
               />
               <CustomButton
                 title="🖼️ 갤러리"
                 onPress={handlePickImage}
                 variant="secondary"
                 style={styles.imageButton}
-                disabled={loading}
+                disabled={saving}
               />
             </View>
 
@@ -260,7 +345,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
                   maxLength={5000}
                   multiline
                   numberOfLines={4}
-                  editable={!loading}
+                  editable={!saving}
                   textAlignVertical="top"
                   returnKeyType="done"
                   blurOnSubmit={true}
@@ -269,10 +354,10 @@ const CardSelectionScreen = ({ route, navigation }) => {
               </View>
 
               <CustomButton
-                title={loading ? '저장 중...' : '저장하기'}
+                title={saving ? '저장 중...' : isEditMode ? '✓ 수정 완료' : '저장하기'}
                 onPress={handleSubmit}
-                disabled={loading || (!imageUri && !review.trim())}
-                loading={loading}
+                disabled={saving || (!imageUri && !review.trim())}
+                loading={saving}
                 style={styles.submitButton}
               />
 
@@ -289,9 +374,9 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
               <View style={styles.infoBox}>
                 <Text style={styles.infoText}>
-                  💡 사진과 리뷰는 선택 사항입니다.{'\n'}
-                  하나만 입력해도 저장할 수 있어요!{'\n'}
-                  사진은 언제든 변경하거나 추가할 수 있습니다.
+                  💡 {isEditMode 
+                    ? '사진과 리뷰를 자유롭게 수정하거나 삭제할 수 있어요!'
+                    : '사진과 리뷰는 선택 사항입니다.\n하나만 입력해도 저장할 수 있어요!'}
                 </Text>
               </View>
             </View>
@@ -366,6 +451,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.lavender,
     opacity: 0.7,
+    textAlign: 'center',
   },
   imagePreviewContainer: {
     backgroundColor: Colors.purpleMid,
