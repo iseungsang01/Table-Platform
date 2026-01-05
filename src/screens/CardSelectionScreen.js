@@ -7,8 +7,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
   Image,
   TouchableOpacity,
   ScrollView,
@@ -184,7 +182,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
       return;
     }
 
-    Keyboard.dismiss();
     setSaving(true);
 
     try {
@@ -267,122 +264,127 @@ const CardSelectionScreen = ({ route, navigation }) => {
         translucent={true}
       />
       
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      {/* ✅ KeyboardAvoidingView 개선 */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        {/* ✅ ScrollView 개선 - TouchableWithoutFeedback 제거 */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+          // ✅ 스크롤 성능 최적화
+          removeClippedSubviews={false}
+          scrollEventThrottle={16}
         >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.header}>
-              <CustomButton
-                title="← 돌아가기"
-                onPress={handleBack}
-                variant="secondary"
-                style={styles.backButton}
-              />
-              <Text style={styles.title}>
-                {isEditMode ? '✏️ 방문 기록 수정' : '📸 방문 기록 추가'}
-              </Text>
-              <Text style={styles.subtitle}>
-                {isEditMode 
-                  ? '사진과 리뷰를 수정하거나 삭제할 수 있습니다' 
-                  : '사진 또는 리뷰를 남겨보세요 (선택 사항)'}
+          <View style={styles.header}>
+            <CustomButton
+              title="← 돌아가기"
+              onPress={handleBack}
+              variant="secondary"
+              style={styles.backButton}
+            />
+            <Text style={styles.title}>
+              {isEditMode ? '✏️ 방문 기록 수정' : '📸 방문 기록 추가'}
+            </Text>
+            <Text style={styles.subtitle}>
+              {isEditMode 
+                ? '사진과 리뷰를 수정하거나 삭제할 수 있습니다' 
+                : '사진 또는 리뷰를 남겨보세요 (선택 사항)'}
+            </Text>
+          </View>
+
+          {/* 사진 미리보기 */}
+          {imageUri ? (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={handleRemoveImage}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.removeImageText}>✕ 사진 제거</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Text style={styles.placeholderIcon}>📷</Text>
+              <Text style={styles.placeholderText}>
+                {isEditMode ? '사진을 추가하거나 변경하세요' : '사진을 선택해주세요 (선택 사항)'}
               </Text>
             </View>
+          )}
 
-            {/* 사진 미리보기 */}
-            {imageUri ? (
-              <View style={styles.imagePreviewContainer}>
-                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                <TouchableOpacity
-                  style={styles.removeImageButton}
-                  onPress={handleRemoveImage}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.removeImageText}>✕ 사진 제거</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Text style={styles.placeholderIcon}>📷</Text>
-                <Text style={styles.placeholderText}>
-                  {isEditMode ? '사진을 추가하거나 변경하세요' : '사진을 선택해주세요 (선택 사항)'}
-                </Text>
+          {/* 사진 선택 버튼 */}
+          <View style={styles.buttonGroup}>
+            <CustomButton
+              title="📷 카메라"
+              onPress={handleTakePhoto}
+              style={styles.imageButton}
+              disabled={saving}
+            />
+            <CustomButton
+              title="🖼️ 갤러리"
+              onPress={handlePickImage}
+              variant="secondary"
+              style={styles.imageButton}
+              disabled={saving}
+            />
+          </View>
+
+          {/* 리뷰 입력 */}
+          <View style={styles.reviewSection}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 5000자)</Text>
+              <TextInput
+                style={styles.textarea}
+                value={review}
+                onChangeText={setReview}
+                placeholder="오늘의 방문은 어떠셨나요?"
+                placeholderTextColor={Colors.purpleLight}
+                maxLength={5000}
+                multiline
+                numberOfLines={4}
+                editable={!saving}
+                textAlignVertical="top"
+                returnKeyType="done"
+                blurOnSubmit={true}
+              />
+              <Text style={styles.charCount}>{review.length}/5000</Text>
+            </View>
+
+            <CustomButton
+              title={saving ? '저장 중...' : isEditMode ? '✓ 수정 완료' : '저장하기'}
+              onPress={handleSubmit}
+              disabled={saving || (!imageUri && !review.trim())}
+              loading={saving}
+              style={styles.submitButton}
+            />
+
+            {message.text && (
+              <View
+                style={[
+                  styles.message,
+                  message.type === 'error' ? styles.messageError : styles.messageSuccess,
+                ]}
+              >
+                <Text style={styles.messageText}>{message.text}</Text>
               </View>
             )}
 
-            {/* 사진 선택 버튼 */}
-            <View style={styles.buttonGroup}>
-              <CustomButton
-                title="📷 카메라"
-                onPress={handleTakePhoto}
-                style={styles.imageButton}
-                disabled={saving}
-              />
-              <CustomButton
-                title="🖼️ 갤러리"
-                onPress={handlePickImage}
-                variant="secondary"
-                style={styles.imageButton}
-                disabled={saving}
-              />
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                💡 {isEditMode 
+                  ? '사진과 리뷰를 자유롭게 수정하거나 삭제할 수 있어요!'
+                  : '사진과 리뷰는 선택 사항입니다.\n하나만 입력해도 저장할 수 있어요!'}
+              </Text>
             </View>
-
-            {/* 리뷰 입력 */}
-            <View style={styles.reviewSection}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 5000자)</Text>
-                <TextInput
-                  style={styles.textarea}
-                  value={review}
-                  onChangeText={setReview}
-                  placeholder="오늘의 방문은 어떠셨나요?"
-                  placeholderTextColor={Colors.purpleLight}
-                  maxLength={5000}
-                  multiline
-                  numberOfLines={4}
-                  editable={!saving}
-                  textAlignVertical="top"
-                  returnKeyType="done"
-                  blurOnSubmit={true}
-                />
-                <Text style={styles.charCount}>{review.length}/5000</Text>
-              </View>
-
-              <CustomButton
-                title={saving ? '저장 중...' : isEditMode ? '✓ 수정 완료' : '저장하기'}
-                onPress={handleSubmit}
-                disabled={saving || (!imageUri && !review.trim())}
-                loading={saving}
-                style={styles.submitButton}
-              />
-
-              {message.text && (
-                <View
-                  style={[
-                    styles.message,
-                    message.type === 'error' ? styles.messageError : styles.messageSuccess,
-                  ]}
-                >
-                  <Text style={styles.messageText}>{message.text}</Text>
-                </View>
-              )}
-
-              <View style={styles.infoBox}>
-                <Text style={styles.infoText}>
-                  💡 {isEditMode 
-                    ? '사진과 리뷰를 자유롭게 수정하거나 삭제할 수 있어요!'
-                    : '사진과 리뷰는 선택 사항입니다.\n하나만 입력해도 저장할 수 있어요!'}
-                </Text>
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </GradientBackground>
   );
 };
@@ -394,7 +396,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
-    paddingBottom: 40,
+    paddingBottom: 100, // ✅ 충분한 하단 여백 확보
   },
   header: {
     backgroundColor: Colors.purpleMid,
