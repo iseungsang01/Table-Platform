@@ -12,6 +12,7 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
@@ -21,6 +22,7 @@ import { visitService } from '../services/visitService';
 import { Colors } from '../constants/Colors';
 
 const CardSelectionScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets(); // ✅ 기기별 안전 영역 감지
   const { visitId } = route.params;
   const { customer } = useAuth();
   const [imageUri, setImageUri] = useState(null);
@@ -73,52 +75,34 @@ const CardSelectionScreen = ({ route, navigation }) => {
   };
 
   /**
-   * 카메라로 사진 촬영
+   * ✅ 이미지 선택 공통 함수
+   * - 상태바 숨김으로 편집 UI 버튼 시인성 확보
    */
-  const handleTakePhoto = async () => {
+  const openImagePicker = async (type) => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
+      // 권한 확인
+      const permission = type === 'camera' 
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permission.status !== 'granted') {
+        Alert.alert('권한 필요', `${type === 'camera' ? '카메라' : '갤러리'} 권한이 필요합니다.`);
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
+      // ✅ 편집 화면 열기 전 상태바 숨김 (완료/취소 버튼 가독성 향상)
+      StatusBar.setHidden(true, 'fade');
+
+      const options = {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
-      });
+      };
 
-      if (!result.canceled && result.assets[0]) {
-        setImageUri(result.assets[0].uri);
-        setMessage({ text: '', type: '' });
-      }
-    } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert('오류', '사진 촬영 중 오류가 발생했습니다.');
-    }
-  };
-
-  /**
-   * 갤러리에서 사진 선택
-   */
-  const handlePickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.7,
-      });
+      const result = type === 'camera' 
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync(options);
 
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
@@ -126,7 +110,11 @@ const CardSelectionScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      Alert.alert('오류', '사진 선택 중 오류가 발생했습니다.');
+      Alert.alert('오류', '사진 처리 중 오류가 발생했습니다.');
+    } finally {
+      // ✅ 편집 화면 닫힌 후 상태바 다시 표시
+      StatusBar.setHidden(false, 'fade');
+      StatusBar.setBarStyle('light-content');
     }
   };
 
@@ -258,145 +246,152 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
   return (
     <GradientBackground>
-      <StatusBar 
-        barStyle="light-content" 
-        backgroundColor="transparent"
-        translucent={true}
-      />
-      
-      {/* ✅ KeyboardAvoidingView 개선 */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        {/* ✅ ScrollView 개선 - TouchableWithoutFeedback 제거 */}
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          bounces={true}
-          // ✅ 스크롤 성능 최적화
-          removeClippedSubviews={false}
-          scrollEventThrottle={16}
+      {/* ✅ SafeAreaView로 상단/하단 안전 영역 확보 */}
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <StatusBar 
+          barStyle="light-content" 
+          backgroundColor="transparent"
+          translucent={true}
+        />
+        
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.container}
+          keyboardVerticalOffset={0}
         >
-          <View style={styles.header}>
-            <CustomButton
-              title="← 돌아가기"
-              onPress={handleBack}
-              variant="secondary"
-              style={styles.backButton}
-            />
-            <Text style={styles.title}>
-              {isEditMode ? '✏️ 방문 기록 수정' : '📸 방문 기록 추가'}
-            </Text>
-            <Text style={styles.subtitle}>
-              {isEditMode 
-                ? '사진과 리뷰를 수정하거나 삭제할 수 있습니다' 
-                : '사진 또는 리뷰를 남겨보세요 (선택 사항)'}
-            </Text>
-          </View>
-
-          {/* 사진 미리보기 */}
-          {imageUri ? (
-            <View style={styles.imagePreviewContainer}>
-              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-              <TouchableOpacity
-                style={styles.removeImageButton}
-                onPress={handleRemoveImage}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.removeImageText}>✕ 사진 제거</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.placeholderIcon}>📷</Text>
-              <Text style={styles.placeholderText}>
-                {isEditMode ? '사진을 추가하거나 변경하세요' : '사진을 선택해주세요 (선택 사항)'}
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              // ✅ 동적 하단 여백: 기기별 홈버튼 영역 + 추가 여백
+              { paddingBottom: Math.max(insets.bottom, 20) + 80 }
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+            removeClippedSubviews={false}
+            scrollEventThrottle={16}
+          >
+            <View style={styles.header}>
+              <CustomButton
+                title="← 돌아가기"
+                onPress={handleBack}
+                variant="secondary"
+                style={styles.backButton}
+              />
+              <Text style={styles.title}>
+                {isEditMode ? '✏️ 방문 기록 수정' : '📸 방문 기록 추가'}
+              </Text>
+              <Text style={styles.subtitle}>
+                {isEditMode 
+                  ? '사진과 리뷰를 수정하거나 삭제할 수 있습니다' 
+                  : '사진 또는 리뷰를 남겨보세요 (선택 사항)'}
               </Text>
             </View>
-          )}
 
-          {/* 사진 선택 버튼 */}
-          <View style={styles.buttonGroup}>
-            <CustomButton
-              title="📷 카메라"
-              onPress={handleTakePhoto}
-              style={styles.imageButton}
-              disabled={saving}
-            />
-            <CustomButton
-              title="🖼️ 갤러리"
-              onPress={handlePickImage}
-              variant="secondary"
-              style={styles.imageButton}
-              disabled={saving}
-            />
-          </View>
-
-          {/* 리뷰 입력 */}
-          <View style={styles.reviewSection}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 5000자)</Text>
-              <TextInput
-                style={styles.textarea}
-                value={review}
-                onChangeText={setReview}
-                placeholder="오늘의 방문은 어떠셨나요?"
-                placeholderTextColor={Colors.purpleLight}
-                maxLength={5000}
-                multiline
-                numberOfLines={4}
-                editable={!saving}
-                textAlignVertical="top"
-                returnKeyType="done"
-                blurOnSubmit={true}
-              />
-              <Text style={styles.charCount}>{review.length}/5000</Text>
-            </View>
-
-            <CustomButton
-              title={saving ? '저장 중...' : isEditMode ? '✓ 수정 완료' : '저장하기'}
-              onPress={handleSubmit}
-              disabled={saving || (!imageUri && !review.trim())}
-              loading={saving}
-              style={styles.submitButton}
-            />
-
-            {message.text && (
-              <View
-                style={[
-                  styles.message,
-                  message.type === 'error' ? styles.messageError : styles.messageSuccess,
-                ]}
-              >
-                <Text style={styles.messageText}>{message.text}</Text>
+            {/* 사진 미리보기 */}
+            {imageUri ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={handleRemoveImage}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.removeImageText}>✕ 사진 제거</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.placeholderIcon}>📷</Text>
+                <Text style={styles.placeholderText}>
+                  {isEditMode ? '사진을 추가하거나 변경하세요' : '사진을 선택해주세요 (선택 사항)'}
+                </Text>
               </View>
             )}
 
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
-                💡 {isEditMode 
-                  ? '사진과 리뷰를 자유롭게 수정하거나 삭제할 수 있어요!'
-                  : '사진과 리뷰는 선택 사항입니다.\n하나만 입력해도 저장할 수 있어요!'}
-              </Text>
+            {/* 사진 선택 버튼 */}
+            <View style={styles.buttonGroup}>
+              <CustomButton
+                title="📷 카메라"
+                onPress={() => openImagePicker('camera')}
+                style={styles.imageButton}
+                disabled={saving}
+              />
+              <CustomButton
+                title="🖼️ 갤러리"
+                onPress={() => openImagePicker('library')}
+                variant="secondary"
+                style={styles.imageButton}
+                disabled={saving}
+              />
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+            {/* 리뷰 입력 */}
+            <View style={styles.reviewSection}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 5000자)</Text>
+                <TextInput
+                  style={styles.textarea}
+                  value={review}
+                  onChangeText={setReview}
+                  placeholder="오늘의 방문은 어떠셨나요?"
+                  placeholderTextColor={Colors.purpleLight}
+                  maxLength={5000}
+                  multiline
+                  numberOfLines={4}
+                  editable={!saving}
+                  textAlignVertical="top"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                />
+                <Text style={styles.charCount}>{review.length}/5000</Text>
+              </View>
+
+              <CustomButton
+                title={saving ? '저장 중...' : isEditMode ? '✓ 수정 완료' : '저장하기'}
+                onPress={handleSubmit}
+                disabled={saving || (!imageUri && !review.trim())}
+                loading={saving}
+                style={styles.submitButton}
+              />
+
+              {message.text && (
+                <View
+                  style={[
+                    styles.message,
+                    message.type === 'error' ? styles.messageError : styles.messageSuccess,
+                  ]}
+                >
+                  <Text style={styles.messageText}>{message.text}</Text>
+                </View>
+              )}
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  💡 {isEditMode 
+                    ? '사진과 리뷰를 자유롭게 수정하거나 삭제할 수 있어요!'
+                    : '사진과 리뷰는 선택 사항입니다.\n하나만 입력해도 저장할 수 있어요!'}
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
-    paddingBottom: 100, // ✅ 충분한 하단 여백 확보
+    paddingTop: Platform.OS === 'android' ? 20 : 0, // SafeAreaView가 상단 처리
+    // paddingBottom은 ScrollView에서 동적으로 설정됨
   },
   header: {
     backgroundColor: Colors.purpleMid,
