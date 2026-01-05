@@ -53,9 +53,9 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
         return;
       }
 
-      // 갤러리 열기 - ✅ mediaTypes 업데이트
+      // 갤러리 열기
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], // ✅ 배열 형태로 변경
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
@@ -140,8 +140,8 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
   };
 
   const handleEditSave = async () => {
-    if (editReview.trim().length > 100) {
-      Alert.alert('알림', '리뷰는 100자 이내로 작성해주세요.');
+    if (editReview.trim().length > 5000) {
+      Alert.alert('알림', '리뷰는 5000자 이내로 작성해주세요.');
       return;
     }
 
@@ -244,7 +244,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                   onChangeText={setEditReview}
                   placeholder="리뷰를 입력하세요"
                   placeholderTextColor={Colors.purpleLight}
-                  maxLength={100}
+                  maxLength={5000}
                   multiline
                   numberOfLines={3}
                   editable={!saving}
@@ -253,7 +253,7 @@ export const VisitCard = ({ visit, onSelectCard, onDelete, onRefresh }) => {
                   returnKeyType="done"
                   blurOnSubmit={true}
                 />
-                <Text style={styles.charCount}>{editReview.length}/100</Text>
+                <Text style={styles.charCount}>{editReview.length}/5000</Text>
                 <View style={styles.editButtons}>
                   <TouchableOpacity
                     style={styles.editSaveButton}

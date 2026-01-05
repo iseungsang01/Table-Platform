@@ -42,9 +42,9 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 카메라 실행 - ✅ mediaTypes 업데이트
+      // 카메라 실행
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'], // ✅ 배열 형태로 변경
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
@@ -73,9 +73,9 @@ const CardSelectionScreen = ({ route, navigation }) => {
         return;
       }
 
-      // 갤러리 열기 - ✅ mediaTypes 업데이트
+      // 갤러리 열기
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], // ✅ 배열 형태로 변경
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
@@ -120,8 +120,8 @@ const CardSelectionScreen = ({ route, navigation }) => {
       return;
     }
 
-    if (review.length > 100) {
-      Alert.alert('알림', '리뷰는 100자 이내로 작성해주세요.');
+    if (review.length > 5000) {
+      Alert.alert('알림', '리뷰는 5000자 이내로 작성해주세요.');
       return;
     }
 
@@ -250,14 +250,14 @@ const CardSelectionScreen = ({ route, navigation }) => {
             {/* 리뷰 입력 */}
             <View style={styles.reviewSection}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 100자)</Text>
+                <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 5000자)</Text>
                 <TextInput
                   style={styles.textarea}
                   value={review}
                   onChangeText={setReview}
                   placeholder="오늘의 방문은 어떠셨나요?"
                   placeholderTextColor={Colors.purpleLight}
-                  maxLength={100}
+                  maxLength={5000}
                   multiline
                   numberOfLines={4}
                   editable={!loading}
@@ -265,7 +265,7 @@ const CardSelectionScreen = ({ route, navigation }) => {
                   returnKeyType="done"
                   blurOnSubmit={true}
                 />
-                <Text style={styles.charCount}>{review.length}/100</Text>
+                <Text style={styles.charCount}>{review.length}/5000</Text>
               </View>
 
               <CustomButton

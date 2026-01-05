@@ -23,14 +23,14 @@ export const validatePhoneNumber = (phone) => {
  * 리뷰 길이 검증
  * 
  * @param {string} text - 리뷰 텍스트
- * @param {number} maxLength - 최대 길이 (기본: 100)
+ * @param {number} maxLength - 최대 길이 (기본: 5000)
  * @returns {boolean} 유효 여부
  * 
  * @example
- * validateReview('좋아요!', 100) // true
- * validateReview('a'.repeat(101), 100) // false
+ * validateReview('좋아요!', 5000) // true
+ * validateReview('a'.repeat(5001), 5000) // false
  */
-export const validateReview = (text, maxLength = 100) => {
+export const validateReview = (text, maxLength = 5000) => {
   return text.length <= maxLength;
 };
 
