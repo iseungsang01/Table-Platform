@@ -294,15 +294,15 @@ const HistoryScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   listContent: {
-    padding: 20,
-    paddingBottom: 140,
+    padding: 16, // 20 -> 16 (전체적인 여백 축소)
+    paddingBottom: 100, // 140 -> 100 (하단 여백 조정)
   },
   header: {
     backgroundColor: Colors.purpleMid,
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 20,
-    borderWidth: 3,
+    borderRadius: 12, // 20 -> 12 (둥근 모서리 반경 축소)
+    padding: 15, // 25 -> 15 (내부 여백 축소)
+    marginBottom: 16, // 20 -> 16
+    borderWidth: 1.5, // 3 -> 1.5 (테두리 두께를 얇게 하여 세련되게 변경)
     borderColor: Colors.gold,
   },
   headerContent: {
@@ -311,41 +311,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20, // 28 -> 20 (제목 크기 대폭 축소)
     fontWeight: '700',
     color: Colors.gold,
-    marginBottom: 5,
+    marginBottom: 2, // 5 -> 2
   },
   customerName: {
-    fontSize: 16,
+    fontSize: 13, // 16 -> 13
     color: Colors.lavender,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 15,
-    marginBottom: 30,
+    gap: 10, // 15 -> 10 (카드 사이 간격 축소)
+    marginBottom: 20, // 30 -> 20
   },
+  // 빈 상태(데이터 없을 때) 레이아웃 축소
   emptyContainer: {
     alignItems: 'center',
-    padding: 60,
+    padding: 30, // 60 -> 30
     backgroundColor: Colors.purpleMid,
-    borderRadius: 20,
-    borderWidth: 3,
+    borderRadius: 16,
+    borderWidth: 1.5,
     borderColor: Colors.purpleLight,
-    marginTop: 20,
+    marginTop: 10,
   },
   emptyIcon: {
-    fontSize: 80,
-    marginBottom: 20,
+    fontSize: 50, // 80 -> 50 (아이콘 크기 축소)
+    marginBottom: 15,
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: 18, // 24 -> 18
     fontWeight: '700',
     color: Colors.gold,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 13, // 16 -> 13
     color: Colors.lavender,
     textAlign: 'center',
   },
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   errorText: {
-    fontSize: 18,
+    fontSize: 15, // 18 -> 15
     color: Colors.redSoft,
     textAlign: 'center',
   },

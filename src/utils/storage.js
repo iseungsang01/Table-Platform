@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * AsyncStorage 헬퍼 - 로컬 스토리지 활용
- * 텍스트 메모 기능 제거됨
+ * 이미지 캐싱 기능 추가
  */
 
 export const STORAGE_KEYS = {
@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   SELECTED_CARDS: 'selected_cards',
   CARD_REVIEWS: 'card_reviews',
   CARD_IMAGES: 'card_images',
+  IMAGE_CACHE: 'image_cache', // ✅ 새로 추가
   READ_NOTICES: 'read_notices',
   APP_SETTINGS: 'app_settings',
   VISIT_CACHE: 'visit_cache',
@@ -62,16 +63,158 @@ export const storage = {
   async deleteSelectedCard(visitId) { await this._updateMap(STORAGE_KEYS.SELECTED_CARDS, visitId, null, true); },
 
   // 카드 이미지 관련
-  async saveCardImage(visitId, imageData) { await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, imageData); },
+  async saveCardImage(visitId, imageData) { 
+    console.log('💾 [Storage] 이미지 저장 시작:', visitId);
+    await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, imageData);
+    
+    // ✅ 이미지 캐시 메타데이터 저장
+    const metadata = {
+      visitId,
+      timestamp: new Date().toISOString(),
+      size: imageData?.length || 0,
+    };
+    await this._updateImageCacheMetadata(visitId, metadata);
+    
+    console.log('✅ [Storage] 이미지 저장 완료');
+  },
+  
   async getCardImage(visitId) { return (await this.get(STORAGE_KEYS.CARD_IMAGES) || {})[visitId] || null; },
   async getAllCardImages() { return await this.get(STORAGE_KEYS.CARD_IMAGES) || {}; },
-  async deleteCardImage(visitId) { await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, null, true); },
+  
+  async deleteCardImage(visitId) { 
+    await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, null, true);
+    await this._deleteImageCacheMetadata(visitId);
+  },
 
   // 카드 리뷰 관련
   async saveCardReview(visitId, review) { await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, review); },
   async getCardReview(visitId) { return (await this.get(STORAGE_KEYS.CARD_REVIEWS) || {})[visitId] || null; },
   async getAllCardReviews() { return await this.get(STORAGE_KEYS.CARD_REVIEWS) || {}; },
   async deleteCardReview(visitId) { await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, null, true); },
+
+  // ✅ 이미지 캐시 메타데이터 관리
+  async _updateImageCacheMetadata(visitId, metadata) {
+    try {
+      const cache = await this.get(STORAGE_KEYS.IMAGE_CACHE) || {};
+      cache[visitId] = metadata;
+      await this.save(STORAGE_KEYS.IMAGE_CACHE, cache);
+      console.log('✅ [Storage] 이미지 캐시 메타데이터 저장:', visitId);
+    } catch (error) {
+      console.error('❌ [Storage] 이미지 캐시 메타데이터 저장 오류:', error);
+    }
+  },
+
+  async _deleteImageCacheMetadata(visitId) {
+    try {
+      const cache = await this.get(STORAGE_KEYS.IMAGE_CACHE) || {};
+      delete cache[visitId];
+      await this.save(STORAGE_KEYS.IMAGE_CACHE, cache);
+      console.log('✅ [Storage] 이미지 캐시 메타데이터 삭제:', visitId);
+    } catch (error) {
+      console.error('❌ [Storage] 이미지 캐시 메타데이터 삭제 오류:', error);
+    }
+  },
+
+  async getImageCacheMetadata() {
+    try {
+      return await this.get(STORAGE_KEYS.IMAGE_CACHE) || {};
+    } catch (error) {
+      console.error('❌ [Storage] 이미지 캐시 메타데이터 조회 오류:', error);
+      return {};
+    }
+  },
+
+  async clearImageCache() {
+    try {
+      console.log('🧹 [Storage] 이미지 캐시 정리 시작');
+      await this.remove(STORAGE_KEYS.CARD_IMAGES);
+      await this.remove(STORAGE_KEYS.IMAGE_CACHE);
+      console.log('✅ [Storage] 이미지 캐시 정리 완료');
+    } catch (error) {
+      console.error('❌ [Storage] 이미지 캐시 정리 오류:', error);
+    }
+  },
+
+  // ✅ 오래된 이미지 캐시 정리 (N일 이상 된 이미지)
+  async clearOldImageCache(days = 30) {
+    try {
+      console.log('🧹 [Storage] 오래된 이미지 캐시 정리 시작:', days, '일');
+      
+      const cache = await this.getImageCacheMetadata();
+      const now = new Date();
+      const thresholdTime = now.getTime() - (days * 24 * 60 * 60 * 1000);
+      
+      const images = await this.getAllCardImages();
+      let deletedCount = 0;
+      
+      for (const [visitId, metadata] of Object.entries(cache)) {
+        const cacheTime = new Date(metadata.timestamp).getTime();
+        
+        if (cacheTime < thresholdTime) {
+          await this.deleteCardImage(visitId);
+          deletedCount++;
+        }
+      }
+      
+      console.log('✅ [Storage] 오래된 이미지 캐시 정리 완료:', deletedCount, '개 삭제');
+    } catch (error) {
+      console.error('❌ [Storage] 오래된 이미지 캐시 정리 오류:', error);
+    }
+  },
+
+  // ✅ 이미지 캐시 통계
+  async getImageCacheStats() {
+    try {
+      const cache = await this.getImageCacheMetadata();
+      const images = await this.getAllCardImages();
+      
+      const totalImages = Object.keys(images).length;
+      const totalSize = Object.values(cache).reduce((sum, meta) => sum + (meta.size || 0), 0);
+      
+      return {
+        totalImages,
+        totalSize,
+        totalSizeFormatted: this._formatBytes(totalSize),
+        oldestImage: this._findOldestImage(cache),
+        newestImage: this._findNewestImage(cache),
+      };
+    } catch (error) {
+      console.error('❌ [Storage] 이미지 캐시 통계 조회 오류:', error);
+      return null;
+    }
+  },
+
+  _formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  },
+
+  _findOldestImage(cache) {
+    const entries = Object.entries(cache);
+    if (entries.length === 0) return null;
+    
+    return entries.reduce((oldest, [id, meta]) => {
+      if (!oldest || new Date(meta.timestamp) < new Date(oldest.timestamp)) {
+        return { visitId: id, ...meta };
+      }
+      return oldest;
+    }, null);
+  },
+
+  _findNewestImage(cache) {
+    const entries = Object.entries(cache);
+    if (entries.length === 0) return null;
+    
+    return entries.reduce((newest, [id, meta]) => {
+      if (!newest || new Date(meta.timestamp) > new Date(newest.timestamp)) {
+        return { visitId: id, ...meta };
+      }
+      return newest;
+    }, null);
+  },
 
   // 공지사항 관련
   async markNoticeAsRead(noticeId) { await this.markNoticesAsRead([noticeId]); },
@@ -107,7 +250,11 @@ export const storage = {
   async clearOldCache(days = 7) {
     const last = await this.getLastSyncTime();
     if (last && (new Date() - new Date(last)) / 864e5 > days) {
-      await Promise.all([this.remove(STORAGE_KEYS.VISIT_CACHE), this.remove(STORAGE_KEYS.COUPON_CACHE), this.remove(STORAGE_KEYS.LAST_SYNC)]);
+      await Promise.all([
+        this.remove(STORAGE_KEYS.VISIT_CACHE), 
+        this.remove(STORAGE_KEYS.COUPON_CACHE), 
+        this.remove(STORAGE_KEYS.LAST_SYNC)
+      ]);
     }
   },
 
@@ -119,5 +266,14 @@ export const storage = {
   },
   async cleanupOrphanedCards(ids) { await this._cleanup(STORAGE_KEYS.SELECTED_CARDS, ids); },
   async cleanupOrphanedReviews(ids) { await this._cleanup(STORAGE_KEYS.CARD_REVIEWS, ids); },
-  async cleanupOrphanedImages(ids) { await this._cleanup(STORAGE_KEYS.CARD_IMAGES, ids); },
+  async cleanupOrphanedImages(ids) { 
+    await this._cleanup(STORAGE_KEYS.CARD_IMAGES, ids);
+    
+    // ✅ 메타데이터도 함께 정리
+    const cache = await this.get(STORAGE_KEYS.IMAGE_CACHE) || {};
+    const filtered = Object.fromEntries(
+      Object.entries(cache).filter(([id]) => ids.includes(parseInt(id)))
+    );
+    await this.save(STORAGE_KEYS.IMAGE_CACHE, filtered);
+  },
 };

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,6 +20,7 @@ import { CustomButton } from '../components/CustomButton';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
+import { compressImage, formatFileSize } from '../utils/imageOptimizer';
 import { Colors } from '../constants/Colors';
 import { 
   handleApiCall, 
@@ -37,9 +39,11 @@ const VisitDetailScreen = ({ route, navigation }) => {
   const [review, setReview] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [compressing, setCompressing] = useState(false); // ✅ 압축 중 상태
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalData, setOriginalData] = useState({ image: null, review: null });
+  const [imageInfo, setImageInfo] = useState(null); // ✅ 이미지 정보
 
   /**
    * 기존 데이터 로드
@@ -74,6 +78,15 @@ const VisitDetailScreen = ({ route, navigation }) => {
           image: data.card_image,
           review: data.card_review,
         });
+        
+        // ✅ 이미지 정보 표시
+        if (data.card_image) {
+          const size = data.card_image.length;
+          setImageInfo({
+            size,
+            sizeFormatted: formatFileSize(size),
+          });
+        }
       }
     }
     
@@ -81,7 +94,7 @@ const VisitDetailScreen = ({ route, navigation }) => {
   };
 
   /**
-   * ✅ 이미지 선택 공통 함수
+   * ✅ 이미지 선택 및 압축
    */
   const openImagePicker = async (type) => {
     try {
@@ -101,7 +114,7 @@ const VisitDetailScreen = ({ route, navigation }) => {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.7,
+        quality: 1, // ✅ 최고 품질로 가져온 후 직접 압축
       };
 
       const result = type === 'camera' 
@@ -109,8 +122,39 @@ const VisitDetailScreen = ({ route, navigation }) => {
         : await ImagePicker.launchImageLibraryAsync(options);
 
       if (!result.canceled && result.assets[0]) {
-        setImageUri(result.assets[0].uri);
-        setMessage({ text: '', type: '' });
+        const selectedUri = result.assets[0].uri;
+        
+        // ✅ 이미지 압축
+        setCompressing(true);
+        setMessage({ text: '이미지 압축 중...', type: 'info' });
+        
+        try {
+          const compressed = await compressImage(selectedUri, {
+            maxWidth: 1200,
+            maxHeight: 1200,
+            quality: 0.7,
+          });
+          
+          setImageUri(compressed.base64);
+          setImageInfo({
+            size: compressed.size,
+            sizeFormatted: compressed.sizeFormatted,
+            originalSize: compressed.originalSize,
+            compressionRatio: compressed.compressionRatio,
+          });
+          
+          setMessage({ 
+            text: `✅ 압축 완료 (${compressed.compressionRatio}% 감소)`, 
+            type: 'success' 
+          });
+          
+          setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+        } catch (compressionError) {
+          console.error('❌ [VisitDetail] 압축 오류:', compressionError);
+          setMessage({ text: '압축에 실패했습니다. 다시 시도해주세요.', type: 'error' });
+        } finally {
+          setCompressing(false);
+        }
       }
     } catch (error) {
       const errorInfo = createStorageError('LOAD_FAILED');
@@ -118,25 +162,6 @@ const VisitDetailScreen = ({ route, navigation }) => {
     } finally {
       StatusBar.setHidden(false, 'fade');
       StatusBar.setBarStyle('light-content');
-    }
-  };
-
-  /**
-   * 이미지를 Base64로 변환
-   */
-  const convertImageToBase64 = async (uri) => {
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      throw error;
     }
   };
 
@@ -150,11 +175,19 @@ const VisitDetailScreen = ({ route, navigation }) => {
         '사진을 삭제하시겠습니까?',
         [
           { text: '취소', style: 'cancel' },
-          { text: '삭제', style: 'destructive', onPress: () => setImageUri(null) },
+          { 
+            text: '삭제', 
+            style: 'destructive', 
+            onPress: () => {
+              setImageUri(null);
+              setImageInfo(null);
+            }
+          },
         ]
       );
     } else {
       setImageUri(null);
+      setImageInfo(null);
     }
   };
 
@@ -181,19 +214,8 @@ const VisitDetailScreen = ({ route, navigation }) => {
     try {
       const updateData = {
         card_review: review.trim() || null,
+        card_image: imageUri || null,
       };
-
-      // 이미지 처리
-      if (imageUri) {
-        if (imageUri.startsWith('file://') || imageUri.startsWith('content://')) {
-          const base64Image = await convertImageToBase64(imageUri);
-          updateData.card_image = base64Image;
-        } else {
-          updateData.card_image = imageUri;
-        }
-      } else {
-        updateData.card_image = null;
-      }
 
       const { error, errorInfo } = await handleApiCall(
         'VisitDetailScreen.handleSubmit',
@@ -293,13 +315,37 @@ const VisitDetailScreen = ({ route, navigation }) => {
               </Text>
             </View>
 
+            {/* ✅ 압축 중 표시 */}
+            {compressing && (
+              <View style={styles.compressingContainer}>
+                <ActivityIndicator size="large" color={Colors.gold} />
+                <Text style={styles.compressingText}>이미지 압축 중...</Text>
+              </View>
+            )}
+
             {imageUri ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                
+                {/* ✅ 이미지 정보 표시 */}
+                {imageInfo && (
+                  <View style={styles.imageInfoBox}>
+                    <Text style={styles.imageInfoText}>
+                      📊 크기: {imageInfo.sizeFormatted}
+                    </Text>
+                    {imageInfo.compressionRatio && (
+                      <Text style={styles.imageInfoText}>
+                        💾 압축률: {imageInfo.compressionRatio}%
+                      </Text>
+                    )}
+                  </View>
+                )}
+                
                 <TouchableOpacity
                   style={styles.removeImageButton}
                   onPress={handleRemoveImage}
                   activeOpacity={0.7}
+                  disabled={compressing}
                 >
                   <Text style={styles.removeImageText}>✕ 사진 제거</Text>
                 </TouchableOpacity>
@@ -318,14 +364,14 @@ const VisitDetailScreen = ({ route, navigation }) => {
                 title="📷 카메라"
                 onPress={() => openImagePicker('camera')}
                 style={styles.imageButton}
-                disabled={saving}
+                disabled={saving || compressing}
               />
               <CustomButton
                 title="🖼️ 갤러리"
                 onPress={() => openImagePicker('library')}
                 variant="secondary"
                 style={styles.imageButton}
-                disabled={saving}
+                disabled={saving || compressing}
               />
             </View>
 
@@ -341,7 +387,7 @@ const VisitDetailScreen = ({ route, navigation }) => {
                   maxLength={5000}
                   multiline
                   numberOfLines={4}
-                  editable={!saving}
+                  editable={!saving && !compressing}
                   textAlignVertical="top"
                   returnKeyType="done"
                   blurOnSubmit={true}
@@ -352,7 +398,7 @@ const VisitDetailScreen = ({ route, navigation }) => {
               <CustomButton
                 title={saving ? '저장 중...' : isEditMode ? '✓ 수정 완료' : '저장하기'}
                 onPress={handleSubmit}
-                disabled={saving || (!imageUri && !review.trim())}
+                disabled={saving || compressing || (!imageUri && !review.trim())}
                 loading={saving}
                 style={styles.submitButton}
               />
@@ -361,7 +407,9 @@ const VisitDetailScreen = ({ route, navigation }) => {
                 <View
                   style={[
                     styles.message,
-                    message.type === 'error' ? styles.messageError : styles.messageSuccess,
+                    message.type === 'error' ? styles.messageError : 
+                    message.type === 'success' ? styles.messageSuccess : 
+                    styles.messageInfo,
                   ]}
                 >
                   <Text style={styles.messageText}>{message.text}</Text>
@@ -372,7 +420,7 @@ const VisitDetailScreen = ({ route, navigation }) => {
                 <Text style={styles.infoText}>
                   💡 {isEditMode 
                     ? '사진과 리뷰를 자유롭게 수정하거나 삭제할 수 있어요!'
-                    : '사진과 리뷰는 선택 사항입니다.\n하나만 입력해도 저장할 수 있어요!'}
+                    : '사진은 자동으로 압축되어 저장됩니다.\n사진과 리뷰는 선택 사항입니다.'}
                 </Text>
               </View>
             </View>
@@ -428,6 +476,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
   },
+  compressingContainer: {
+    backgroundColor: Colors.purpleMid,
+    borderRadius: 20,
+    padding: 40,
+    marginBottom: 20,
+    borderWidth: 3,
+    borderColor: Colors.gold,
+    alignItems: 'center',
+  },
+  compressingText: {
+    fontSize: 16,
+    color: Colors.gold,
+    marginTop: 15,
+    fontWeight: '600',
+  },
   imagePlaceholder: {
     backgroundColor: Colors.purpleMid,
     borderRadius: 20,
@@ -465,6 +528,20 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 15,
     marginBottom: 15,
+  },
+  imageInfoBox: {
+    backgroundColor: 'rgba(138, 43, 226, 0.3)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 15,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  imageInfoText: {
+    fontSize: 13,
+    color: Colors.lavender,
+    fontWeight: '600',
   },
   removeImageButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.3)',
@@ -538,6 +615,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.errorRed,
   },
+  messageInfo: {
+    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+    borderWidth: 2,
+    borderColor: '#2196f3',
+  },
   messageText: {
     textAlign: 'center',
     fontSize: 14,
@@ -559,4 +641,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VisitDetailScreen;
+export default VisitDetailScreen; 
