@@ -11,7 +11,7 @@ import CouponScreen from '../screens/CouponScreen';
 import VoteScreen from '../screens/VoteScreen';
 import NoticeScreen from '../screens/NoticeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import CardSelectionScreen from '../screens/CardSelectionScreen';
+import VisitDetailScreen from '../screens/VisitDetailScreen'; // ✅ 변경된 이름
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -110,7 +110,7 @@ const TabNavigator = () => {
 /**
  * 메인 네비게이터
  * 로그인 후 화면들을 관리
- * TabNavigator + CardSelectionScreen (모달 형식)
+ * TabNavigator + VisitDetailScreen (모달 형식)
  */
 const MainNavigator = () => {
   return (
@@ -121,8 +121,8 @@ const MainNavigator = () => {
     >
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen
-        name="CardSelection"
-        component={CardSelectionScreen}
+        name="VisitDetail" // ✅ 변경된 라우트 이름
+        component={VisitDetailScreen}
         options={{
           presentation: 'card',
         }}

@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { GradientBackground, CustomButton } from '../components'; // 경로에 맞춰 조정
+import { GradientBackground, CustomButton } from '../components';
 import { useAuth } from '../hooks/useAuth';
 import { formatPhoneNumber } from '../utils/formatters';
 import { validatePhoneNumber } from '../utils/validators';
 import { Colors } from '../constants/Colors';
+import { 
+  createValidationError, 
+  showErrorAlert,
+  showSuccessAlert 
+} from '../utils/errorHandler';
+import { ERROR_MESSAGES } from '../constants/ErrorMessages';
 
 const LoginScreen = () => {
   const [phone, setPhone] = useState('');
@@ -26,15 +32,62 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    if (!validatePhoneNumber(phone)) return setMessage({ text: '올바른 전화번호를 입력해주세요. (010-1234-5678)', type: 'error' });
-    if (!password.trim()) return setMessage({ text: '비밀번호를 입력해주세요.', type: 'error' });
+    console.log('========================================');
+    console.log('🔐 [LoginScreen] 로그인 시도');
+    console.log('========================================');
+
+    // 1. 전화번호 유효성 검사
+    if (!validatePhoneNumber(phone)) {
+      console.log('❌ [LoginScreen] 전화번호 형식 오류');
+      const errorInfo = createValidationError('PHONE_INVALID');
+      setMessage({ text: errorInfo.message, type: 'error' });
+      return;
+    }
+
+    // 2. 비밀번호 검사
+    if (!password.trim()) {
+      console.log('❌ [LoginScreen] 비밀번호 미입력');
+      const errorInfo = createValidationError('PASSWORD_EMPTY');
+      setMessage({ text: errorInfo.message, type: 'error' });
+      return;
+    }
 
     setLoading(true);
     setMessage({ text: '로그인 중...', type: 'info' });
 
-    const result = await login(phone, password);
-    setMessage(result.success ? { text: '✅ 로그인 성공!', type: 'success' } : { text: result.message || '로그인 중 오류가 발생했습니다.', type: 'error' });
-    setLoading(false);
+    try {
+      const result = await login(phone, password);
+
+      if (result.success) {
+        console.log('✅ [LoginScreen] 로그인 성공');
+        setMessage({ 
+          text: ERROR_MESSAGES.AUTH.LOGIN_FAILED.icon + ' ' + '로그인 성공!', 
+          type: 'success' 
+        });
+      } else {
+        console.log('❌ [LoginScreen] 로그인 실패:', result.message);
+        
+        // 에러 메시지 매핑
+        let errorMessage = result.message;
+        
+        if (result.message.includes('등록되지 않은')) {
+          errorMessage = ERROR_MESSAGES.AUTH.NOT_REGISTERED.message;
+        } else if (result.message.includes('비밀번호')) {
+          errorMessage = ERROR_MESSAGES.AUTH.WRONG_PASSWORD.message;
+        }
+        
+        setMessage({ text: errorMessage, type: 'error' });
+      }
+    } catch (error) {
+      console.error('❌ [LoginScreen] 로그인 예외:', error);
+      setMessage({ 
+        text: '로그인 중 오류가 발생했습니다.', 
+        type: 'error' 
+      });
+    } finally {
+      setLoading(false);
+      console.log('========================================');
+    }
   };
 
   return (
@@ -48,15 +101,42 @@ const LoginScreen = () => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>전화번호</Text>
-              <TextInput style={styles.input} value={phone} onChangeText={handlePhoneChange} placeholder="010-1234-5678" placeholderTextColor={Colors.purpleLight} keyboardType="phone-pad" maxLength={13} editable={!loading} autoCapitalize="none" />
+              <TextInput 
+                style={styles.input} 
+                value={phone} 
+                onChangeText={handlePhoneChange} 
+                placeholder="010-1234-5678" 
+                placeholderTextColor={Colors.purpleLight} 
+                keyboardType="phone-pad" 
+                maxLength={13} 
+                editable={!loading} 
+                autoCapitalize="none" 
+              />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>비밀번호</Text>
-              <TextInput style={styles.input} value={password} onChangeText={handlePasswordChange} placeholder="비밀번호 입력" placeholderTextColor={Colors.purpleLight} secureTextEntry editable={!loading} autoCapitalize="none" returnKeyType="done" onSubmitEditing={handleLogin} />
+              <TextInput 
+                style={styles.input} 
+                value={password} 
+                onChangeText={handlePasswordChange} 
+                placeholder="비밀번호 입력" 
+                placeholderTextColor={Colors.purpleLight} 
+                secureTextEntry 
+                editable={!loading} 
+                autoCapitalize="none" 
+                returnKeyType="done" 
+                onSubmitEditing={handleLogin} 
+              />
             </View>
 
-            <CustomButton title={loading ? '로그인 중...' : '로그인'} onPress={handleLogin} disabled={loading} loading={loading} style={styles.button} />
+            <CustomButton 
+              title={loading ? '로그인 중...' : '로그인'} 
+              onPress={handleLogin} 
+              disabled={loading} 
+              loading={loading} 
+              style={styles.button} 
+            />
 
             {message.text && (
               <View style={[styles.message, styles[`message${message.type.charAt(0).toUpperCase() + message.type.slice(1)}`]]}>

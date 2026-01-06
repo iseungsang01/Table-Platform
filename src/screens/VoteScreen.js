@@ -5,14 +5,18 @@ import { GradientBackground, LoadingSpinner, CustomButton } from '../components'
 import { useAuth } from '../hooks/useAuth';
 import { voteService } from '../services/voteService';
 import { Colors } from '../constants/Colors';
+import { 
+  handleApiCall, 
+  createValidationError,
+  showErrorAlert,
+  showSuccessAlert 
+} from '../utils/errorHandler';
 
-// --- 외부 도우미 함수 (컴포넌트 무게 감소) ---
 const formatDate = (s) => s ? new Date(s).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '제한 없음';
 const normalizeOptions = (opts) => Array.isArray(opts) ? opts.map((t, i) => ({ id: i, text: typeof t === 'string' ? t : t.text || t })) : (opts ? Object.entries(opts).map(([k, v]) => ({ id: parseInt(k), text: v })) : []);
 
 const VoteScreen = () => {
   const { customer } = useAuth();
-  // 기존 변수명 100% 유지
   const [votes, setVotes] = useState([]);
   const [selectedVote, setSelectedVote] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -25,39 +29,123 @@ const VoteScreen = () => {
   const [isEditMode, setIsEditMode] = useState(false);
 
   const loadVotes = async () => {
-    const { data } = await voteService.getVotes();
-    if (data) setVotes(data);
+    console.log('🗳️ [VoteScreen] 투표 목록 로드');
+    
+    const { data, error } = await handleApiCall(
+      'VoteScreen.loadVotes',
+      () => voteService.getVotes(),
+      {
+        showAlert: true,
+      }
+    );
+    
+    if (!error && data) {
+      console.log('✅ [VoteScreen] 투표 로드 성공:', data.length, '개');
+      setVotes(data);
+    }
+    
     setLoading(false);
   };
 
   const loadVoteData = async (vId) => {
-    const [{ data }, { results }] = await Promise.all([voteService.getMyVote(vId, customer.id), voteService.getVoteResults(vId)]);
-    setMyVote(data);
-    setVoteResults(results || {});
-    setSelectedOptions(data?.selected_options || []);
-    setShowResults(!!data);
+    console.log('🗳️ [VoteScreen] 투표 데이터 로드:', vId);
+    
+    const [myVoteResult, resultsResult] = await Promise.all([
+      handleApiCall(
+        'VoteScreen.loadMyVote',
+        () => voteService.getMyVote(vId, customer.id),
+        { showAlert: false }
+      ),
+      handleApiCall(
+        'VoteScreen.loadVoteResults',
+        () => voteService.getVoteResults(vId),
+        { showAlert: false }
+      )
+    ]);
+
+    const myVoteData = myVoteResult.data;
+    const resultsData = resultsResult.data?.results || {};
+
+    console.log('✅ [VoteScreen] 투표 데이터 로드 완료');
+    console.log('  - 내 투표:', myVoteData ? '있음' : '없음');
+    console.log('  - 결과:', Object.keys(resultsData).length, '개 옵션');
+
+    setMyVote(myVoteData);
+    setVoteResults(resultsData);
+    setSelectedOptions(myVoteData?.selected_options || []);
+    setShowResults(!!myVoteData);
   };
 
-  useFocusEffect(useCallback(() => { loadVotes(); }, [customer]));
+  useFocusEffect(useCallback(() => { 
+    console.log('👀 [VoteScreen] 화면 포커스');
+    loadVotes(); 
+  }, [customer]));
 
-  const handleBackToList = () => { setSelectedVote(null); setSelectedOptions([]); setMyVote(null); setShowResults(false); setIsEditMode(false); };
+  const handleBackToList = () => { 
+    console.log('⬅️ [VoteScreen] 목록으로 돌아가기');
+    setSelectedVote(null); 
+    setSelectedOptions([]); 
+    setMyVote(null); 
+    setShowResults(false); 
+    setIsEditMode(false); 
+  };
 
   const handleOptionToggle = (id) => {
-    if (selectedOptions.includes(id)) return setSelectedOptions(selectedOptions.filter(i => i !== id));
-    if (!selectedVote.allow_multiple) return setSelectedOptions([id]);
-    if (selectedOptions.length < (selectedVote.max_selections || 1)) setSelectedOptions([...selectedOptions, id]);
-    else Alert.alert('알림', `최대 ${selectedVote.max_selections}개까지 선택 가능합니다.`);
+    if (selectedOptions.includes(id)) {
+      console.log('➖ [VoteScreen] 옵션 선택 해제:', id);
+      return setSelectedOptions(selectedOptions.filter(i => i !== id));
+    }
+    
+    if (!selectedVote.allow_multiple) {
+      console.log('✅ [VoteScreen] 단일 선택:', id);
+      return setSelectedOptions([id]);
+    }
+    
+    if (selectedOptions.length < (selectedVote.max_selections || 1)) {
+      console.log('✅ [VoteScreen] 복수 선택 추가:', id);
+      setSelectedOptions([...selectedOptions, id]);
+    } else {
+      console.log('⚠️ [VoteScreen] 최대 선택 개수 초과');
+      Alert.alert('알림', `최대 ${selectedVote.max_selections}개까지 선택 가능합니다.`);
+    }
   };
 
   const handleSubmitVote = async () => {
-    if (!selectedOptions.length) return Alert.alert('알림', '항목을 선택해주세요.');
+    if (!selectedOptions.length) {
+      console.log('❌ [VoteScreen] 선택된 옵션 없음');
+      const errorInfo = createValidationError('REQUIRED_FIELD');
+      errorInfo.message = '항목을 선택해주세요.';
+      showErrorAlert(errorInfo, Alert);
+      return;
+    }
+    
+    console.log('🗳️ [VoteScreen] 투표 제출:', {
+      voteId: selectedVote.id,
+      options: selectedOptions,
+      isEdit: !!myVote
+    });
+    
     setSubmitting(true);
-    const { error } = await voteService.submitVote(selectedVote.id, customer.id, selectedOptions, myVote?.id);
+    
+    const { error } = await handleApiCall(
+      'VoteScreen.handleSubmitVote',
+      () => voteService.submitVote(selectedVote.id, customer.id, selectedOptions, myVote?.id),
+      {
+        showAlert: true,
+        additionalInfo: {
+          voteId: selectedVote.id,
+          optionCount: selectedOptions.length,
+        },
+      }
+    );
+    
     if (!error) {
-      Alert.alert('완료', myVote ? '✅ 수정되었습니다!' : '✅ 완료되었습니다!');
+      console.log('✅ [VoteScreen] 투표 제출 성공');
+      showSuccessAlert('VOTE', Alert, myVote ? '✅ 수정되었습니다!' : '✅ 완료되었습니다!');
       await loadVoteData(selectedVote.id);
       setIsEditMode(false);
-    } else Alert.alert('오류', '투표 중 오류가 발생했습니다.');
+    }
+    
     setSubmitting(false);
   };
 
@@ -137,7 +225,13 @@ const VoteScreen = () => {
     );
   };
 
-  if (loading) return <GradientBackground><LoadingSpinner /></GradientBackground>;
+  if (loading) {
+    return (
+      <GradientBackground>
+        <LoadingSpinner message="투표 로딩 중..." />
+      </GradientBackground>
+    );
+  }
 
   return (
     <GradientBackground>

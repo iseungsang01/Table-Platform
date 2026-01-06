@@ -20,9 +20,17 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { Colors } from '../constants/Colors';
+import { 
+  handleApiCall, 
+  createValidationError, 
+  createPermissionError,
+  createStorageError,
+  showErrorAlert,
+  showSuccessAlert 
+} from '../utils/errorHandler';
 
-const CardSelectionScreen = ({ route, navigation }) => {
-  const insets = useSafeAreaInsets(); // ✅ 기기별 안전 영역 감지
+const VisitDetailScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { visitId } = route.params;
   const { customer } = useAuth();
   const [imageUri, setImageUri] = useState(null);
@@ -43,54 +51,50 @@ const CardSelectionScreen = ({ route, navigation }) => {
   const loadVisitData = async () => {
     setLoading(true);
     
-    try {
-      const { data, error } = await visitService.getVisit(visitId);
-      
-      if (error) {
-        console.error('Load visit error:', error);
-        Alert.alert('오류', '데이터를 불러오는 중 오류가 발생했습니다.');
-        setLoading(false);
-        return;
+    const { data, error, errorInfo } = await handleApiCall(
+      'VisitDetailScreen.loadVisitData',
+      () => visitService.getVisit(visitId),
+      {
+        showAlert: true,
+        additionalInfo: { visitId },
       }
+    );
 
-      if (data) {
-        // 기존 데이터가 있으면 수정 모드
-        if (data.card_image || data.card_review) {
-          setIsEditMode(true);
-          setImageUri(data.card_image);
-          setReview(data.card_review || '');
-          setOriginalData({
-            image: data.card_image,
-            review: data.card_review,
-          });
-        }
-      }
-      
+    if (error) {
       setLoading(false);
-    } catch (error) {
-      console.error('Load visit error:', error);
-      Alert.alert('오류', '데이터를 불러오는 중 오류가 발생했습니다.');
-      setLoading(false);
+      return;
     }
+
+    if (data) {
+      if (data.card_image || data.card_review) {
+        setIsEditMode(true);
+        setImageUri(data.card_image);
+        setReview(data.card_review || '');
+        setOriginalData({
+          image: data.card_image,
+          review: data.card_review,
+        });
+      }
+    }
+    
+    setLoading(false);
   };
 
   /**
    * ✅ 이미지 선택 공통 함수
-   * - 상태바 숨김으로 편집 UI 버튼 시인성 확보
    */
   const openImagePicker = async (type) => {
     try {
-      // 권한 확인
       const permission = type === 'camera' 
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (permission.status !== 'granted') {
-        Alert.alert('권한 필요', `${type === 'camera' ? '카메라' : '갤러리'} 권한이 필요합니다.`);
+        const errorInfo = createPermissionError(type === 'camera' ? 'CAMERA' : 'GALLERY');
+        showErrorAlert(errorInfo, Alert);
         return;
       }
 
-      // ✅ 편집 화면 열기 전 상태바 숨김 (완료/취소 버튼 가독성 향상)
       StatusBar.setHidden(true, 'fade');
 
       const options = {
@@ -109,10 +113,9 @@ const CardSelectionScreen = ({ route, navigation }) => {
         setMessage({ text: '', type: '' });
       }
     } catch (error) {
-      console.error('Image picker error:', error);
-      Alert.alert('오류', '사진 처리 중 오류가 발생했습니다.');
+      const errorInfo = createStorageError('LOAD_FAILED');
+      showErrorAlert(errorInfo, Alert);
     } finally {
-      // ✅ 편집 화면 닫힌 후 상태바 다시 표시
       StatusBar.setHidden(false, 'fade');
       StatusBar.setBarStyle('light-content');
     }
@@ -133,7 +136,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
         reader.readAsDataURL(blob);
       });
     } catch (error) {
-      console.error('Image conversion error:', error);
       throw error;
     }
   };
@@ -160,13 +162,17 @@ const CardSelectionScreen = ({ route, navigation }) => {
    * 저장하기
    */
   const handleSubmit = async () => {
+    // 유효성 검사
     if (!imageUri && !review.trim()) {
-      Alert.alert('알림', '사진 또는 리뷰 중 하나는 입력해주세요.');
+      const errorInfo = createValidationError('REQUIRED_FIELD');
+      errorInfo.message = '사진 또는 리뷰 중 하나는 입력해주세요.';
+      showErrorAlert(errorInfo, Alert);
       return;
     }
 
     if (review.length > 5000) {
-      Alert.alert('알림', '리뷰는 5000자 이내로 작성해주세요.');
+      const errorInfo = createValidationError('REVIEW_TOO_LONG');
+      showErrorAlert(errorInfo, Alert);
       return;
     }
 
@@ -179,37 +185,38 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
       // 이미지 처리
       if (imageUri) {
-        // 새로운 이미지인 경우 (로컬 URI)
         if (imageUri.startsWith('file://') || imageUri.startsWith('content://')) {
           const base64Image = await convertImageToBase64(imageUri);
           updateData.card_image = base64Image;
-        } 
-        // 기존 이미지인 경우 (Base64)
-        else {
+        } else {
           updateData.card_image = imageUri;
         }
       } else {
-        // 이미지를 제거한 경우
         updateData.card_image = null;
       }
 
-      const { error } = await visitService.updateVisit(visitId, updateData);
+      const { error, errorInfo } = await handleApiCall(
+        'VisitDetailScreen.handleSubmit',
+        () => visitService.updateVisit(visitId, updateData),
+        {
+          showAlert: true,
+          additionalInfo: { visitId, hasImage: !!imageUri, hasReview: !!review },
+        }
+      );
 
       if (error) {
-        Alert.alert('오류', '저장 중 오류가 발생했습니다.');
         setSaving(false);
         return;
       }
 
-      const successMsg = isEditMode ? '✨ 수정되었습니다!' : '✨ 저장되었습니다!';
-      setMessage({ text: successMsg, type: 'success' });
+      showSuccessAlert(isEditMode ? 'UPDATE' : 'SAVE', Alert);
 
       setTimeout(() => {
         navigation.goBack();
       }, 1500);
     } catch (error) {
-      console.error('Submit error:', error);
-      Alert.alert('오류', '저장 중 오류가 발생했습니다.');
+      const errorInfo = createStorageError('SAVE_FAILED');
+      showErrorAlert(errorInfo, Alert);
       setSaving(false);
     }
   };
@@ -246,7 +253,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
 
   return (
     <GradientBackground>
-      {/* ✅ SafeAreaView로 상단/하단 안전 영역 확보 */}
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <StatusBar 
           barStyle="light-content" 
@@ -262,7 +268,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
           <ScrollView
             contentContainerStyle={[
               styles.scrollContent,
-              // ✅ 동적 하단 여백: 기기별 홈버튼 영역 + 추가 여백
               { paddingBottom: Math.max(insets.bottom, 20) + 80 }
             ]}
             keyboardShouldPersistTaps="handled"
@@ -288,7 +293,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
               </Text>
             </View>
 
-            {/* 사진 미리보기 */}
             {imageUri ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
@@ -309,7 +313,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* 사진 선택 버튼 */}
             <View style={styles.buttonGroup}>
               <CustomButton
                 title="📷 카메라"
@@ -326,7 +329,6 @@ const CardSelectionScreen = ({ route, navigation }) => {
               />
             </View>
 
-            {/* 리뷰 입력 */}
             <View style={styles.reviewSection}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>오늘의 기록 (선택 사항, 최대 5000자)</Text>
@@ -390,8 +392,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingTop: Platform.OS === 'android' ? 20 : 0, // SafeAreaView가 상단 처리
-    // paddingBottom은 ScrollView에서 동적으로 설정됨
+    paddingTop: Platform.OS === 'android' ? 20 : 0,
   },
   header: {
     backgroundColor: Colors.purpleMid,
@@ -558,4 +559,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CardSelectionScreen;
+export default VisitDetailScreen;

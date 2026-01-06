@@ -7,20 +7,21 @@ import { customerService } from '../services/customerService';
 import { noticeService } from '../services/noticeService';
 import { supabase } from '../services/supabase';
 import { Colors } from '../constants/Colors';
+import { 
+  handleApiCall, 
+  createValidationError,
+  showErrorAlert,
+  showSuccessAlert 
+} from '../utils/errorHandler';
 
 const SettingsScreen = () => {
   const { customer, logout } = useAuth();
   
-  // 섹션 열림/닫힘 상태
-  const [activeSection, setActiveSection] = useState(null); // 'password', 'report', 'delete'
-
-  // 상태 관리: 비밀번호 관련
+  const [activeSection, setActiveSection] = useState(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [deleteConfirmPassword, setDeleteConfirmPassword] = useState('');
-
-  // 상태 관리: 버그/불편사항 관련
   const [myReports, setMyReports] = useState([]);
   const [reportData, setReportData] = useState({ 
     title: '', 
@@ -28,33 +29,39 @@ const SettingsScreen = () => {
     report_type: '어플 버그', 
     category: 'app' 
   });
-
   const [processing, setProcessing] = useState(false);
 
-  // 내 접수 내역 불러오기
   const loadMyReports = async () => {
     if (customer) {
-      const { data, error } = await noticeService.getMyReports(customer.id);
-      if (!error) setMyReports(data);
+      console.log('📋 [SettingsScreen] 내 접수 내역 로드');
+      
+      const { data, error } = await handleApiCall(
+        'SettingsScreen.loadMyReports',
+        () => noticeService.getMyReports(customer.id),
+        {
+          showAlert: false,
+          additionalInfo: { customerId: customer.id },
+        }
+      );
+      
+      if (!error && data) {
+        console.log('✅ [SettingsScreen] 접수 내역 로드 성공:', data.length, '건');
+        setMyReports(data);
+      }
     }
   };
 
-  // 버그 접수 섹션이 열릴 때 내역 업데이트
   useEffect(() => {
     if (activeSection === 'report') {
       loadMyReports();
     }
   }, [activeSection]);
 
-  // 아코디언 토글 함수
   const toggleSection = (sectionName) => {
     setActiveSection(activeSection === sectionName ? null : sectionName);
     Keyboard.dismiss();
   };
 
-  /**
-   * 버그/불편사항 접수 처리
-   */
   const handleCategoryChange = (category) => {
     setReportData({ 
       ...reportData, 
@@ -65,79 +72,116 @@ const SettingsScreen = () => {
 
   const handleSubmitReport = async () => {
     const { title, description, report_type } = reportData;
+    
     if (!title.trim() || !description.trim()) {
-      return Alert.alert('알림', '제목과 상세 내용을 모두 입력해주세요.');
+      const errorInfo = createValidationError('REQUIRED_FIELD');
+      errorInfo.message = '제목과 상세 내용을 모두 입력해주세요.';
+      showErrorAlert(errorInfo, Alert);
+      return;
     }
 
+    console.log('📝 [SettingsScreen] 버그 리포트 제출');
     setProcessing(true);
-    const { error } = await noticeService.submitReport({
-      customer_id: customer.id,
-      title,
-      description,
-      report_type
-    });
+    
+    const { error } = await handleApiCall(
+      'SettingsScreen.handleSubmitReport',
+      () => noticeService.submitReport({
+        customer_id: customer.id,
+        title,
+        description,
+        report_type
+      }),
+      {
+        showAlert: true,
+        additionalInfo: { reportType: report_type },
+      }
+    );
 
     if (!error) {
+      console.log('✅ [SettingsScreen] 리포트 제출 성공');
       Alert.alert('완료', '✅ 소중한 의견이 접수되었습니다.');
       setReportData({ title: '', description: '', report_type: '어플 버그', category: 'app' });
-      loadMyReports(); // 내역 즉시 갱신
-    } else {
-      Alert.alert('오류', '접수 중 오류가 발생했습니다.');
+      loadMyReports();
     }
+    
     setProcessing(false);
   };
 
-  /**
-   * 비밀번호 재설정 처리
-   */
   const handlePasswordReset = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) return Alert.alert('알림', '필드를 채워주세요.');
-    if (newPassword !== confirmPassword) return Alert.alert('오류', '새 비밀번호가 일치하지 않습니다.');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      const errorInfo = createValidationError('REQUIRED_FIELD');
+      errorInfo.message = '모든 필드를 채워주세요.';
+      showErrorAlert(errorInfo, Alert);
+      return;
+    }
     
+    if (newPassword !== confirmPassword) {
+      const errorInfo = createValidationError('PASSWORD_EMPTY');
+      errorInfo.title = '비밀번호 불일치';
+      errorInfo.message = '새 비밀번호가 일치하지 않습니다.';
+      showErrorAlert(errorInfo, Alert);
+      return;
+    }
+    
+    console.log('🔑 [SettingsScreen] 비밀번호 재설정 시작');
     setProcessing(true);
+    
     try {
-      const { data: isValid } = await supabase.rpc('verify_password', {
+      const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
         customer_uuid: customer.id,
         input_password: currentPassword
       });
 
+      if (verifyError) throw verifyError;
+
       if (!isValid) {
+        console.log('❌ [SettingsScreen] 현재 비밀번호 불일치');
         Alert.alert('오류', '현재 비밀번호가 올바르지 않습니다.');
         setProcessing(false);
         return;
       }
 
-      const { error } = await supabase.rpc('update_customer_password', {
+      const { error: updateError } = await supabase.rpc('update_customer_password', {
         customer_uuid: customer.id,
         new_password: newPassword
       });
 
-      if (!error) {
-        Alert.alert('완료', '비밀번호가 변경되었습니다.');
-        setActiveSection(null);
-        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-      }
-    } catch (e) {
+      if (updateError) throw updateError;
+
+      console.log('✅ [SettingsScreen] 비밀번호 변경 성공');
+      showSuccessAlert('UPDATE', Alert, '비밀번호가 변경되었습니다.');
+      setActiveSection(null);
+      setCurrentPassword(''); 
+      setNewPassword(''); 
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('❌ [SettingsScreen] 비밀번호 변경 오류:', error);
       Alert.alert('오류', '처리 중 오류가 발생했습니다.');
     } finally {
       setProcessing(false);
     }
   };
 
-  /**
-   * 회원 탈퇴 처리
-   */
   const handleDeleteAccount = async () => {
-    if (!deleteConfirmPassword) return Alert.alert('알림', '비밀번호를 입력해주세요.');
+    if (!deleteConfirmPassword) {
+      const errorInfo = createValidationError('PASSWORD_EMPTY');
+      showErrorAlert(errorInfo, Alert);
+      return;
+    }
     
+    console.log('🗑️ [SettingsScreen] 회원 탈퇴 시작');
     setProcessing(true);
+    
     try {
-      const { data: isValid } = await supabase.rpc('verify_password', {
+      const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
         customer_uuid: customer.id,
         input_password: deleteConfirmPassword
       });
 
+      if (verifyError) throw verifyError;
+
       if (!isValid) {
+        console.log('❌ [SettingsScreen] 비밀번호 불일치');
         Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
         setProcessing(false);
         return;
@@ -146,30 +190,41 @@ const SettingsScreen = () => {
       Alert.alert('회원 탈퇴', '정말 탈퇴하시겠습니까? 모든 정보가 사라집니다.', [
         { text: '취소', onPress: () => setProcessing(false) },
         { text: '탈퇴', style: 'destructive', onPress: async () => {
-          await customerService.deleteCustomer(customer.id);
-          await logout();
+          console.log('🗑️ [SettingsScreen] 탈퇴 진행');
+          
+          const { error } = await handleApiCall(
+            'SettingsScreen.handleDeleteAccount',
+            () => customerService.deleteCustomer(customer.id),
+            {
+              showAlert: true,
+              additionalInfo: { customerId: customer.id },
+            }
+          );
+          
+          if (!error) {
+            console.log('✅ [SettingsScreen] 탈퇴 성공');
+            await logout();
+          }
         }}
       ]);
-    } catch (e) {
+    } catch (error) {
+      console.error('❌ [SettingsScreen] 탈퇴 오류:', error);
       setProcessing(false);
     }
   };
 
-  // 공통 렌더링 함수: 내역 카드 디자인
   const getStatusColor = (s) => ({ 접수: '#ffa500', 확인중: '#2196f3', 완료: '#4caf50' }[s] || Colors.lavender);
 
   return (
     <GradientBackground>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         
-        {/* 헤더 섹션 */}
         <View style={styles.header}>
           <Text style={styles.icon}>⚙️</Text>
           <Text style={styles.title}>설정</Text>
           <Text style={styles.subtitle}>{customer.nickname}님 계정</Text>
         </View>
 
-        {/* 계정 정보 섹션 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📱 내 정보</Text>
           <View style={styles.infoCard}>
@@ -178,7 +233,6 @@ const SettingsScreen = () => {
           </View>
         </View>
 
-        {/* 1. 비밀번호 재설정 아코디언 */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.menuButton} onPress={() => toggleSection('password')}>
             <Text style={styles.menuButtonText}>🔐 비밀번호 재설정 {activeSection === 'password' ? '▲' : '▼'}</Text>
@@ -193,7 +247,6 @@ const SettingsScreen = () => {
           )}
         </View>
 
-        {/* 2. 버그 및 불편사항 접수 + 내역 아코디언 */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={[styles.menuButton, { borderColor: Colors.gold }]} 
@@ -238,7 +291,6 @@ const SettingsScreen = () => {
           )}
         </View>
 
-        {/* 3. 회원 탈퇴 아코디언 */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.menuButtonDanger} onPress={() => toggleSection('delete')}>
             <Text style={styles.menuButtonTextDanger}>🗑️ 회원 탈퇴 {activeSection === 'delete' ? '▲' : '▼'}</Text>
@@ -252,7 +304,6 @@ const SettingsScreen = () => {
           )}
         </View>
 
-        {/* 로그아웃 및 정보 */}
         <CustomButton title="로그아웃" onPress={() => Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [{text:'취소'}, {text:'로그아웃', onPress: logout}])} variant="secondary" />
         
         <View style={styles.appInfo}>

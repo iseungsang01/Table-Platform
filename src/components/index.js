@@ -6,3 +6,5 @@ export { NoticeCard } from './NoticeCard';
 export { StatsCard } from './StatsCard';
 export { VisitCard } from './VisitCard';
 export { VoteOption } from './VoteOption';
+export { ErrorBoundary } from './ErrorBoundary';
+export { GlobalErrorDisplay } from './GlobalErrorDisplay';

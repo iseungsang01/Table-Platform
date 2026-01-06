@@ -1,11 +1,17 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Alert, TouchableOpacity, RefreshControl, Platform, StatusBar, Keyboard } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { GradientBackground, LoadingSpinner, CouponCard, CustomButton } from '../components'; // 경로에 맞춰 수정 가능
+import { GradientBackground, LoadingSpinner, CouponCard, CustomButton } from '../components';
 import { useAuth } from '../hooks/useAuth';
 import { couponService } from '../services/couponService';
 import { AdminPassword } from '../services/supabase';
 import { Colors } from '../constants/Colors';
+import { 
+  handleApiCall, 
+  createValidationError,
+  showErrorAlert,
+  showSuccessAlert 
+} from '../utils/errorHandler';
 
 const CouponScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
@@ -21,20 +27,39 @@ const CouponScreen = ({ navigation }) => {
   const getCouponType = (code) => (code?.startsWith('BIRTHDAY') || code?.startsWith('BIRTH') ? 'birthday' : 'stamp');
 
   const loadCoupons = async () => {
-    const { data, error } = await couponService.getCoupons(customer.id);
-    if (!error && data) setCoupons(data);
+    console.log('🎟️ [CouponScreen] 쿠폰 로드 시작');
+    
+    const { data, error } = await handleApiCall(
+      'CouponScreen.loadCoupons',
+      () => couponService.getCoupons(customer.id),
+      {
+        showAlert: true,
+        additionalInfo: { customerId: customer.id },
+      }
+    );
+    
+    if (!error && data) {
+      console.log('✅ [CouponScreen] 쿠폰 로드 성공:', data.length, '개');
+      setCoupons(data);
+    }
+    
     setLoading(false);
   };
 
-  useFocusEffect(useCallback(() => { loadCoupons(); }, []));
+  useFocusEffect(useCallback(() => { 
+    console.log('👀 [CouponScreen] 화면 포커스');
+    loadCoupons(); 
+  }, []));
 
   const handleRefresh = async () => {
+    console.log('🔄 [CouponScreen] 새로고침');
     setRefreshing(true);
     await Promise.all([loadCoupons(), refreshCustomer()]);
     setRefreshing(false);
   };
 
   const handleSelectCoupon = (coupon) => {
+    console.log('🎟️ [CouponScreen] 쿠폰 선택:', coupon.id);
     setSelectedCoupon(coupon);
     setShowUseForm(true);
     setPassword('');
@@ -42,6 +67,7 @@ const CouponScreen = ({ navigation }) => {
   };
 
   const handleCancelUse = () => {
+    console.log('❌ [CouponScreen] 쿠폰 사용 취소');
     Keyboard.dismiss();
     setSelectedCoupon(null);
     setShowUseForm(false);
@@ -49,8 +75,21 @@ const CouponScreen = ({ navigation }) => {
   };
 
   const handleUseCoupon = async () => {
-    if (!selectedCoupon) return Alert.alert('알림', '사용할 쿠폰을 선택해주세요.');
-    if (password !== AdminPassword) return Alert.alert('오류', '비밀번호가 올바르지 않습니다.');
+    if (!selectedCoupon) {
+      const errorInfo = createValidationError('REQUIRED_FIELD');
+      errorInfo.message = '사용할 쿠폰을 선택해주세요.';
+      showErrorAlert(errorInfo, Alert);
+      return;
+    }
+    
+    if (password !== AdminPassword) {
+      console.log('❌ [CouponScreen] 비밀번호 불일치');
+      const errorInfo = createValidationError('PASSWORD_EMPTY');
+      errorInfo.title = '비밀번호 오류';
+      errorInfo.message = '비밀번호가 올바르지 않습니다.';
+      showErrorAlert(errorInfo, Alert);
+      return;
+    }
     
     Keyboard.dismiss();
     const typeNm = getCouponType(selectedCoupon.coupon_code) === 'birthday' ? '생일 쿠폰' : '스탬프 쿠폰';
@@ -58,15 +97,25 @@ const CouponScreen = ({ navigation }) => {
     Alert.alert('쿠폰 사용', `${typeNm}을 사용하시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '사용', onPress: async () => {
+        console.log('🎟️ [CouponScreen] 쿠폰 사용 진행:', selectedCoupon.id);
         setProcessing(true);
-        const { error } = await couponService.useCoupon(selectedCoupon.id);
-        if (error) {
-          Alert.alert('오류', '쿠폰 사용 중 오류가 발생했습니다.');
-        } else {
-          Alert.alert('완료', `✅ ${typeNm}이 사용되었습니다!`);
+        
+        const { error } = await handleApiCall(
+          'CouponScreen.handleUseCoupon',
+          () => couponService.useCoupon(selectedCoupon.id),
+          {
+            showAlert: true,
+            additionalInfo: { couponId: selectedCoupon.id },
+          }
+        );
+        
+        if (!error) {
+          console.log('✅ [CouponScreen] 쿠폰 사용 성공');
+          showSuccessAlert('COUPON_USED', Alert, `✅ ${typeNm}이 사용되었습니다!`);
           handleCancelUse();
           await Promise.all([loadCoupons(), refreshCustomer()]);
         }
+        
         setProcessing(false);
       }}
     ]);
@@ -84,7 +133,13 @@ const CouponScreen = ({ navigation }) => {
     </>
   );
 
-  if (loading) return <GradientBackground><LoadingSpinner /></GradientBackground>;
+  if (loading) {
+    return (
+      <GradientBackground>
+        <LoadingSpinner message="쿠폰 로딩 중..." />
+      </GradientBackground>
+    );
+  }
 
   return (
     <GradientBackground>

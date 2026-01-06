@@ -17,6 +17,7 @@ import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { couponService } from '../services/couponService';
 import { Colors } from '../constants/Colors';
+import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
 
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
@@ -64,14 +65,6 @@ const HistoryScreen = ({ navigation }) => {
     console.log('========================================');
     
     try {
-      console.log('🔍 [HistoryScreen] 디버깅 함수 호출 중...');
-      const debugResult = await visitService.debugVisits(customer.id);
-      console.log('🔍 [HistoryScreen] 디버깅 결과:', {
-        전체방문수: debugResult?.allVisits?.length || 0,
-        내방문수: debugResult?.myVisits?.length || 0
-      });
-      
-      console.log('📥 [HistoryScreen] 실제 데이터 로드 시작...');
       await Promise.all([
         loadVisits(),
         loadCouponCount(),
@@ -94,13 +87,18 @@ const HistoryScreen = ({ navigation }) => {
     console.log('📥 [HistoryScreen] loadVisits 시작');
     console.log('📥 [HistoryScreen] Customer ID:', customer.id);
     
-    const { data, error } = await visitService.getVisits(customer.id);
+    const { data, error } = await handleApiCall(
+      'HistoryScreen.loadVisits',
+      () => visitService.getVisits(customer.id),
+      {
+        showAlert: true,
+        additionalInfo: { customerId: customer.id },
+      }
+    );
     
-    if (error) {
-      console.error('❌ [HistoryScreen] loadVisits 오류:', error);
-    } else {
-      console.log('✅ [HistoryScreen] loadVisits 성공:', data?.length || 0, '건');
-      setVisits(data || []);
+    if (!error && data) {
+      console.log('✅ [HistoryScreen] loadVisits 성공:', data.length, '건');
+      setVisits(data);
     }
   };
 
@@ -112,11 +110,16 @@ const HistoryScreen = ({ navigation }) => {
     
     console.log('🎟️ [HistoryScreen] loadCouponCount 시작');
     
-    const { count, error } = await couponService.getCouponCount(customer.id);
+    const { data: count, error } = await handleApiCall(
+      'HistoryScreen.loadCouponCount',
+      () => couponService.getCouponCount(customer.id),
+      {
+        showAlert: false,
+        additionalInfo: { customerId: customer.id },
+      }
+    );
     
-    if (error) {
-      console.error('❌ [HistoryScreen] loadCouponCount 오류:', error);
-    } else {
+    if (!error) {
       console.log('✅ [HistoryScreen] loadCouponCount 성공:', count);
       setCouponCount(count || 0);
     }
@@ -134,8 +137,8 @@ const HistoryScreen = ({ navigation }) => {
   };
 
   const handleSelectCard = (visitId) => {
-    console.log('🎴 [HistoryScreen] 카드 선택 화면 이동:', visitId);
-    navigation.navigate('CardSelection', { visitId });
+    console.log('🎴 [HistoryScreen] 방문 상세 화면 이동:', visitId);
+    navigation.navigate('VisitDetail', { visitId }); // ✅ 변경된 라우트 이름
   };
 
   const handleDeleteVisit = (visitId, hasCard) => {
@@ -160,15 +163,20 @@ const HistoryScreen = ({ navigation }) => {
           onPress: async () => {
             console.log('🗑️ [HistoryScreen] 삭제 진행 중...');
             
-            const { error } = await visitService.deleteVisit(visitId);
-            
+            const { error } = await handleApiCall(
+              'HistoryScreen.handleDeleteVisit',
+              () => visitService.deleteVisit(visitId),
+              {
+                showAlert: true,
+                additionalInfo: { visitId },
+              }
+            );
+
             if (!error) {
               console.log('✅ [HistoryScreen] 삭제 성공');
-              Alert.alert('알림', '🗑️ 기록이 삭제되었습니다.');
+              showSuccessAlert('DELETE', Alert);
               await loadVisits();
               await refreshCustomer();
-            } else {
-              console.error('❌ [HistoryScreen] 삭제 실패:', error);
             }
           },
         },
@@ -273,7 +281,6 @@ const HistoryScreen = ({ navigation }) => {
             colors={[Colors.gold]}
           />
         }
-        // ✅ 스크롤 개선: 더 부드러운 스크롤
         showsVerticalScrollIndicator={true}
         removeClippedSubviews={false}
         windowSize={10}
@@ -288,7 +295,7 @@ const HistoryScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   listContent: {
     padding: 20,
-    paddingBottom: 140, // 하단 탭바를 위한 여유 공간
+    paddingBottom: 140,
   },
   header: {
     backgroundColor: Colors.purpleMid,

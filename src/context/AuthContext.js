@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
+import { handleApiCall, logError } from '../utils/errorHandler';
 
 /**
  * 인증 Context
@@ -23,7 +24,6 @@ export const AuthProvider = ({ children }) => {
     console.log('🚀 [AuthContext] AuthProvider 마운트');
     console.log('========================================');
     
-    // 앱 시작 시 초기 설정
     initializeAuth();
   }, []);
 
@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('❌ [AuthContext] 초기화 오류:', error);
+      logError('AuthContext.initializeAuth', error);
     } finally {
       setLoading(false);
       console.log('✅ [AuthContext] 초기화 완료');
@@ -74,26 +75,39 @@ export const AuthProvider = ({ children }) => {
     console.log('📞 [AuthContext] 전화번호:', phoneNumber);
     console.log('🔑 [AuthContext] 비밀번호:', password ? '입력됨' : '입력 안됨');
     
-    const result = await authService.login(phoneNumber, password);
-    
-    if (result.success) {
-      console.log('✅ [AuthContext] 로그인 성공');
-      console.log('👤 [AuthContext] 고객 정보:', {
-        id: result.customer.id,
-        nickname: result.customer.nickname,
-        phone: result.customer.phone_number
-      });
+    try {
+      const result = await authService.login(phoneNumber, password);
       
-      setCustomer(result.customer);
+      if (result.success) {
+        console.log('✅ [AuthContext] 로그인 성공');
+        console.log('👤 [AuthContext] 고객 정보:', {
+          id: result.customer.id,
+          nickname: result.customer.nickname,
+          phone: result.customer.phone_number
+        });
+        
+        setCustomer(result.customer);
+        
+        console.log('✅ [AuthContext] Context에 고객 정보 저장 완료');
+      } else {
+        console.log('❌ [AuthContext] 로그인 실패:', result.message);
+      }
       
-      console.log('✅ [AuthContext] Context에 고객 정보 저장 완료');
-    } else {
-      console.log('❌ [AuthContext] 로그인 실패:', result.message);
+      console.log('========================================');
+      
+      return result;
+    } catch (error) {
+      console.error('========================================');
+      console.error('❌ [AuthContext] 로그인 예외:', error);
+      console.error('========================================');
+      
+      logError('AuthContext.login', error, { phoneNumber });
+      
+      return { 
+        success: false, 
+        message: '로그인 중 오류가 발생했습니다.' 
+      };
     }
-    
-    console.log('========================================');
-    
-    return result;
   };
 
   /**
@@ -114,6 +128,8 @@ export const AuthProvider = ({ children }) => {
       console.error('========================================');
       console.error('❌ [AuthContext] 로그아웃 오류:', error);
       console.error('========================================');
+      
+      logError('AuthContext.logout', error);
     }
   };
 
@@ -151,18 +167,19 @@ export const AuthProvider = ({ children }) => {
       console.error('========================================');
       console.error('❌ [AuthContext] 정보 갱신 오류:', error);
       console.error('========================================');
+      
+      logError('AuthContext.refreshCustomer', error, { customerId: customer?.id });
     }
   };
 
   const value = {
-    customer,          // 현재 로그인한 고객 정보
-    loading,           // 초기 로딩 상태
-    login,             // 로그인 함수
-    logout,            // 로그아웃 함수
-    refreshCustomer,   // 고객 정보 새로고침 함수
+    customer,
+    loading,
+    login,
+    logout,
+    refreshCustomer,
   };
 
-  // 🔍 렌더링 로깅
   console.log('🎨 [AuthContext] 렌더링:', {
     loading,
     customer: customer ? customer.nickname : 'null'
