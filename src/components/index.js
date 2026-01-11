@@ -8,3 +8,6 @@ export { VisitCard } from './VisitCard';
 export { VoteOption } from './VoteOption';
 export { ErrorBoundary } from './ErrorBoundary';
 export { GlobalErrorDisplay } from './GlobalErrorDisplay';
+export { DrawerUnit } from './DrawerUnit';
+export { DrawerChest } from './DrawerChest';
+export { TarotCardModal } from './TarotCardModal';
