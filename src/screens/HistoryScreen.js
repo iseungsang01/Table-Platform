@@ -8,13 +8,16 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+
+// 컴포넌트 임포트
 import { GradientBackground } from '../components/GradientBackground';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { StatsCard } from '../components/StatsCard';
-import { DrawerChest } from '../components/DrawerChest'; // 전체 틀
-import { DrawerUnit } from '../components/DrawerUnit';   // 개별 서랍
+import { DrawerChest } from '../components/DrawerChest';
+import { DrawerUnit } from '../components/DrawerUnit';
 import { TarotCardModal } from '../components/TarotCardModal';
 
+// 서비스 및 테마
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { couponService } from '../services/couponService';
@@ -28,7 +31,7 @@ const HistoryScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
   
-  const [openDrawerId, setOpenDrawerId] = useState(null);
+  // 모달 제어 상태
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -57,7 +60,7 @@ const HistoryScreen = ({ navigation }) => {
       () => visitService.getVisits(customer.id)
     );
     if (!error && data) {
-      // 최신 방문이 위로 오도록 정렬 (서랍장 위에서부터 새 서랍)
+      // 서버 데이터를 최신순으로 정렬하여 서랍장에 배치
       setVisits(data);
     }
   };
@@ -76,41 +79,30 @@ const HistoryScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleToggleDrawer = (visitId) => {
-    setOpenDrawerId(openDrawerId === visitId ? null : visitId);
-  };
-
+  // 서랍 클릭 시 모달 열기
   const handleOpenModal = (visit) => {
     setSelectedVisit(visit);
     setIsModalVisible(true);
   };
 
+  // 수정 화면 이동
   const handleEditDetail = (visitId) => {
     navigation.navigate('VisitDetail', { visitId });
   };
 
-  const handleDeleteVisit = (visitId, hasCard) => {
-    Alert.alert('삭제 확인', '이 서랍의 기록을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await handleApiCall(
-            'HistoryScreen.deleteVisit',
-            () => visitService.deleteVisit(visitId)
-          );
-          if (!error) {
-            showSuccessAlert('DELETE', Alert);
-            loadData();
-            refreshCustomer();
-          }
-        },
-      },
-    ]);
+  // 삭제 로직 (모달에서 최종 확인 후 호출됨)
+  const handleDeleteVisit = async (visitId) => {
+    const { error } = await handleApiCall(
+      'HistoryScreen.deleteVisit',
+      () => visitService.deleteVisit(visitId)
+    );
+    if (!error) {
+      showSuccessAlert('DELETE', Alert);
+      loadData(); // 리스트 새로고침
+      refreshCustomer(); // 상단 통계 새로고침
+    }
   };
 
-  // 1. 헤더 영역 (통계 카드들)
   const renderHeader = () => (
     <View style={styles.headerArea}>
       <Text style={styles.mainTitle}>🗂️ 나의 타로 서랍장</Text>
@@ -119,31 +111,26 @@ const HistoryScreen = ({ navigation }) => {
         <StatsCard label="총 방문" value={customer?.visit_count} icon="📅" />
         <StatsCard label="쿠폰" value={couponCount} icon="🎟️" onPress={() => navigation.navigate('Coupon')} />
       </View>
-      {/* 서랍장 시작 부분을 알려주는 여백 */}
-      <View style={{ height: 20 }} />
     </View>
   );
 
-  // 2. 서랍 리스트를 DrawerChest 하나로 감싸서 렌더링
-  const renderContent = () => {
+  // 하나의 서랍장 프레임(Chest) 안에 모든 서랍(Unit)을 담음
+  const renderDrawerChest = () => {
     if (visits.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>아직 서랍장이 비어있습니다.</Text>
+          <Text style={styles.emptyText}>아직 비어있는 서랍장입니다.</Text>
         </View>
       );
     }
 
     return (
       <DrawerChest>
-        {visits.map((item, index) => (
+        {visits.map((item) => (
           <DrawerUnit
             key={item.id.toString()}
             visit={item}
-            isOpen={openDrawerId === item.id}
-            onToggle={() => handleToggleDrawer(item.id)}
             onSelectCard={() => handleOpenModal(item)}
-            onDelete={handleDeleteVisit}
           />
         ))}
       </DrawerChest>
@@ -154,24 +141,27 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <GradientBackground>
-      {/* 서랍장이 길어지므로 ScrollView 역할을 하는 FlatList 사용 */}
       <FlatList
-        data={[1]} // 단일 서랍장 객체를 그리기 위한 가짜 데이터
+        data={[1]} // DrawerChest 전체를 하나의 아이템으로 취급
         keyExtractor={(item) => item.toString()}
-        renderItem={() => renderContent()}
+        renderItem={renderDrawerChest}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.gold} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor={DrawerTheme.gold} 
+          />
         }
       />
 
-      <TarotCardModal 
+      <TarotCardModal
         isVisible={isModalVisible}
         visit={selectedVisit}
         onClose={() => setIsModalVisible(false)}
-        onEdit={handleEditDetail} // 수정 페이지 이동
-        onDelete={handleDeleteVisit} // 삭제 실행 함수
+        onEdit={handleEditDetail}
+        onDelete={handleDeleteVisit}
       />
     </GradientBackground>
   );
@@ -179,11 +169,11 @@ const HistoryScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    padding: 15,
-    paddingBottom: 100,
+    padding: 10,
+    paddingBottom: 80,
   },
   headerArea: {
-    marginBottom: 10,
+    marginBottom: 15,
     alignItems: 'center',
   },
   mainTitle: {
@@ -191,6 +181,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: DrawerTheme.gold,
     marginVertical: 15,
+    fontFamily: 'serif',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
@@ -198,15 +189,15 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 5,
   },
   emptyContainer: {
-    padding: 50,
+    padding: 60,
     alignItems: 'center',
   },
   emptyText: {
     color: DrawerTheme.woodLight,
     fontSize: 16,
+    fontStyle: 'italic',
   }
 });
 
