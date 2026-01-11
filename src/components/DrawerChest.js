@@ -1,109 +1,38 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { DrawerTheme } from '../constants/theme';
 
 export const DrawerChest = ({ children }) => {
   return (
-    <View style={styles.chestWrapper}>
-      {/* 가구 상판: 실제 가구처럼 3단 레이어 구성 */}
-      <View style={styles.topMoldingContainer}>
-        <View style={styles.topPlate} />
-        <View style={styles.middleMolding} />
-        <View style={styles.bottomShadow} />
-      </View>
+    <View style={styles.chestContainer}>
+      {/* 가구 상판 몰딩 */}
+      <View style={[styles.topMolding, { backgroundColor: DrawerTheme.woodFrame }]} />
+      <View style={[styles.topSubMolding, { backgroundColor: DrawerTheme.woodDark }]} />
 
-      <View style={styles.mainBody}>
-        {/* 좌우 기둥 프레임 */}
-        <View style={styles.sidePillarLeft} />
-        <View style={styles.innerContent}>
+      <View style={[styles.mainBody, { borderColor: DrawerTheme.woodFrame, backgroundColor: DrawerTheme.woodDark }]}>
+        {/* 서랍들이 쌓이는 중심부 */}
+        <View style={styles.drawerContent}>
           {children}
         </View>
-        <View style={styles.sidePillarRight} />
       </View>
 
-      {/* 가구 하단 및 다리 */}
-      <View style={styles.bottomMolding} />
-      <View style={styles.legsContainer}>
-        <View style={styles.antiqueLeg} />
-        <View style={styles.antiqueLeg} />
+      {/* 가구 하단 받침 */}
+      <View style={[styles.bottomMolding, { backgroundColor: DrawerTheme.woodFrame }]} />
+      <View style={styles.legsRow}>
+        <View style={[styles.leg, { backgroundColor: DrawerTheme.woodFrame }]} />
+        <View style={[styles.leg, { backgroundColor: DrawerTheme.woodFrame }]} />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  chestWrapper: {
-    width: '96%',
-    alignSelf: 'center',
-    marginVertical: 15,
-  },
-  topMoldingContainer: {
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  topPlate: {
-    width: '106%',
-    height: 10,
-    backgroundColor: '#5D4037', // 진한 월넛 색상
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    borderWidth: 1,
-    borderColor: '#3E2723',
-  },
-  middleMolding: {
-    width: '102%',
-    height: 12,
-    backgroundColor: '#4E342E',
-    borderBottomWidth: 1,
-    borderColor: '#2A1B12',
-  },
-  bottomShadow: {
-    width: '100%',
-    height: 6,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  mainBody: {
-    flexDirection: 'row',
-    backgroundColor: '#2A1B12',
-    // 기둥 두께 강화
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderColor: '#4E342E',
-  },
-  innerContent: {
-    flex: 1,
-    backgroundColor: '#1A0F0A',
-  },
-  sidePillarLeft: {
-    position: 'absolute',
-    left: -10, top: 0, bottom: 0, width: 2,
-    backgroundColor: 'rgba(255,255,255,0.05)', // 미세한 광택
-  },
-  sidePillarRight: {
-    position: 'absolute',
-    right: -10, top: 0, bottom: 0, width: 2,
-    backgroundColor: 'rgba(0,0,0,0.2)', // 미세한 음영
-  },
-  bottomMolding: {
-    width: '104%',
-    alignSelf: 'center',
-    height: 10,
-    backgroundColor: '#3E2723',
-    borderBottomLeftRadius: 5,
-    borderBottomRightRadius: 5,
-  },
-  legsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 40,
-    marginTop: -2,
-  },
-  antiqueLeg: {
-    width: 24,
-    height: 30,
-    backgroundColor: '#3E2723',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2A1B12',
-  },
+  chestContainer: { width: '96%', alignSelf: 'center', marginVertical: 10 },
+  topMolding: { width: '106%', height: 10, alignSelf: 'center', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
+  topSubMolding: { width: '102%', height: 8, alignSelf: 'center' },
+  mainBody: { borderLeftWidth: 10, borderRightWidth: 10 },
+  drawerContent: { backgroundColor: DrawerTheme.woodDark },
+  bottomMolding: { width: '104%', height: 12, alignSelf: 'center', borderBottomLeftRadius: 6, borderBottomRightRadius: 6 },
+  legsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, marginTop: -2 },
+  leg: { width: 22, height: 20, borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }
 });

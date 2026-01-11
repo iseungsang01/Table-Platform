@@ -6,6 +6,8 @@ import {
   FlatList,
   RefreshControl,
   Alert,
+  Platform,
+  TouchableOpacity
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -104,15 +106,36 @@ const HistoryScreen = ({ navigation }) => {
   };
 
   const renderHeader = () => (
-    <View style={styles.headerArea}>
-      <Text style={styles.mainTitle}>🗂️ 나의 타로 서랍장</Text>
-      <View style={styles.statsRow}>
-        <StatsCard label="스탬프" value={`${customer?.current_stamps}/10`} icon="⭐" />
-        <StatsCard label="총 방문" value={customer?.visit_count} icon="📅" />
-        <StatsCard label="쿠폰" value={couponCount} icon="🎟️" onPress={() => navigation.navigate('Coupon')} />
+    <View style={styles.header}>
+      <Text style={[styles.title, { color: DrawerTheme.goldBrass }]}>TAROT ARCHIVE</Text>
+      <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
+        <View style={styles.statBox}>
+          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>STAMPS</Text>
+          <Text style={styles.statValue}>{customer?.current_stamps}/10</Text>
+        </View>
+        <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
+        <View style={styles.statBox}>
+          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>VISITS</Text>
+          <Text style={styles.statValue}>{customer?.visit_count}</Text>
+        </View>
+        <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
+        <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('Coupon')}>
+          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>COUPONS</Text>
+          <Text style={[styles.statValue, { color: DrawerTheme.goldBright }]}>{couponCount}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
+
+  const styles = StyleSheet.create({
+  header: { alignItems: 'center', paddingTop: 40, marginBottom: 20 },
+  title: { fontSize: 26, letterSpacing: 5, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' },
+  brassBoard: { flexDirection: 'row', width: '92%', marginTop: 20, padding: 15, borderRadius: 8, borderWidth: 2, elevation: 10 },
+  statBox: { alignItems: 'center', flex: 1 },
+  statLabel: { fontSize: 10, marginBottom: 4, fontWeight: 'bold' },
+  statValue: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
+  divider: { width: 1, height: 25 }
+  });
 
   // 하나의 서랍장 프레임(Chest) 안에 모든 서랍(Unit)을 담음
   const renderDrawerChest = () => {
