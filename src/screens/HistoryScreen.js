@@ -11,68 +11,65 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-// 컴포넌트 임포트
+// 컴포넌트 및 테마 임포트
 import { GradientBackground } from '../components/GradientBackground';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { StatsCard } from '../components/StatsCard';
 import { DrawerChest } from '../components/DrawerChest';
 import { DrawerUnit } from '../components/DrawerUnit';
 import { TarotCardModal } from '../components/TarotCardModal';
+import { DrawerTheme } from '../constants/DrawerTheme';
 
-// 서비스 및 테마
+// 서비스 및 유틸리티
 import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { couponService } from '../services/couponService';
-import { DrawerTheme } from '../constants/theme';
 import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
 
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
   const [visits, setVisits] = useState([]);
+  const [personalNotes, setPersonalNotes] = useState([]); // 개인 메모용 상태
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
-  
-  // 모달 제어 상태
-  const [selectedVisit, setSelectedVisit] = useState(null);
+  const [archiveMode, setArchiveMode] = useState('ALL');
+  const [selectedItem, setSelectedItem] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      if (customer) {
-        loadData();
-      } else {
-        setLoading(false);
-      }
+      if (customer) { loadData(); } else { setLoading(false); }
     }, [customer])
   );
 
   const loadData = async () => {
     try {
-      await Promise.all([loadVisits(), loadCouponCount()]);
+      const { data: visitData } = await handleApiCall(
+        'HistoryScreen.loadVisits',
+        () => visitService.getVisits(customer.id)
+      );
+      
+      // DB 기반 방문 기록은 isDbRecord: true를 붙여서 구분
+      if (visitData) {
+        setVisits(visitData.map(v => ({ ...v, isDbRecord: true })));
+      }
+      
+      // 개인 메모(personalNotes) 로드 로직이 있다면 여기에 추가
+      // setPersonalNotes(localData); 
+
+      await loadCouponCount();
       setLoading(false);
     } catch (error) {
       setLoading(false);
     }
   };
 
-  const loadVisits = async () => {
-    const { data, error } = await handleApiCall(
-      'HistoryScreen.loadVisits',
-      () => visitService.getVisits(customer.id)
-    );
-    if (!error && data) {
-      // 서버 데이터를 최신순으로 정렬하여 서랍장에 배치
-      setVisits(data);
-    }
-  };
-
   const loadCouponCount = async () => {
-    const { data: count, error } = await handleApiCall(
+    const { data: count } = await handleApiCall(
       'HistoryScreen.loadCouponCount',
       () => couponService.getCouponCount(customer.id)
     );
-    if (!error) setCouponCount(count || 0);
+    if (count !== undefined) setCouponCount(count);
   };
 
   const handleRefresh = async () => {
@@ -81,33 +78,40 @@ const HistoryScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  // 서랍 클릭 시 모달 열기
-  const handleOpenModal = (visit) => {
-    setSelectedVisit(visit);
-    setIsModalVisible(true);
-  };
-
-  // 수정 화면 이동
-  const handleEditDetail = (visitId) => {
-    navigation.navigate('VisitDetail', { visitId });
-  };
-
-  // 삭제 로직 (모달에서 최종 확인 후 호출됨)
+  // ✅ 오류 해결: 삭제 함수 정의
   const handleDeleteVisit = async (visitId) => {
     const { error } = await handleApiCall(
       'HistoryScreen.deleteVisit',
       () => visitService.deleteVisit(visitId)
     );
+
     if (!error) {
       showSuccessAlert('DELETE', Alert);
-      loadData(); // 리스트 새로고침
-      refreshCustomer(); // 상단 통계 새로고침
+      setIsModalVisible(false); // 모달 닫기
+      loadData(); // 데이터 새로고침
+      refreshCustomer(); // 상단 스탬프 정보 갱신
     }
+  };
+
+  const handleOpenModal = (item) => {
+    setSelectedItem(item);
+    setIsModalVisible(true);
+  };
+
+  const getDisplayData = () => {
+    if (archiveMode === 'ON') return visits;
+    if (archiveMode === 'OFF') return personalNotes;
+    return [...visits, ...personalNotes].sort((a, b) => 
+      new Date(b.visit_date) - new Date(a.visit_date)
+    );
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={[styles.title, { color: DrawerTheme.goldBrass }]}>TAROT ARCHIVE</Text>
+      <Text style={[styles.title, { color: DrawerTheme.goldBrass }]}>
+        {archiveMode === 'OFF' ? 'PRIVATE NOTES' : 'TAROT ARCHIVE'}
+      </Text>
+
       <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
         <View style={styles.statBox}>
           <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>STAMPS</Text>
@@ -124,38 +128,58 @@ const HistoryScreen = ({ navigation }) => {
           <Text style={[styles.statValue, { color: DrawerTheme.goldBright }]}>{couponCount}</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={[styles.tabContainer, { borderColor: DrawerTheme.woodFrame }]}>
+        {[
+          { id: 'ON', label: 'ON', color: DrawerTheme.woodMid },
+          { id: 'OFF', label: 'OFF', color: DrawerTheme.navyMid },
+          { id: 'ALL', label: 'ALL', color: DrawerTheme.goldBrass }
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            onPress={() => setArchiveMode(tab.id)}
+            style={[
+              styles.tabButton,
+              archiveMode === tab.id && { backgroundColor: tab.color, borderColor: DrawerTheme.goldBright }
+            ]}
+          >
+            <Text style={[styles.tabLabel, archiveMode === tab.id && styles.activeTabLabel]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
-  const styles = StyleSheet.create({
-  header: { alignItems: 'center', paddingTop: 40, marginBottom: 20 },
-  title: { fontSize: 26, letterSpacing: 5, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' },
-  brassBoard: { flexDirection: 'row', width: '92%', marginTop: 20, padding: 15, borderRadius: 8, borderWidth: 2, elevation: 10 },
-  statBox: { alignItems: 'center', flex: 1 },
-  statLabel: { fontSize: 10, marginBottom: 4, fontWeight: 'bold' },
-  statValue: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
-  divider: { width: 1, height: 25 }
-  });
-
-  // 하나의 서랍장 프레임(Chest) 안에 모든 서랍(Unit)을 담음
   const renderDrawerChest = () => {
-    if (visits.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>아직 비어있는 서랍장입니다.</Text>
-        </View>
-      );
-    }
-
+    const displayData = getDisplayData();
     return (
       <DrawerChest>
-        {visits.map((item) => (
-          <DrawerUnit
-            key={item.id.toString()}
-            visit={item}
-            onSelectCard={() => handleOpenModal(item)}
-          />
-        ))}
+        {archiveMode === 'OFF' && (
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            style={[styles.manualAddDrawer, { backgroundColor: DrawerTheme.navyDark }]}
+            onPress={() => navigation.navigate('VisitDetail', { mode: 'manual' })}
+          >
+            <Text style={[styles.manualAddText, { color: DrawerTheme.goldBrass }]}>+ 개인 메모 서랍 추가</Text>
+          </TouchableOpacity>
+        )}
+        {displayData.length > 0 ? (
+          displayData.map((item) => (
+            <DrawerUnit
+              key={item.id.toString()}
+              visit={item}
+              onSelectCard={() => handleOpenModal(item)}
+            />
+          ))
+        ) : (
+          archiveMode !== 'OFF' && (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: DrawerTheme.woodLight }]}>아직 비어있는 서랍장입니다.</Text>
+            </View>
+          )
+        )}
       </DrawerChest>
     );
   };
@@ -165,63 +189,54 @@ const HistoryScreen = ({ navigation }) => {
   return (
     <GradientBackground>
       <FlatList
-        data={[1]} // DrawerChest 전체를 하나의 아이템으로 취급
-        keyExtractor={(item) => item.toString()}
+        data={[1]}
         renderItem={renderDrawerChest}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={handleRefresh} 
-            tintColor={DrawerTheme.gold} 
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />
         }
       />
-
       <TarotCardModal
         isVisible={isModalVisible}
-        visit={selectedVisit}
+        visit={selectedItem}
         onClose={() => setIsModalVisible(false)}
-        onEdit={handleEditDetail}
-        onDelete={handleDeleteVisit}
+        onEdit={(id) => navigation.navigate('VisitDetail', { visitId: id })}
+        onDelete={handleDeleteVisit} // ✅ 이제 이 함수가 존재합니다!
       />
     </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    padding: 10,
-    paddingBottom: 80,
-  },
-  headerArea: {
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  mainTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: DrawerTheme.gold,
-    marginVertical: 15,
-    fontFamily: 'serif',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  statsRow: {
+  scrollContainer: { paddingBottom: 80 },
+  header: { alignItems: 'center', paddingTop: 40, marginBottom: 20 },
+  title: { fontSize: 26, letterSpacing: 5, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' },
+  brassBoard: { flexDirection: 'row', width: '92%', marginTop: 20, padding: 15, borderRadius: 8, borderWidth: 2, elevation: 10 },
+  statBox: { alignItems: 'center', flex: 1 },
+  statLabel: { fontSize: 10, marginBottom: 4, fontWeight: 'bold' },
+  statValue: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
+  divider: { width: 1, height: 25 },
+  tabContainer: {
     flexDirection: 'row',
-    gap: 10,
+    width: '92%',
+    height: 46,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 12,
+    marginTop: 20,
+    padding: 4,
+    borderWidth: 1,
   },
-  emptyContainer: {
-    padding: 60,
-    alignItems: 'center',
+  tabButton: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'transparent' },
+  tabLabel: { color: '#888', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
+  activeTabLabel: { color: '#FFF' },
+  manualAddDrawer: {
+    height: 100, margin: 2, borderWidth: 1.5, borderStyle: 'dashed',
+    borderColor: DrawerTheme.goldBrass, justifyContent: 'center', alignItems: 'center', marginBottom: 5,
   },
-  emptyText: {
-    color: DrawerTheme.woodLight,
-    fontSize: 16,
-    fontStyle: 'italic',
-  }
+  manualAddText: { fontSize: 16, fontWeight: 'bold' },
+  emptyContainer: { padding: 60, alignItems: 'center' },
+  emptyText: { fontSize: 16, fontStyle: 'italic' }
 });
 
 export default HistoryScreen;

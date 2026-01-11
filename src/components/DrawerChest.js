@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { DrawerTheme } from '../constants/theme';
+import { DrawerTheme } from '../constants/DrawerTheme';
 
 export const DrawerChest = ({ children }) => {
   return (
