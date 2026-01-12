@@ -31,14 +31,13 @@ const NoticeScreen = () => {
     setRefreshing(false);
   };
 
-  // ✂️ 부피를 줄인 슬림 헤더
   const renderHeader = () => (
-    <View style={styles.slimHeader}>
+    <View style={styles.header}>
       <View style={styles.titleRow}>
-        <Text style={styles.slimIcon}>📢</Text>
-        <Text style={styles.slimTitle}>공지사항</Text>
+        <Text style={styles.title}>NOTICE BOARD</Text>
       </View>
-      <Text style={styles.slimSubtitle}>매장의 새로운 소식을 확인하세요</Text>
+      <View style={styles.headerDivider} />
+      <Text style={styles.subtitle}>매장의 새로운 소식을 확인하세요</Text>
     </View>
   );
 
@@ -53,7 +52,7 @@ const NoticeScreen = () => {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>🔭</Text>
+            <Text style={styles.emptyIcon}>📭</Text>
             <Text style={styles.emptyText}>아직 등록된 소식이 없습니다.</Text>
           </View>
         }
@@ -77,50 +76,67 @@ const styles = StyleSheet.create({
     paddingBottom: 100 
   },
   
-  // 🪵 슬림 헤더 디자인: 높이를 대폭 줄이고 가로형으로 배치
-  slimHeader: { 
-    backgroundColor: '#3D2B1F', 
-    borderRadius: 15, 
-    paddingVertical: 18, 
+  // 헤더
+  header: { 
+    backgroundColor: DrawerTheme.woodDark, 
+    borderRadius: 12, 
+    paddingVertical: 25, 
     paddingHorizontal: 20,
-    marginBottom: 20, 
-    // 그림자 유지하여 깊이감 제공
+    marginBottom: 25, 
+    borderWidth: 1.5,
+    borderColor: DrawerTheme.woodFrame,
+    alignItems: 'center',
     shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 4 }, 
+    shadowOffset: { width: 0, height: 6 }, 
     shadowOpacity: 0.3, 
-    shadowRadius: 8, 
-    elevation: 6 
+    shadowRadius: 10, 
+    elevation: 8 
   },
   titleRow: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    marginBottom: 4 
+    gap: 12,
+    marginBottom: 8
   },
-  slimIcon: { fontSize: 20, marginRight: 8 },
-  slimTitle: { 
+  icon: { 
+    fontSize: 28 
+  },
+  title: { 
     fontSize: 20, 
     fontWeight: 'bold', 
     color: DrawerTheme.goldBrass, 
-    letterSpacing: 1 
+    letterSpacing: 3,
+    fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
   },
-  slimSubtitle: { 
+  headerDivider: { 
+    width: 50, 
+    height: 2, 
+    backgroundColor: DrawerTheme.goldBrass, 
+    marginVertical: 10,
+    opacity: 0.7
+  },
+  subtitle: { 
     fontSize: 12, 
-    color: '#A68966', 
-    opacity: 0.8
+    color: DrawerTheme.woodLight, 
+    opacity: 0.9
   },
 
+  // 빈 상태
   emptyBox: { 
     alignItems: 'center', 
-    paddingTop: 80 
+    paddingTop: 100,
+    paddingBottom: 40
   },
   emptyIcon: { 
-    fontSize: 50, 
-    marginBottom: 15, 
+    fontSize: 64, 
+    marginBottom: 20, 
     opacity: 0.3 
   },
   emptyText: { 
     fontSize: 15, 
-    color: '#7D5A44'
+    color: DrawerTheme.woodLight,
+    fontStyle: 'italic',
+    opacity: 0.7
   },
 });
 
