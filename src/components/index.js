@@ -11,3 +11,4 @@ export { GlobalErrorDisplay } from './GlobalErrorDisplay';
 export { DrawerUnit } from './DrawerUnit';
 export { DrawerChest } from './DrawerChest';
 export { TarotCardModal } from './TarotCardModal';
+export { VoteCard } from './VoteCard';

@@ -51,13 +51,11 @@ const CouponScreen = ({ navigation }) => {
   };
 
   const handleUseCoupon = async (coupon) => {
-    // 1. 비밀번호 공백 체크
     if (!password.trim()) {
       showErrorAlert(createValidationError('PASSWORD_EMPTY'), Alert);
       return;
     }
     
-    // 2. 비밀번호 일치 여부 체크 (메시지 수정)
     if (password !== AdminPassword) {
       Alert.alert('인증 실패', '관리자 비밀번호가 일치하지 않습니다.');
       return;
@@ -140,13 +138,18 @@ const CouponScreen = ({ navigation }) => {
   return (
     <GradientBackground>
       <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+        contentContainerStyle={styles.listArea} 
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />}
       >
+        {/* 🪵 NoticeScreen 규격과 100% 동일한 헤더 */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>COUPON BOX</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>COUPON BOX</Text>
+          </View>
           <View style={styles.headerDivider} />
-          <Text style={styles.headerSubtitle}>{customer.nickname}님의 소장함</Text>
+          <Text style={styles.subtitle}>{customer.nickname}님의 소중한 혜택</Text>
+          
+          {/* 통계 Row (헤더 내부 배치) */}
           <View style={styles.statsRow}>
             {[[coupons.length, '보유중'], [stampCoupons.length, '스탬프'], [birthdayCoupons.length, '생일']].map(([val, lab], i) => (
               <View key={i} style={styles.statBox}>
@@ -172,12 +175,12 @@ const CouponScreen = ({ navigation }) => {
         )}
 
         {coupons.length === 0 && (
-          <View style={styles.emptyContainer}>
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyIcon}>🎫</Text>
             <Text style={styles.emptyText}>보유하신 쿠폰이 없습니다.</Text>
           </View>
         )}
 
-        {/* 안내 사항 다시 복구 및 스타일 개선 */}
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>💡 사용 안내</Text>
           <Text style={styles.infoText}>
@@ -193,25 +196,76 @@ const CouponScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  scrollContent: { padding: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 100 },
-  header: { 
-    backgroundColor: DrawerTheme.woodDark, borderRadius: 8, padding: 20, marginBottom: 25, 
-    borderWidth: 1.5, borderColor: DrawerTheme.woodFrame, alignItems: 'center'
+  // 🪵 NoticeScreen 규격 그대로 이식
+  listArea: { 
+    padding: 20, 
+    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
+    paddingBottom: 100 
   },
-  headerTitle: { fontSize: 20, color: DrawerTheme.goldBrass, fontWeight: 'bold', letterSpacing: 4, fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' },
-  headerDivider: { width: 30, height: 2, backgroundColor: DrawerTheme.goldBrass, marginVertical: 10 },
-  headerSubtitle: { fontSize: 12, color: DrawerTheme.woodLight, marginBottom: 20 },
+  header: { 
+    backgroundColor: DrawerTheme.woodDark, 
+    borderRadius: 12, 
+    paddingVertical: 25, 
+    paddingHorizontal: 20,
+    marginBottom: 25, 
+    borderWidth: 1.5,
+    borderColor: DrawerTheme.woodFrame,
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 6 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 10, 
+    elevation: 8 
+  },
+  titleRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 12,
+    marginBottom: 8
+  },
+  title: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    color: DrawerTheme.goldBrass, 
+    letterSpacing: 3,
+    fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
+  },
+  headerDivider: { 
+    width: 50, 
+    height: 2, 
+    backgroundColor: DrawerTheme.goldBrass, 
+    marginVertical: 10,
+    opacity: 0.7
+  },
+  subtitle: { 
+    fontSize: 12, 
+    color: DrawerTheme.woodLight, 
+    opacity: 0.9,
+    marginBottom: 20 // 통계 Row와의 간격
+  },
+
+  // 쿠폰 전용 통계 스타일
   statsRow: { flexDirection: 'row', gap: 10 },
-  statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 4, padding: 10, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(212,175,55,0.2)' },
+  statBox: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.3)', 
+    borderRadius: 6, 
+    paddingVertical: 10, 
+    paddingHorizontal: 15, 
+    alignItems: 'center', 
+    borderWidth: 0.5, 
+    borderColor: 'rgba(212,175,55,0.2)' 
+  },
   statValue: { fontSize: 18, fontWeight: 'bold', color: '#FFF' },
   statLabel: { fontSize: 10, color: DrawerTheme.woodLight, marginTop: 2 },
 
+  // 섹션 및 리스트
   section: { marginBottom: 30 },
   sectionTitle: { fontSize: 13, fontWeight: 'bold', color: DrawerTheme.goldBrass, marginBottom: 15, marginLeft: 5 },
-  
   couponWrapper: { marginBottom: 12 },
   selectedCard: { borderColor: DrawerTheme.goldBrass, borderWidth: 1.5 },
   
+  // 비밀번호 입력 폼
   inlineForm: { 
     backgroundColor: 'rgba(24, 22, 20, 0.98)', 
     marginTop: -4, marginHorizontal: 4,
@@ -222,7 +276,6 @@ const styles = StyleSheet.create({
   formHeader: { alignItems: 'center', marginBottom: 15 },
   selectedCouponTitle: { color: '#FFF', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   formLabel: { color: '#666', fontSize: 10 },
-  
   inlineInput: { 
     backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 6, padding: 14, 
     color: DrawerTheme.goldBright, fontSize: 15, textAlign: 'center', marginBottom: 15,
@@ -235,13 +288,13 @@ const styles = StyleSheet.create({
   cancelBtn: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   cancelBtnText: { color: '#777', fontSize: 14 },
 
-  // 안내 상자 스타일
+  // 안내 및 빈 상태
   infoBox: { marginTop: 10, padding: 20, borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.1)' },
   infoTitle: { color: DrawerTheme.woodLight, fontSize: 13, fontWeight: 'bold', marginBottom: 12 },
   infoText: { color: '#888', fontSize: 12, lineHeight: 20 },
-  
-  emptyContainer: { padding: 80, alignItems: 'center' },
-  emptyText: { color: DrawerTheme.woodLight, fontSize: 14, fontStyle: 'italic' }
+  emptyBox: { alignItems: 'center', paddingTop: 60, paddingBottom: 40 },
+  emptyIcon: { fontSize: 64, marginBottom: 20, opacity: 0.3 },
+  emptyText: { fontSize: 14, color: DrawerTheme.woodLight, fontStyle: 'italic', opacity: 0.7 }
 });
 
 export default CouponScreen;
