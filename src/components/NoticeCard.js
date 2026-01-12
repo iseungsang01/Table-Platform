@@ -1,43 +1,30 @@
 import React from 'react';
 import { View, Text, StyleSheet, Linking } from 'react-native';
 import { formatDate } from '../utils/formatters';
-import { Colors } from '../constants/Colors';
+import { DrawerTheme } from '../constants/DrawerTheme';
 
-/**
- * 공지사항 카드 컴포넌트
- * 개별 공지사항을 표시 (Markdown 링크 지원)
- * 
- * @param {object} notice - 공지사항 데이터 { id, title, content, created_at, is_pinned }
- */
 export const NoticeCard = ({ notice }) => {
-  // Markdown 링크를 파싱하여 클릭 가능한 링크로 변환
   const parseContent = (content) => {
-    // [텍스트](URL) 형식의 링크를 찾음
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     const parts = [];
     let lastIndex = 0;
     let match;
 
     while ((match = linkRegex.exec(content)) !== null) {
-      // 링크 앞의 일반 텍스트
       if (match.index > lastIndex) {
         parts.push({
           type: 'text',
           content: content.substring(lastIndex, match.index),
         });
       }
-
-      // 링크
       parts.push({
         type: 'link',
         text: match[1],
         url: match[2],
       });
-
       lastIndex = match.index + match[0].length;
     }
 
-    // 마지막 남은 텍스트
     if (lastIndex < content.length) {
       parts.push({
         type: 'text',
@@ -49,7 +36,7 @@ export const NoticeCard = ({ notice }) => {
   };
 
   const handleLinkPress = (url) => {
-    Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
+    Linking.openURL(url).catch((err) => console.error('링크 열기 실패:', err));
   };
 
   const contentParts = parseContent(notice.content);
@@ -58,20 +45,20 @@ export const NoticeCard = ({ notice }) => {
     <View style={[styles.card, notice.is_pinned && styles.cardPinned]}>
       {notice.is_pinned && (
         <View style={styles.pinBadge}>
-          <Text style={styles.pinBadgeText}>📌 고정</Text>
+          <Text style={styles.pinBadgeText}>중요</Text>
         </View>
       )}
 
       <Text style={styles.title}>{notice.title}</Text>
       <Text style={styles.date}>{formatDate(notice.created_at)}</Text>
 
-      <View style={styles.content}>
+      <View style={styles.contentContainer}>
         {contentParts.map((part, index) => {
           if (part.type === 'link') {
             return (
               <Text
                 key={index}
-                style={styles.link}
+                style={styles.linkText}
                 onPress={() => handleLinkPress(part.url)}
               >
                 {part.text}
@@ -79,7 +66,7 @@ export const NoticeCard = ({ notice }) => {
             );
           }
           return (
-            <Text key={index} style={styles.text}>
+            <Text key={index} style={styles.bodyText}>
               {part.content}
             </Text>
           );
@@ -90,59 +77,67 @@ export const NoticeCard = ({ notice }) => {
 };
 
 const styles = StyleSheet.create({
+  // 🪵 일반 카드: 테두리 없이 면 분할과 그림자로 구분
   card: {
-    backgroundColor: Colors.purpleMid,
-    borderWidth: 3,
-    borderColor: Colors.purpleLight,
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 20,
+    backgroundColor: '#4A3728', // 서랍 내부 느낌의 약간 밝은 브라운
+    borderRadius: 16,
+    padding: 22,
+    marginBottom: 16,
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
+  // 중요 공지는 배경색을 조금 더 강조
   cardPinned: {
-    borderColor: Colors.gold,
+    backgroundColor: '#5D4333',
   },
+  // 뱃지 디자인: 테두리 없이 깔끔하게
   pinBadge: {
     position: 'absolute',
-    top: -10,
-    right: 20,
-    backgroundColor: '#b8860b',
-    borderWidth: 2,
-    borderColor: Colors.gold,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    top: 15,
+    right: 15,
+    backgroundColor: DrawerTheme.goldBrass,
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
   },
   pinBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.purpleDark,
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#3D2B1F', // 배경색과 대비되는 어두운 색
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.gold,
-    marginBottom: 10,
+    fontSize: 19,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    paddingRight: 40, // 뱃지와 겹치지 않게
   },
   date: {
-    fontSize: 13,
-    color: Colors.lavender,
-    opacity: 0.8,
-    marginBottom: 15,
+    fontSize: 12,
+    color: '#A68966',
+    marginBottom: 18,
   },
-  content: {
+  contentContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)', // 아주 미세한 구분선
   },
-  text: {
-    fontSize: 16,
-    color: 'white',
+  bodyText: {
+    fontSize: 15,
+    color: '#D4C4B5',
     lineHeight: 24,
   },
-  link: {
-    fontSize: 16,
-    color: Colors.gold,
+  linkText: {
+    fontSize: 15,
+    color: DrawerTheme.goldBrass,
     lineHeight: 24,
     textDecorationLine: 'underline',
+    fontWeight: '600',
   },
 });

@@ -1,12 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { GradientBackground } from '../components/GradientBackground';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { NoticeCard } from '../components/NoticeCard';
+import { GradientBackground, LoadingSpinner, NoticeCard } from '../components'; 
 import { useAuth } from '../hooks/useAuth';
 import { noticeService } from '../services/noticeService';
-import { Colors } from '../constants/Colors';
+import { DrawerTheme } from '../constants/DrawerTheme';
 
 const NoticeScreen = () => {
   const { customer } = useAuth();
@@ -14,17 +12,10 @@ const NoticeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 공지사항 로드 및 읽음 처리
   const loadData = async () => {
     const { data, error } = await noticeService.getNotices();
-    
-    if (!error) {
-      setNotices(data);
-    }
-    
-    if (customer) {
-      await noticeService.markAllNoticesAsRead();
-    }
+    if (!error) setNotices(data);
+    if (customer) await noticeService.markAllNoticesAsRead();
     setLoading(false);
   };
 
@@ -40,11 +31,14 @@ const NoticeScreen = () => {
     setRefreshing(false);
   };
 
-  // 헤더 섹션 (공지사항 타이틀)
+  // ✂️ 부피를 줄인 슬림 헤더
   const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.title}>📢 공지사항</Text>
-      <Text style={styles.subtitle}>매장의 새로운 소식을 확인하세요</Text>
+    <View style={styles.slimHeader}>
+      <View style={styles.titleRow}>
+        <Text style={styles.slimIcon}>📢</Text>
+        <Text style={styles.slimTitle}>공지사항</Text>
+      </View>
+      <Text style={styles.slimSubtitle}>매장의 새로운 소식을 확인하세요</Text>
     </View>
   );
 
@@ -58,18 +52,17 @@ const NoticeScreen = () => {
         renderItem={({ item }) => <NoticeCard notice={item} />}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
+          <View style={styles.emptyBox}>
             <Text style={styles.emptyIcon}>🔭</Text>
-            <Text style={styles.emptyTitle}>공지사항이 없습니다.</Text>
+            <Text style={styles.emptyText}>아직 등록된 소식이 없습니다.</Text>
           </View>
         }
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.listArea}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={handleRefresh} 
-            tintColor={Colors.gold} 
-            colors={[Colors.gold]} 
+            tintColor={DrawerTheme.goldBrass} 
           />
         }
       />
@@ -78,41 +71,56 @@ const NoticeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  listContent: { 
+  listArea: { 
     padding: 20, 
-    paddingBottom: 140
+    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
+    paddingBottom: 100 
   },
-  header: { 
-    backgroundColor: Colors.purpleMid, 
-    borderRadius: 20, 
-    padding: 25, 
+  
+  // 🪵 슬림 헤더 디자인: 높이를 대폭 줄이고 가로형으로 배치
+  slimHeader: { 
+    backgroundColor: '#3D2B1F', 
+    borderRadius: 15, 
+    paddingVertical: 18, 
+    paddingHorizontal: 20,
     marginBottom: 20, 
-    borderWidth: 3, 
-    borderColor: Colors.gold, 
-    alignItems: 'center' 
+    // 그림자 유지하여 깊이감 제공
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 8, 
+    elevation: 6 
   },
-  title: { 
-    fontSize: 28, 
-    fontWeight: '700', 
-    color: Colors.gold, 
-    marginBottom: 5 
-  },
-  subtitle: { 
-    fontSize: 14, 
-    color: Colors.lavender, 
-    textAlign: 'center' 
-  },
-  emptyContainer: { 
+  titleRow: { 
+    flexDirection: 'row', 
     alignItems: 'center', 
-    padding: 40 
+    marginBottom: 4 
+  },
+  slimIcon: { fontSize: 20, marginRight: 8 },
+  slimTitle: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    color: DrawerTheme.goldBrass, 
+    letterSpacing: 1 
+  },
+  slimSubtitle: { 
+    fontSize: 12, 
+    color: '#A68966', 
+    opacity: 0.8
+  },
+
+  emptyBox: { 
+    alignItems: 'center', 
+    paddingTop: 80 
   },
   emptyIcon: { 
     fontSize: 50, 
-    marginBottom: 10 
+    marginBottom: 15, 
+    opacity: 0.3 
   },
-  emptyTitle: { 
-    fontSize: 18, 
-    color: Colors.lavender 
+  emptyText: { 
+    fontSize: 15, 
+    color: '#7D5A44'
   },
 });
 
