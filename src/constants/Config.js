@@ -6,61 +6,10 @@ export const APP_INFO = {
   description: '타로 카드 선택 및 스탬프 적립 앱',
 };
 
-export const API_CONFIG = {
-  timeout: 10000,
-  retryAttempts: 3,
-  retryDelay: 1000,
-};
-
 export const STAMP_CONFIG = {
   maxStamps: 10,
   stampsPerVisit: 1,
   couponReward: 1,
-};
-
-export const REVIEW_CONFIG = {
-  maxLength: 5000, // ✅ 5000자로 증가
-  minLength: 0,
-};
-
-export const BUG_REPORT_CONFIG = {
-  maxTitleLength: 100,
-  maxDescriptionLength: 500,
-  categories: ['app', 'store'],
-  types: {
-    app: ['어플 버그', '어플 불편사항', '어플 개선 건의'],
-    store: ['가게 불편사항', '서비스 개선 요청', '기타 문의'],
-  },
-};
-
-export const VOTE_CONFIG = {
-  maxSelections: 5,
-  minSelections: 1,
-};
-
-export const COUPON_CONFIG = {
-  types: {
-    stamp: { name: '스탬프 쿠폰', icon: '⭐', color: '#ffd700', validDays: null },
-    birthday: { name: '생일 쿠폰', icon: '🎂', color: '#ffb6c1', validDays: 30 },
-  },
-};
-
-export const ANIMATION_CONFIG = {
-  duration: { fast: 200, normal: 300, slow: 500 },
-  easing: { default: 'ease', inOut: 'ease-in-out' },
-};
-
-export const STORAGE_KEYS = {
-  customer: 'tarot_user_phone_customer',
-  savedPhone: 'saved_phone',
-  rememberMe: 'remember_me',
-};
-
-export const DATE_FORMATS = {
-  full: 'YYYY년 MM월 DD일 HH:mm',
-  short: 'MM월 DD일',
-  date: 'YYYY-MM-DD',
-  time: 'HH:mm',
 };
 
 export const ERROR_MESSAGES = {
