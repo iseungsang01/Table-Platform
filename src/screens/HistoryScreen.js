@@ -111,12 +111,12 @@ const HistoryScreen = ({ navigation }) => {
       </Text>
 
       <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
-        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>STAMPS</Text><Text style={styles.statValue}>{customer?.current_stamps}/10</Text></View>
+        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>스탬프</Text><Text style={styles.statValue}>{customer?.current_stamps}/10</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
-        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>VISITS</Text><Text style={styles.statValue}>{customer?.visit_count}</Text></View>
+        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>방문 횟수</Text><Text style={styles.statValue}>{customer?.visit_count}</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
         <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('Coupon')}>
-          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>COUPONS</Text>
+          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>보유 쿠폰</Text>
           <Text style={[styles.statValue, { color: DrawerTheme.goldBright }]}>{couponCount}</Text>
         </TouchableOpacity>
       </View>
