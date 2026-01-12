@@ -4,7 +4,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 개별 임포트
 import { GradientBackground } from '../components/GradientBackground';
 import { CustomButton } from '../components/CustomButton';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -19,40 +18,58 @@ const LOCAL_STORAGE_KEY = 'offline_visit_history';
 
 const VisitDetailScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
-  const { visitId, mode } = route.params || {};
-  const isOffMode = mode === 'manual'; // OFF 모드 (로컬 저장)
+  // HistoryScreen에서 넘겨준 is_manual과 visitId를 받습니다.
+  const { visitId, is_manual } = route.params || {};
+  const isOffMode = is_manual === true; // 명확하게 boolean으로 판별
   const { customer } = useAuth();
 
-  // 통합 상태 관리
   const [s, setS] = useState({
-    uri: null, review: '', loading: !isOffMode, saving: false,
-    isEdit: false
+    uri: null, 
+    review: '', 
+    visit_date: new Date().toISOString(), // 기본값은 현재시간
+    loading: !!visitId, // 수정 모드일 때만 로딩 활성화
+    saving: false,
+    isEdit: !!visitId
   });
+
   const up = (next) => setS(p => ({ ...p, ...next }));
 
   useEffect(() => {
-    loadData();
+    if (visitId) loadData();
   }, [visitId]);
 
-  // 데이터 로드: ON 모드는 서버에서, OFF 모드는 로컬에서
   const loadData = async () => {
-    if (isOffMode) {
-      if (visitId) { // 로컬 데이터 수정 시
+    try {
+      if (isOffMode) {
+        // --- [OFF 모드] 로컬 데이터 불러오기 ---
         const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
         const list = stored ? JSON.parse(stored) : [];
         const item = list.find(v => v.id === visitId);
-        if (item) up({ isEdit: true, uri: item.card_image, review: item.card_review, loading: false });
+        if (item) {
+          up({ 
+            uri: item.card_image, 
+            review: item.card_review, 
+            visit_date: item.visit_date, // 기존 날짜 유지
+            loading: false 
+          });
+        }
+      } else {
+        // --- [ON 모드] 서버 데이터 불러오기 ---
+        const { data } = await handleApiCall('VisitDetail.load', () => visitService.getVisit(visitId));
+        if (data) {
+          up({ 
+            uri: data.card_image, 
+            review: data.card_review || '', 
+            visit_date: data.visit_date, // 서버에 기록된 실제 방문 날짜 유지
+            loading: false 
+          });
+        }
       }
-      return;
+    } catch (err) {
+      up({ loading: false });
     }
-
-    // ON 모드: 서버 데이터 로드
-    const { data } = await handleApiCall('VisitDetail.load', () => visitService.getVisit(visitId));
-    if (data) up({ isEdit: true, uri: data.card_image, review: data.card_review || '', loading: false });
-    else up({ loading: false });
   };
 
-  // 이미지 선택 및 압축
   const onPick = async (type) => {
     const perm = type === 'cam' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') return showErrorAlert(createPermissionError(type.toUpperCase()), Alert);
@@ -69,7 +86,6 @@ const VisitDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // 저장 로직 (분기 처리)
   const onSave = async () => {
     if (!s.uri && !s.review.trim()) return Alert.alert("알림", "기록할 내용을 입력해주세요.");
     up({ saving: true });
@@ -77,14 +93,14 @@ const VisitDetailScreen = ({ route, navigation }) => {
     const payload = {
       card_review: s.review.trim(),
       card_image: s.uri,
-      visit_date: new Date().toISOString(),
+      visit_date: s.visit_date, // 새로 생성 시는 Now, 수정 시는 기존 날짜
       customer_id: customer?.id,
       is_manual: isOffMode
     };
 
     try {
       if (isOffMode) {
-        // --- [OFF 모드] 로컬 저장 ---
+        // --- [OFF 모드] 로컬 저장 로직 ---
         const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
         let list = stored ? JSON.parse(stored) : [];
         
@@ -95,15 +111,16 @@ const VisitDetailScreen = ({ route, navigation }) => {
         }
         
         await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-        showSuccessAlert(s.isEdit ? 'UPDATE' : 'SAVE', Alert);
       } else {
-        // --- [ON 모드] 서버 저장 ---
+        // --- [ON 모드] 서버 저장 로직 ---
+        // 서버 데이터는 이미 visit_history에 행(Row)이 있으므로 보통 updateVisit만 수행합니다.
         const { error } = await handleApiCall('Visit.save', () => 
-          s.isEdit ? visitService.updateVisit(visitId, payload) : visitService.createVisit(payload)
+          visitService.updateVisit(visitId, payload)
         );
         if (error) throw error;
-        showSuccessAlert(s.isEdit ? 'UPDATE' : 'SAVE', Alert);
       }
+      
+      showSuccessAlert(s.isEdit ? 'UPDATE' : 'SAVE', Alert);
       setTimeout(() => navigation.goBack(), 1000);
     } catch (err) {
       up({ saving: false });
@@ -112,7 +129,10 @@ const VisitDetailScreen = ({ route, navigation }) => {
 
   if (s.loading) return <GradientBackground><LoadingSpinner /></GradientBackground>;
 
-  const theme = isOffMode ? { c: Colors.lavender, bg: Colors.purpleMid } : { c: DrawerTheme.goldBrass, bg: DrawerTheme.woodMid };
+  // UI 테마: OFF 모드는 네이비, ON 모드는 황동/나무 색상 적용
+  const theme = isOffMode 
+    ? { c: DrawerTheme.navyLight, bg: '#10171E', btn: DrawerTheme.navyMid } 
+    : { c: DrawerTheme.goldBrass, bg: DrawerTheme.woodMid, btn: DrawerTheme.woodDark };
 
   return (
     <GradientBackground>
@@ -121,32 +141,52 @@ const VisitDetailScreen = ({ route, navigation }) => {
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 50 }}>
             
             <View style={[styles.header, { backgroundColor: theme.bg, borderColor: theme.c }]}>
-              <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.whiteText}>← 뒤로</Text></TouchableOpacity>
-              <Text style={[styles.title, { color: theme.c }]}>{isOffMode ? '🔐 개인 메모' : '🏛️ 방문 기록'}</Text>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.whiteText}>← 뒤로</Text>
+              </TouchableOpacity>
+              <Text style={[styles.title, { color: theme.c }]}>
+                {isOffMode ? '✒️ 개인 메모 작성' : '📝 상담 기록 수정'}
+              </Text>
             </View>
 
             <View style={[styles.imgBox, { borderColor: theme.c }]}>
               {s.uri ? (
                 <>
-                  <Image source={{ uri: s.uri.startsWith('data') ? s.uri : `data:image/jpeg;base64,${s.uri}` }} style={styles.fullImg} />
-                  <TouchableOpacity onPress={() => up({ uri: null })} style={styles.delBtn}><Text style={styles.whiteText}>✕</Text></TouchableOpacity>
+                  <Image 
+                    source={{ uri: s.uri.startsWith('data') ? s.uri : `data:image/jpeg;base64,${s.uri}` }} 
+                    style={styles.fullImg} 
+                  />
+                  <TouchableOpacity onPress={() => up({ uri: null })} style={styles.delBtn}>
+                    <Text style={styles.whiteText}>✕</Text>
+                  </TouchableOpacity>
                 </>
-              ) : <Text style={styles.placeholderText}>📷 사진을 추가하세요</Text>}
+              ) : (
+                <View style={styles.placeholderContainer}>
+                  <Text style={[styles.placeholderText, { color: theme.c }]}>📷</Text>
+                  <Text style={styles.placeholderSubText}>카드를 촬영하거나 선택하세요</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.btnRow}>
-              <CustomButton title="촬영" onPress={() => onPick('cam')} style={{flex:1}} />
-              <CustomButton title="앨범" onPress={() => onPick('lib')} variant="secondary" style={{flex:1}} />
+              <CustomButton title="촬영하기" onPress={() => onPick('cam')} style={{flex:1}} />
+              <CustomButton title="앨범에서 선택" onPress={() => onPick('lib')} variant="secondary" style={{flex:1}} />
             </View>
 
             <TextInput 
-              style={styles.input} multiline value={s.review} onChangeText={v => up({ review: v })}
-              placeholder="오늘의 기록을 남겨보세요..." placeholderTextColor="#888" 
+              style={[styles.input, { borderColor: theme.c + '40' }]} 
+              multiline 
+              value={s.review} 
+              onChangeText={v => up({ review: v })}
+              placeholder={isOffMode ? "비밀스러운 메모를 남겨보세요..." : "상담 내용을 기록해두면 나중에 확인하기 좋아요."}
+              placeholderTextColor="#888" 
             />
             
             <CustomButton 
-              title={s.saving ? "저장 중..." : (isOffMode ? "비밀 서랍에 저장" : "서버에 저장")} 
-              onPress={onSave} loading={s.saving} style={{marginTop: 20}} 
+              title={s.saving ? "저장 중..." : (isOffMode ? "비밀 서랍에 보관" : "기록 서랍에 저장")} 
+              onPress={onSave} 
+              loading={s.saving} 
+              style={[styles.saveBtn, { backgroundColor: theme.btn }]} 
             />
 
           </ScrollView>
@@ -162,10 +202,13 @@ const styles = StyleSheet.create({
   imgBox: { height: 260, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 15, borderWidth: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
   fullImg: { width: '100%', height: '100%' },
   delBtn: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,0,0,0.6)', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  placeholderContainer: { alignItems: 'center' },
+  placeholderText: { fontSize: 40, marginBottom: 10 },
+  placeholderSubText: { color: '#888', fontSize: 13 },
   btnRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  input: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: 18, color: '#FFF', minHeight: 160, textAlignVertical: 'top', fontSize: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  input: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: 18, color: '#FFF', minHeight: 180, textAlignVertical: 'top', fontSize: 16, borderWidth: 1 },
   whiteText: { color: '#FFF', fontWeight: 'bold' },
-  placeholderText: { color: '#666', fontSize: 14 }
+  saveBtn: { marginTop: 25, height: 55 }
 });
 
 export default VisitDetailScreen;

@@ -21,8 +21,8 @@ const LOCAL_STORAGE_KEY = 'offline_visit_history';
 
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
-  const [visits, setVisits] = useState([]); // 서버 데이터 (ON)
-  const [personalNotes, setPersonalNotes] = useState([]); // 로컬 데이터 (OFF)
+  const [visits, setVisits] = useState([]); // 서버(ON) 데이터
+  const [personalNotes, setPersonalNotes] = useState([]); // 로컬(OFF) 데이터
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
@@ -30,7 +30,7 @@ const HistoryScreen = ({ navigation }) => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // 화면 포커스 시마다 데이터 새로고침
+  // 화면 포커스 시마다 데이터 동기화
   useFocusEffect(
     useCallback(() => {
       if (customer) loadData();
@@ -40,17 +40,27 @@ const HistoryScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      // 1. 서버(ON) 데이터 가져오기
+      // 1. 서버(ON) 데이터 로드 및 is_manual: false 주입
       const { data: visitData } = await handleApiCall(
         'HistoryScreen.loadVisits',
         () => visitService.getVisits(customer.id)
       );
-      if (visitData) setVisits(visitData.map(v => ({ ...v, isDbRecord: true })));
+      
+      const formattedVisits = visitData ? visitData.map(v => ({ 
+        ...v, 
+        is_manual: false // 서버 데이터는 수동 작성이 아님
+      })) : [];
+      setVisits(formattedVisits);
 
-      // 2. 로컬(OFF) 데이터 가져오기 (핵심 추가)
+      // 2. 로컬(OFF) 데이터 로드 및 is_manual: true 주입
       const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
       const localData = stored ? JSON.parse(stored) : [];
-      setPersonalNotes(localData.map(v => ({ ...v, isDbRecord: false })));
+      
+      const formattedNotes = localData.map(v => ({ 
+        ...v, 
+        is_manual: true // 로컬 데이터는 직접 작성한 메모임
+      }));
+      setPersonalNotes(formattedNotes);
 
       await loadCouponCount();
     } catch (error) {
@@ -74,17 +84,17 @@ const HistoryScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  // 삭제 로직 (서버/로컬 분기)
+  // 삭제 로직: 주입된 is_manual 값에 따라 서버/로컬 삭제 분기
   const handleDeleteVisit = async (visitId) => {
-    if (selectedItem?.isDbRecord) {
-      // 서버 삭제
+    if (selectedItem && !selectedItem.is_manual) {
+      // 서버 데이터 삭제
       const { error } = await handleApiCall('HistoryScreen.deleteVisit', () => visitService.deleteVisit(visitId));
       if (!error) {
         showSuccessAlert('DELETE', Alert);
         refreshCustomer();
       }
     } else {
-      // 로컬 삭제
+      // 로컬 데이터 삭제
       const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
       const list = stored ? JSON.parse(stored) : [];
       const filtered = list.filter(v => v.id !== visitId);
@@ -98,7 +108,8 @@ const HistoryScreen = ({ navigation }) => {
   const getDisplayData = () => {
     if (archiveMode === 'ON') return visits;
     if (archiveMode === 'OFF') return personalNotes;
-    // ALL 모드: 두 데이터를 합쳐서 최신 날짜순 정렬
+    
+    // ALL 모드: 두 소스를 합치고 날짜 역순으로 정렬
     return [...visits, ...personalNotes].sort((a, b) => 
       new Date(b.visit_date) - new Date(a.visit_date)
     );
@@ -110,6 +121,7 @@ const HistoryScreen = ({ navigation }) => {
         {archiveMode === 'OFF' ? 'PRIVATE NOTES' : 'TAROT ARCHIVE'}
       </Text>
 
+      {/* 대시보드 */}
       <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
         <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>스탬프</Text><Text style={styles.statValue}>{customer?.current_stamps}/10</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
@@ -121,6 +133,7 @@ const HistoryScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* 모드 전환 탭 */}
       <View style={[styles.tabContainer, { borderColor: DrawerTheme.woodFrame }]}>
         {[
           { id: 'ON', label: 'ON', color: DrawerTheme.woodMid },
@@ -141,22 +154,24 @@ const HistoryScreen = ({ navigation }) => {
 
   const renderDrawerChest = () => {
     const displayData = getDisplayData();
+    // DrawerChest에도 isManualMode를 전달하여 테마 동기화
     return (
-      <DrawerChest>
+      <DrawerChest isManualMode={archiveMode === 'OFF'}>
         {archiveMode === 'OFF' && (
           <TouchableOpacity 
             activeOpacity={0.8}
             style={[styles.manualAddDrawer, { backgroundColor: DrawerTheme.navyDark }]}
-            onPress={() => navigation.navigate('VisitDetail', { mode: 'manual' })}
+            onPress={() => navigation.navigate('VisitDetail', { mode: 'manual', is_manual: true })}
           >
             <Text style={[styles.manualAddText, { color: DrawerTheme.goldBrass }]}>+ 개인 메모 서랍 추가</Text>
           </TouchableOpacity>
         )}
+        
         {displayData.length > 0 ? (
           displayData.map((item) => (
             <DrawerUnit
-              key={item.id.toString()}
-              visit={item}
+              key={`${item.is_manual ? 'off' : 'on'}-${item.id}`} // 중복 방지 키
+              visit={item} // 내부에서 visit.is_manual을 사용하여 테마 결정
               onSelectCard={() => {
                 setSelectedItem(item);
                 setIsModalVisible(true);
@@ -183,15 +198,18 @@ const HistoryScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />}
       />
+      
       <TarotCardModal
         isVisible={isModalVisible}
         visit={selectedItem}
         onClose={() => setIsModalVisible(false)}
         onEdit={(id) => {
           setIsModalVisible(false);
+          // 수정 페이지로 is_manual 상태를 정확히 넘겨서 저장 위치(서버/로컬) 결정
           navigation.navigate('VisitDetail', { 
             visitId: id, 
-            mode: selectedItem?.isDbRecord ? 'server' : 'manual' 
+            is_manual: selectedItem?.is_manual,
+            mode: selectedItem?.is_manual ? 'manual' : 'server' 
           });
         }}
         onDelete={handleDeleteVisit}

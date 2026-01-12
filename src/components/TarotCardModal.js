@@ -11,7 +11,6 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-// ✅ 테마 임포트 추가
 import { DrawerTheme } from '../constants/DrawerTheme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -19,19 +18,19 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) => {
   if (!visit) return null;
 
-  // ✅ DB 기록(ON)인지 개인 메모(OFF)인지 판별
-  const isDbRecord = visit.isDbRecord;
+  // HistoryScreen에서 주입한 is_manual 값을 기준으로 판단
+  const isManual = visit.is_manual;
 
-  // 날짜 형식 변환: 2026.1.11
+  // 날짜 형식 변환: 2026-01-12T... -> 2026.1.12
   const displayDate = visit.visit_date ? 
     visit.visit_date.split('T')[0].split('-').map(Number).join('.') : '';
 
   const handleDeletePress = () => {
     Alert.alert(
       "기록 삭제",
-      isDbRecord 
-        ? "이 상담 기록을 정말 삭제하시겠습니까?" 
-        : "이 개인 메모 서랍을 정말 비우시겠습니까?",
+      isManual 
+        ? "이 개인 메모 서랍을 정말 비우시겠습니까?" 
+        : "이 상담 기록을 정말 삭제하시겠습니까?",
       [
         { text: "취소", style: "cancel" },
         { 
@@ -39,7 +38,7 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
           style: "destructive", 
           onPress: () => {
             onClose(); 
-            // ✅ 삭제 로직 실행
+            // 모달 닫힘 애니메이션 후 삭제 로직 실행 (UI 꼬임 방지)
             setTimeout(() => { onDelete(visit.id); }, 300);
           }
         }
@@ -54,29 +53,30 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
         
         <View style={[
           styles.modalContent, 
-          // ✅ OFF 모드일 때는 배경색을 딥 네이비로 변경
-          !isDbRecord && { backgroundColor: '#10171E', borderColor: DrawerTheme.navyLight }
+          // is_manual(OFF)일 때는 배경색을 딥 네이비로 변경
+          isManual && { backgroundColor: '#10171E', borderColor: DrawerTheme.navyLight }
         ]}>
-          <View style={[styles.modalHandle, !isDbRecord && { backgroundColor: '#1A2530' }]} />
+          <View style={[styles.modalHandle, isManual && { backgroundColor: '#1A2530' }]} />
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             <View style={styles.header}>
               <View>
-                <Text style={styles.dateTitle}>{displayDate}의 기록</Text>
-                {/* ✅ 출처 표시 (타로 기록 vs 개인 메모) */}
-                <Text style={[styles.sourceTag, { color: isDbRecord ? DrawerTheme.woodLight : DrawerTheme.navyLight }]}>
-                  {isDbRecord ? '🏛 타로 아카이브' : '📝 개인 메모장'}
+                <Text style={[styles.dateTitle, isManual && { color: DrawerTheme.navyLight }]}>
+                  {displayDate}의 기록
+                </Text>
+                <Text style={[styles.sourceTag, { color: isManual ? DrawerTheme.navyLight : DrawerTheme.woodLight }]}>
+                  {isManual ? '📝 개인 메모장' : '🏛 타로 아카이브'}
                 </Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Text style={[styles.closeIcon, !isDbRecord && { color: DrawerTheme.navyLight }]}>✕</Text>
+                <Text style={[styles.closeIcon, isManual && { color: DrawerTheme.navyLight }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* --- 사진 섹션: 타로 이미지가 있을 때만 --- */}
+            {/* --- 사진 섹션: 타로 이미지가 있을 때만 표시 --- */}
             {visit.card_image && (
               <View style={styles.cardContainer}>
-                <View style={[styles.goldFrame, !isDbRecord && { borderColor: DrawerTheme.navyLight, shadowColor: '#000' }]}>
+                <View style={[styles.goldFrame, isManual && { borderColor: DrawerTheme.navyLight, shadowColor: '#000' }]}>
                   <Image
                     source={{ uri: visit.card_image }} 
                     style={styles.tarotImage} 
@@ -88,13 +88,13 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
 
             {/* --- 메모 섹션 --- */}
             <View style={styles.reviewSection}>
-              <Text style={[styles.sectionLabel, !isDbRecord && { color: DrawerTheme.navyLight }]}>
-                {isDbRecord ? '📜 타로 노트' : '✒️ 비밀 서랍'}
+              <Text style={[styles.sectionLabel, isManual && { color: DrawerTheme.navyLight }]}>
+                {isManual ? '✒️ 비밀 서랍' : '📜 타로 노트'}
               </Text>
               <View style={[
                 styles.reviewContent, 
                 !visit.card_image && styles.fullHeightReview,
-                !isDbRecord && { backgroundColor: 'rgba(74, 90, 126, 0.1)', borderLeftColor: DrawerTheme.navyLight }
+                isManual && { backgroundColor: 'rgba(74, 90, 126, 0.1)', borderLeftColor: DrawerTheme.navyLight }
               ]}>
                 <Text style={styles.reviewText}>
                   {visit.card_review || "기록된 내용이 없습니다."}
@@ -105,14 +105,17 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
             {/* --- 액션 버튼 영역 --- */}
             <View style={styles.actionArea}>
               <TouchableOpacity 
-                style={[styles.primaryButton, !isDbRecord && { backgroundColor: DrawerTheme.navyMid }]} 
+                style={[styles.primaryButton, isManual && { backgroundColor: DrawerTheme.navyMid }]} 
                 onPress={() => { onEdit(visit.id); onClose(); }}
               >
-                <Text style={[styles.primaryButtonText, !isDbRecord && { color: '#FFF' }]}>기록 수정하기</Text>
+                <Text style={[styles.primaryButtonText, isManual && { color: '#FFF' }]}>기록 수정하기</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.secondaryButton} onPress={handleDeletePress}>
-                <Text style={[styles.secondaryButtonText, !isDbRecord && { color: '#555' }]}>
+                <Text style={[
+                  styles.secondaryButtonText, 
+                  isManual && { color: '#555', textDecorationColor: '#555' }
+                ]}>
                   🗑️ 이 서랍 비우기(삭제)
                 </Text>
               </TouchableOpacity>
@@ -129,7 +132,7 @@ const styles = StyleSheet.create({
   touchableOutside: { flex: 1 },
   modalContent: {
     height: SCREEN_HEIGHT * 0.85,
-    backgroundColor: '#1A0F0A',
+    backgroundColor: '#1A0F0A', // 기본 Wood Brown 계열
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     borderWidth: 2,
