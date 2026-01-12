@@ -1,17 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-  Alert,
-  Platform,
-  TouchableOpacity
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Alert, Platform, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 컴포넌트 및 테마 임포트
+// 컴포넌트 및 테마
 import { GradientBackground } from '../components/GradientBackground';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { DrawerChest } from '../components/DrawerChest';
@@ -25,41 +17,45 @@ import { visitService } from '../services/visitService';
 import { couponService } from '../services/couponService';
 import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
 
+const LOCAL_STORAGE_KEY = 'offline_visit_history';
+
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
-  const [visits, setVisits] = useState([]);
-  const [personalNotes, setPersonalNotes] = useState([]); // 개인 메모용 상태
+  const [visits, setVisits] = useState([]); // 서버 데이터 (ON)
+  const [personalNotes, setPersonalNotes] = useState([]); // 로컬 데이터 (OFF)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
-  const [archiveMode, setArchiveMode] = useState('ALL');
+  const [archiveMode, setArchiveMode] = useState('ALL'); // ALL, ON, OFF
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  // 화면 포커스 시마다 데이터 새로고침
   useFocusEffect(
     useCallback(() => {
-      if (customer) { loadData(); } else { setLoading(false); }
+      if (customer) loadData();
+      else setLoading(false);
     }, [customer])
   );
 
   const loadData = async () => {
     try {
+      // 1. 서버(ON) 데이터 가져오기
       const { data: visitData } = await handleApiCall(
         'HistoryScreen.loadVisits',
         () => visitService.getVisits(customer.id)
       );
-      
-      // DB 기반 방문 기록은 isDbRecord: true를 붙여서 구분
-      if (visitData) {
-        setVisits(visitData.map(v => ({ ...v, isDbRecord: true })));
-      }
-      
-      // 개인 메모(personalNotes) 로드 로직이 있다면 여기에 추가
-      // setPersonalNotes(localData); 
+      if (visitData) setVisits(visitData.map(v => ({ ...v, isDbRecord: true })));
+
+      // 2. 로컬(OFF) 데이터 가져오기 (핵심 추가)
+      const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
+      const localData = stored ? JSON.parse(stored) : [];
+      setPersonalNotes(localData.map(v => ({ ...v, isDbRecord: false })));
 
       await loadCouponCount();
-      setLoading(false);
     } catch (error) {
+      console.error("Data Load Error:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -78,29 +74,31 @@ const HistoryScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  // ✅ 오류 해결: 삭제 함수 정의
+  // 삭제 로직 (서버/로컬 분기)
   const handleDeleteVisit = async (visitId) => {
-    const { error } = await handleApiCall(
-      'HistoryScreen.deleteVisit',
-      () => visitService.deleteVisit(visitId)
-    );
-
-    if (!error) {
+    if (selectedItem?.isDbRecord) {
+      // 서버 삭제
+      const { error } = await handleApiCall('HistoryScreen.deleteVisit', () => visitService.deleteVisit(visitId));
+      if (!error) {
+        showSuccessAlert('DELETE', Alert);
+        refreshCustomer();
+      }
+    } else {
+      // 로컬 삭제
+      const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
+      const list = stored ? JSON.parse(stored) : [];
+      const filtered = list.filter(v => v.id !== visitId);
+      await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
       showSuccessAlert('DELETE', Alert);
-      setIsModalVisible(false); // 모달 닫기
-      loadData(); // 데이터 새로고침
-      refreshCustomer(); // 상단 스탬프 정보 갱신
     }
-  };
-
-  const handleOpenModal = (item) => {
-    setSelectedItem(item);
-    setIsModalVisible(true);
+    setIsModalVisible(false);
+    loadData();
   };
 
   const getDisplayData = () => {
     if (archiveMode === 'ON') return visits;
     if (archiveMode === 'OFF') return personalNotes;
+    // ALL 모드: 두 데이터를 합쳐서 최신 날짜순 정렬
     return [...visits, ...personalNotes].sort((a, b) => 
       new Date(b.visit_date) - new Date(a.visit_date)
     );
@@ -113,15 +111,9 @@ const HistoryScreen = ({ navigation }) => {
       </Text>
 
       <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
-        <View style={styles.statBox}>
-          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>STAMPS</Text>
-          <Text style={styles.statValue}>{customer?.current_stamps}/10</Text>
-        </View>
+        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>STAMPS</Text><Text style={styles.statValue}>{customer?.current_stamps}/10</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
-        <View style={styles.statBox}>
-          <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>VISITS</Text>
-          <Text style={styles.statValue}>{customer?.visit_count}</Text>
-        </View>
+        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>VISITS</Text><Text style={styles.statValue}>{customer?.visit_count}</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
         <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('Coupon')}>
           <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>COUPONS</Text>
@@ -138,14 +130,9 @@ const HistoryScreen = ({ navigation }) => {
           <TouchableOpacity
             key={tab.id}
             onPress={() => setArchiveMode(tab.id)}
-            style={[
-              styles.tabButton,
-              archiveMode === tab.id && { backgroundColor: tab.color, borderColor: DrawerTheme.goldBright }
-            ]}
+            style={[styles.tabButton, archiveMode === tab.id && { backgroundColor: tab.color, borderColor: DrawerTheme.goldBright }]}
           >
-            <Text style={[styles.tabLabel, archiveMode === tab.id && styles.activeTabLabel]}>
-              {tab.label}
-            </Text>
+            <Text style={[styles.tabLabel, archiveMode === tab.id && styles.activeTabLabel]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -170,15 +157,16 @@ const HistoryScreen = ({ navigation }) => {
             <DrawerUnit
               key={item.id.toString()}
               visit={item}
-              onSelectCard={() => handleOpenModal(item)}
+              onSelectCard={() => {
+                setSelectedItem(item);
+                setIsModalVisible(true);
+              }}
             />
           ))
         ) : (
-          archiveMode !== 'OFF' && (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: DrawerTheme.woodLight }]}>아직 비어있는 서랍장입니다.</Text>
-            </View>
-          )
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: DrawerTheme.woodLight }]}>아직 비어있는 서랍장입니다.</Text>
+          </View>
         )}
       </DrawerChest>
     );
@@ -193,16 +181,20 @@ const HistoryScreen = ({ navigation }) => {
         renderItem={renderDrawerChest}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />}
       />
       <TarotCardModal
         isVisible={isModalVisible}
         visit={selectedItem}
         onClose={() => setIsModalVisible(false)}
-        onEdit={(id) => navigation.navigate('VisitDetail', { visitId: id })}
-        onDelete={handleDeleteVisit} // ✅ 이제 이 함수가 존재합니다!
+        onEdit={(id) => {
+          setIsModalVisible(false);
+          navigation.navigate('VisitDetail', { 
+            visitId: id, 
+            mode: selectedItem?.isDbRecord ? 'server' : 'manual' 
+          });
+        }}
+        onDelete={handleDeleteVisit}
       />
     </GradientBackground>
   );
@@ -217,23 +209,11 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, marginBottom: 4, fontWeight: 'bold' },
   statValue: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
   divider: { width: 1, height: 25 },
-  tabContainer: {
-    flexDirection: 'row',
-    width: '92%',
-    height: 46,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 12,
-    marginTop: 20,
-    padding: 4,
-    borderWidth: 1,
-  },
+  tabContainer: { flexDirection: 'row', width: '92%', height: 46, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, marginTop: 20, padding: 4, borderWidth: 1 },
   tabButton: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'transparent' },
   tabLabel: { color: '#888', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
   activeTabLabel: { color: '#FFF' },
-  manualAddDrawer: {
-    height: 100, margin: 2, borderWidth: 1.5, borderStyle: 'dashed',
-    borderColor: DrawerTheme.goldBrass, justifyContent: 'center', alignItems: 'center', marginBottom: 5,
-  },
+  manualAddDrawer: { height: 100, margin: 2, borderWidth: 1.5, borderStyle: 'dashed', borderColor: DrawerTheme.goldBrass, justifyContent: 'center', alignItems: 'center', marginBottom: 5 },
   manualAddText: { fontSize: 16, fontWeight: 'bold' },
   emptyContainer: { padding: 60, alignItems: 'center' },
   emptyText: { fontSize: 16, fontStyle: 'italic' }

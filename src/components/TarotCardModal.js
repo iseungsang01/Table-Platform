@@ -63,9 +63,9 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
             <View style={styles.header}>
               <View>
                 <Text style={styles.dateTitle}>{displayDate}의 기록</Text>
-                {/* ✅ 출처 표시 (상담 기록 vs 개인 메모) */}
+                {/* ✅ 출처 표시 (타로 기록 vs 개인 메모) */}
                 <Text style={[styles.sourceTag, { color: isDbRecord ? DrawerTheme.woodLight : DrawerTheme.navyLight }]}>
-                  {isDbRecord ? '🏛 상담 아카이브' : '📝 개인 메모장'}
+                  {isDbRecord ? '🏛 타로 아카이브' : '📝 개인 메모장'}
                 </Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -77,7 +77,7 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
             {visit.card_image && (
               <View style={styles.cardContainer}>
                 <View style={[styles.goldFrame, !isDbRecord && { borderColor: DrawerTheme.navyLight, shadowColor: '#000' }]}>
-                  <Image 
+                  <Image
                     source={{ uri: visit.card_image }} 
                     style={styles.tarotImage} 
                     resizeMode="contain" 
@@ -89,7 +89,7 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
             {/* --- 메모 섹션 --- */}
             <View style={styles.reviewSection}>
               <Text style={[styles.sectionLabel, !isDbRecord && { color: DrawerTheme.navyLight }]}>
-                {isDbRecord ? '📜 상담사 메모' : '✒️ 나의 기록'}
+                {isDbRecord ? '📜 타로 노트' : '✒️ 비밀 서랍'}
               </Text>
               <View style={[
                 styles.reviewContent, 
