@@ -139,6 +139,7 @@ export const noticeService = {
           title: reportData.title,
           description: reportData.description,
           report_type: reportData.report_type,
+          device_info: reportData.device_info,  // ⬅️ 이 줄 추가
           status: '접수',
         })
         .select()
