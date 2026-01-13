@@ -70,16 +70,16 @@ const LoginScreen = () => {
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
-          <View style={styles.mainCard}>
-            {/* 상단 안내 영역 */}
-            <View style={styles.headerArea}>
-              <Text style={styles.mainIcon}>🪵</Text>
-              <Text style={styles.mainTitle}>회원 로그인</Text>
-              <View style={styles.titleLine} />
-              <Text style={styles.mainSubtitle}>서랍장 속 소중한 기록을 확인하세요</Text>
-            </View>
+          
+          {/* 상단 Antic 헤더 영역 */}
+          <View style={styles.headerArea}>
+            <Text style={styles.mainTitle}>MEMBERSHIP LOGIN</Text>
+            <View style={styles.headerDivider} />
+            <Text style={styles.mainSubtitle}>서랍장 속 소중한 기록을 확인하세요</Text>
+          </View>
 
-            {/* 입력 영역 */}
+          {/* 메인 입력 카드 */}
+          <View style={styles.mainCard}>
             <View style={styles.inputSection}>
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>전화번호</Text>
@@ -88,7 +88,7 @@ const LoginScreen = () => {
                   value={phone} 
                   onChangeText={handlePhoneChange} 
                   placeholder="010-0000-0000" 
-                  placeholderTextColor="#7D5A44" 
+                  placeholderTextColor="rgba(166, 137, 102, 0.4)" 
                   keyboardType="phone-pad" 
                   maxLength={13} 
                   editable={!loading} 
@@ -101,8 +101,8 @@ const LoginScreen = () => {
                   style={styles.textInput} 
                   value={password} 
                   onChangeText={handlePasswordChange} 
-                  placeholder="비밀번호를 입력하세요" 
-                  placeholderTextColor="#7D5A44" 
+                  placeholder="********" 
+                  placeholderTextColor="rgba(166, 137, 102, 0.4)" 
                   secureTextEntry 
                   editable={!loading} 
                   onSubmitEditing={handleLogin} 
@@ -111,23 +111,27 @@ const LoginScreen = () => {
             </View>
 
             <CustomButton 
-              title={loading ? '확인 중...' : '입장하기'} 
+              title={loading ? '확인 중...' : '로그인'} 
               onPress={handleLogin} 
               disabled={loading} 
               style={styles.loginButton} 
             />
 
-            {/* 알림 메시지 */}
+            {/* 알림 메시지 디자인 */}
             {message.text && (
               <View style={[styles.statusMsg, styles[`status${message.type.charAt(0).toUpperCase() + message.type.slice(1)}`]]}>
                 <Text style={styles.statusText}>{message.text}</Text>
               </View>
             )}
-
-            <Text style={styles.footerHelp}>
-              매장에 등록하신 번호로 이용 가능합니다.{"\n"}정보가 기억나지 않으시면 직원을 불러주세요.
-            </Text>
           </View>
+
+          <View style={styles.footerArea}>
+             <View style={styles.titleLine} />
+             <Text style={styles.footerHelp}>
+                매장에 등록하신 번호로 이용 가능합니다.{"\n"}정보가 기억나지 않으시면 가게에 문의해주세요.
+             </Text>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </GradientBackground>
@@ -136,64 +140,110 @@ const LoginScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 25 },
-  
-  // 🪵 메인 카드 (테두리 제거, 깊이감 강조)
-  mainCard: { 
-    backgroundColor: '#3D2B1F', 
-    borderRadius: 24, 
-    padding: 35, 
-    width: '100%', 
-    // border 삭제
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 20 }, 
-    shadowOpacity: 0.6, 
-    shadowRadius: 30, 
-    elevation: 20 
+  scrollContent: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    padding: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   
-  headerArea: { alignItems: 'center', marginBottom: 40 },
-  mainIcon: { fontSize: 50, marginBottom: 10 },
+  // 헤더 (NoticeScreen 스타일 계승)
+  headerArea: { 
+    backgroundColor: DrawerTheme.woodDark, 
+    borderRadius: 12, 
+    paddingVertical: 30, 
+    paddingHorizontal: 20,
+    marginBottom: 25, 
+    borderWidth: 1.5,
+    borderColor: DrawerTheme.woodFrame,
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 6 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 10, 
+    elevation: 8 
+  },
   mainTitle: { 
-    fontSize: 24, 
+    fontSize: 22, 
     fontWeight: 'bold', 
     color: DrawerTheme.goldBrass, 
-    letterSpacing: 1.5 
+    letterSpacing: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
   },
-  titleLine: { width: 25, height: 2, backgroundColor: DrawerTheme.goldBrass, marginVertical: 15, opacity: 0.6 },
-  mainSubtitle: { fontSize: 14, color: '#A68966', textAlign: 'center' },
+  headerDivider: { 
+    width: 40, 
+    height: 2, 
+    backgroundColor: DrawerTheme.goldBrass, 
+    marginVertical: 12,
+    opacity: 0.7
+  },
+  mainSubtitle: { 
+    fontSize: 12, 
+    color: DrawerTheme.woodLight, 
+    opacity: 0.8,
+    letterSpacing: 0.5
+  },
 
-  inputSection: { marginBottom: 25 },
+  // 입력 카드 (HistoryScreen의 대시보드 스타일 계승)
+  mainCard: { 
+    backgroundColor: '#2A1B12', // 더 어둡고 투명한 느낌
+    borderRadius: 16, 
+    padding: 24, 
+    width: '100%', 
+    borderWidth: 1.5,
+    borderColor: '#5D4037',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 10 }, 
+    shadowOpacity: 0.5, 
+    shadowRadius: 20, 
+    elevation: 15 
+  },
+
+  inputSection: { marginBottom: 10 },
   inputWrapper: { marginBottom: 20 },
-  inputLabel: { fontSize: 13, fontWeight: 'bold', color: DrawerTheme.goldBrass, marginBottom: 10, paddingLeft: 4 },
+  inputLabel: { 
+    fontSize: 11, 
+    fontWeight: 'bold', 
+    color: DrawerTheme.goldBrass, 
+    marginBottom: 8, 
+    paddingLeft: 4,
+    letterSpacing: 1.5
+  },
   
-  // ⌨️ 입력창 (테두리 없이 면 분할)
   textInput: { 
-    backgroundColor: '#2D1E17', // 카드보다 더 깊은 색으로 음영 표현
-    borderRadius: 12, 
-    padding: 18, 
+    backgroundColor: '#1A110B', 
+    borderRadius: 8, 
+    padding: 16, 
     fontSize: 16, 
-    color: '#FFFFFF', 
+    color: '#E0C9A6', 
     textAlign: 'center',
     fontWeight: '500',
-    // 테두리 없음
+    borderWidth: 1,
+    borderColor: '#423229', // 은은한 골드 테두리
   },
 
-  loginButton: { marginTop: 10, height: 58, borderRadius: 12 },
+  loginButton: { 
+    marginTop: 10, 
+    height: 56, 
+    borderRadius: 8,
+    backgroundColor: DrawerTheme.goldBrass, // 커스텀 버튼 내부에서 처리되겠지만 스타일 보완용
+  },
 
   // 알림 메시지 디자인
-  statusMsg: { padding: 16, borderRadius: 12, marginTop: 20 },
-  statusError: { backgroundColor: 'rgba(255, 82, 82, 0.15)' },
-  statusSuccess: { backgroundColor: 'rgba(76, 175, 80, 0.15)' },
-  statusInfo: { backgroundColor: 'rgba(212, 175, 55, 0.1)' },
-  statusText: { textAlign: 'center', fontSize: 13, color: '#DDD', fontWeight: '500' },
+  statusMsg: { padding: 12, borderRadius: 8, marginTop: 20, borderWidth: 1 },
+  statusError: { backgroundColor: 'rgba(255, 82, 82, 0.05)', borderColor: 'rgba(255, 82, 82, 0.3)' },
+  statusSuccess: { backgroundColor: 'rgba(76, 175, 80, 0.05)', borderColor: 'rgba(76, 175, 80, 0.3)' },
+  statusInfo: { backgroundColor: 'rgba(212, 175, 55, 0.05)', borderColor: 'rgba(212, 175, 55, 0.3)' },
+  statusText: { textAlign: 'center', fontSize: 13, color: DrawerTheme.woodLight, fontWeight: '500' },
 
+  footerArea: { alignItems: 'center', marginTop: 30 },
+  titleLine: { width: 20, height: 1, backgroundColor: DrawerTheme.woodFrame, marginBottom: 15 },
   footerHelp: { 
     fontSize: 12, 
-    color: '#7D5A44', 
+    color: DrawerTheme.woodLight, 
     textAlign: 'center', 
-    marginTop: 30, 
-    lineHeight: 20 
+    lineHeight: 18,
+    opacity: 0.6
   },
 });
 
