@@ -33,6 +33,9 @@ export const Gradients = {
   // 버튼 그라데이션
   button: ['#8a2be2', '#9370db'],
   
+  // ✅ 골드 브라운 버튼 (LoginScreen용)
+  goldBrown: ['#D4A679', '#B8860B'],
+  
   // 위험 버튼 그라데이션
   red: ['#ff6b6b', '#ee5a6f'],
 };

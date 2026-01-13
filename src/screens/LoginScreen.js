@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { GradientBackground, CustomButton } from '../components';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GradientBackground } from '../components';
 import { useAuth } from '../hooks/useAuth';
 import { formatPhoneNumber } from '../utils/formatters';
 import { validatePhoneNumber } from '../utils/validators';
 import { DrawerTheme } from '../constants/DrawerTheme';
+import { Gradients } from '../constants/Colors';
 import { createValidationError } from '../utils/errorHandler';
 import { ERROR_MESSAGES } from '../constants/ErrorMessages';
 
@@ -110,12 +112,24 @@ const LoginScreen = () => {
               </View>
             </View>
 
-            <CustomButton 
-              title={loading ? '확인 중...' : '로그인'} 
+            {/* ✅ 골드 브라운 커스텀 버튼 */}
+            <TouchableOpacity 
               onPress={handleLogin} 
               disabled={loading} 
-              style={styles.loginButton} 
-            />
+              activeOpacity={0.8}
+              style={styles.loginButtonWrapper}
+            >
+              <LinearGradient
+                colors={Gradients.goldBrown}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loading ? '확인 중...' : '로그인'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
             {/* 알림 메시지 디자인 */}
             {message.text && (
@@ -186,7 +200,7 @@ const styles = StyleSheet.create({
 
   // 입력 카드 (HistoryScreen의 대시보드 스타일 계승)
   mainCard: { 
-    backgroundColor: '#2A1B12', // 더 어둡고 투명한 느낌
+    backgroundColor: '#2A1B12',
     borderRadius: 16, 
     padding: 24, 
     width: '100%', 
@@ -219,14 +233,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
     borderWidth: 1,
-    borderColor: '#423229', // 은은한 골드 테두리
+    borderColor: '#423229',
   },
 
+  // ✅ 골드 브라운 버튼 스타일
+  loginButtonWrapper: {
+    marginTop: 10,
+  },
   loginButton: { 
-    marginTop: 10, 
     height: 56, 
     borderRadius: 8,
-    backgroundColor: DrawerTheme.goldBrass, // 커스텀 버튼 내부에서 처리되겠지만 스타일 보완용
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: DrawerTheme.goldBrass,
+    shadowColor: DrawerTheme.goldBrass,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  loginButtonDisabled: {
+    opacity: 0.5,
+  },
+  loginButtonText: {
+    color: '#1A0F0A',
+    fontSize: 17,
+    fontWeight: 'bold',
+    letterSpacing: 2,
   },
 
   // 알림 메시지 디자인
