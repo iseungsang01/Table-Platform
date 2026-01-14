@@ -29,6 +29,10 @@ const HistoryScreen = ({ navigation }) => {
   const [archiveMode, setArchiveMode] = useState('ALL'); // ALL, ON, OFF
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [stats, setStats] = useState({
+      current_stamps: customer?.current_stamps || 0,
+      visit_count: customer?.visit_count || 0
+    });
 
   // 화면 포커스 시마다 데이터 동기화
   useFocusEffect(
@@ -40,6 +44,21 @@ const HistoryScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
+      // ✅ 0. (새로 추가됨) 최신 스탬프 및 방문 횟수 조회
+      const { data: latestStats } = await handleApiCall(
+        'HistoryScreen.loadStats',
+        () => visitService.getCustomerStats(customer.id),
+        { showAlert: false } // 에러가 나도 기존 숫자를 보여주면 되니 알림은 끔
+      );
+
+      // 데이터가 잘 왔으면 화면 숫자 업데이트!
+      if (latestStats) {
+        setStats({
+          current_stamps: latestStats.current_stamps,
+          visit_count: latestStats.visit_count
+        });
+      }
+
       // 1. 서버(ON) 데이터 로드 및 is_manual: false 주입
       const { data: visitData } = await handleApiCall(
         'HistoryScreen.loadVisits',
@@ -48,7 +67,7 @@ const HistoryScreen = ({ navigation }) => {
       
       const formattedVisits = visitData ? visitData.map(v => ({ 
         ...v, 
-        is_manual: false // 서버 데이터는 수동 작성이 아님
+        is_manual: false 
       })) : [];
       setVisits(formattedVisits);
 
@@ -58,7 +77,7 @@ const HistoryScreen = ({ navigation }) => {
       
       const formattedNotes = localData.map(v => ({ 
         ...v, 
-        is_manual: true // 로컬 데이터는 직접 작성한 메모임
+        is_manual: true 
       }));
       setPersonalNotes(formattedNotes);
 
@@ -123,9 +142,9 @@ const HistoryScreen = ({ navigation }) => {
 
       {/* 대시보드 */}
       <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
-        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>스탬프</Text><Text style={styles.statValue}>{customer?.current_stamps}/10</Text></View>
+        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>스탬프</Text><Text style={styles.statValue}>{stats.current_stamps}/10</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
-        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>방문 횟수</Text><Text style={styles.statValue}>{customer?.visit_count}</Text></View>
+        <View style={styles.statBox}><Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>방문 횟수</Text><Text style={styles.statValue}>{stats.visit_count}</Text></View>
         <View style={[styles.divider, { backgroundColor: DrawerTheme.woodFrame }]} />
         <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('Coupon')}>
           <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>보유 쿠폰</Text>

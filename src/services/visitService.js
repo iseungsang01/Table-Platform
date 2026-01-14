@@ -151,5 +151,23 @@ export const visitService = {
       await storage.deleteCardReview(visitId);
     }
     return { error };
+  },
+  
+  async getCustomerStats(customerId) {
+    try {
+      const { data, error } = await supabase
+        .from('customers')  // 🚨 visit_history 아님! customers 테이블임
+        .select('current_stamps, visit_count')
+        .eq('id', customerId)
+        .single();
+
+      if (error) throw error;
+      
+      // 데이터만 깔끔하게 리턴 (handleApiCall 규격 호환)
+      return { data, error: null };
+    } catch (error) {
+      console.error('스탬프 정보 조회 실패:', error);
+      return { data: null, error };
+    }
   }
 };
