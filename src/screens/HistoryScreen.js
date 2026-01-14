@@ -44,14 +44,13 @@ const HistoryScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      // ✅ 0. (새로 추가됨) 최신 스탬프 및 방문 횟수 조회
+      // ✅ 1. 스탬프 & 방문횟수 최신화 (DB 조회)
       const { data: latestStats } = await handleApiCall(
         'HistoryScreen.loadStats',
         () => visitService.getCustomerStats(customer.id),
-        { showAlert: false } // 에러가 나도 기존 숫자를 보여주면 되니 알림은 끔
+        { showAlert: false }
       );
 
-      // 데이터가 잘 왔으면 화면 숫자 업데이트!
       if (latestStats) {
         setStats({
           current_stamps: latestStats.current_stamps,
@@ -59,7 +58,7 @@ const HistoryScreen = ({ navigation }) => {
         });
       }
 
-      // 1. 서버(ON) 데이터 로드 및 is_manual: false 주입
+      // ✅ 2. 방문 기록 (서버) 로드
       const { data: visitData } = await handleApiCall(
         'HistoryScreen.loadVisits',
         () => visitService.getVisits(customer.id)
@@ -71,7 +70,7 @@ const HistoryScreen = ({ navigation }) => {
       })) : [];
       setVisits(formattedVisits);
 
-      // 2. 로컬(OFF) 데이터 로드 및 is_manual: true 주입
+      // ✅ 3. 개인 메모 (로컬) 로드
       const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
       const localData = stored ? JSON.parse(stored) : [];
       
@@ -81,7 +80,9 @@ const HistoryScreen = ({ navigation }) => {
       }));
       setPersonalNotes(formattedNotes);
 
+      // ✅ 4. 쿠폰 개수 최신화 (DB 조회)
       await loadCouponCount();
+
     } catch (error) {
       console.error("Data Load Error:", error);
     } finally {
@@ -89,12 +90,30 @@ const HistoryScreen = ({ navigation }) => {
     }
   };
 
+  // 👇 [필수] 쿠폰 개수 DB 조회 함수
   const loadCouponCount = async () => {
-    const { data: count } = await handleApiCall(
-      'HistoryScreen.loadCouponCount',
-      () => couponService.getCouponCount(customer.id)
-    );
-    if (count !== undefined) setCouponCount(count);
+    try {
+      console.log("쿠폰 개수 조회 시작..."); 
+      
+      // 1. 서비스 직접 호출 (count 변수로 받음)
+      const { count, error } = await couponService.getValidCouponCount(customer.id);
+
+      if (error) {
+        console.error("쿠폰 조회 에러:", error);
+        return;
+      }
+
+      console.log("조회된 쿠폰 개수:", count); // 로그 확인용
+
+      // 2. 숫자가 확실할 때만 상태 업데이트
+      if (typeof count === 'number') {
+        setCouponCount(count);
+      } else {
+        setCouponCount(0);
+      }
+    } catch (err) {
+      console.error("loadCouponCount 실행 중 오류:", err);
+    }
   };
 
   const handleRefresh = async () => {
