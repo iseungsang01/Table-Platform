@@ -1,5 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  RefreshControl, 
+  Alert, 
+  Platform, 
+  BackHandler // 👈 BackHandler가 반드시 있어야 합니다.
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { GradientBackground, LoadingSpinner, CustomButton, VoteCard } from '../components'; 
 import { useAuth } from '../hooks/useAuth';
@@ -7,7 +17,7 @@ import { voteService } from '../services/voteService';
 import { DrawerTheme } from '../constants/DrawerTheme';
 import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
 
-const VoteScreen = () => {
+const VoteScreen = ({ navigation }) => {
   const { customer } = useAuth();
   const [participantCount, setParticipantCount] = useState(0);
   const [votes, setVotes] = useState([]);
@@ -20,6 +30,30 @@ const VoteScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // 👇 [수정됨] 뒤로가기 버튼 핸들링 (에러 해결 버전)
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // 1. 투표 상세 화면(selectedVote 존재)인 경우 -> 목록으로 돌아감
+        if (selectedVote) {
+          setSelectedVote(null);
+          setIsEditMode(false); // 수정 모드도 해제
+          return true; // 뒤로가기 기본 동작(홈으로 튕김) 방지
+        }
+        
+        // 2. 투표 목록 화면인 경우 -> 기본 동작(홈으로 이동) 허용
+        return false;
+      };
+
+      // 이벤트 리스너 등록 (subscription 객체 반환)
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // 리스너 제거 (subscription.remove() 사용)
+      return () => subscription.remove();
+      
+    }, [selectedVote]) // selectedVote 상태가 바뀔 때마다 로직 갱신
+  );
 
   const normalizeOptions = (opts) => {
     if (Array.isArray(opts)) return opts.map((t, i) => ({ id: i, text: typeof t === 'string' ? t : t.text || t }));
