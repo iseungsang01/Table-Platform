@@ -123,16 +123,30 @@ export const voteService = {
       // 각 옵션의 투표 수 집계
       const results = {};
       (data || []).forEach((response) => {
-        const options = response.selected_options || [];
+        // 데이터가 배열인지 JSON 문자열인지 확인하여 안전하게 파싱
+        let options = response.selected_options;
+        
+        // 만약 문자열로 저장되어 있다면 파싱, 아니면 그대로 사용
+        if (typeof options === 'string') {
+           try { options = JSON.parse(options); } catch(e) { options = []; }
+        }
+        if (!Array.isArray(options)) options = [];
+
         options.forEach((optionId) => {
-          results[optionId] = (results[optionId] || 0) + 1;
+          // 키를 문자열로 통일하여 저장 (숫자 0과 문자 "0" 매칭 문제 방지)
+          const key = String(optionId);
+          results[key] = (results[key] || 0) + 1;
         });
       });
 
-      return { results, error: null };
+      // 🚨 [수정된 부분] handleApiCall이 인식할 수 있게 'data'라는 이름으로 감싸서 리턴해야 합니다.
+      // 기존: return { results, error: null };
+      return { data: { results }, error: null }; 
+
     } catch (error) {
       console.error('Get vote results error:', error);
-      return { results: {}, error };
+      // 에러 상황에서도 data 구조 유지
+      return { data: { results: {} }, error };
     }
   },
 
@@ -149,7 +163,7 @@ export const voteService = {
         .eq('vote_id', voteId);
 
       if (error) throw error;
-      return { count: count || 0, error: null };
+      return { data: { count: count || 0 }, error: null };
     } catch (error) {
       console.error('Get vote participants error:', error);
       return { count: 0, error };

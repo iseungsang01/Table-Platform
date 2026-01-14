@@ -9,6 +9,7 @@ import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
 
 const VoteScreen = () => {
   const { customer } = useAuth();
+  const [participantCount, setParticipantCount] = useState(0);
   const [votes, setVotes] = useState([]);
   const [selectedVote, setSelectedVote] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -33,14 +34,29 @@ const VoteScreen = () => {
   };
 
   const loadVoteData = async (vId) => {
-    const [myVoteRes, resRes] = await Promise.all([
-      handleApiCall('VoteScreen.loadMyVote', () => voteService.getMyVote(vId, customer.id), { showAlert: false }),
-      handleApiCall('VoteScreen.loadVoteResults', () => voteService.getVoteResults(vId), { showAlert: false })
-    ]);
-    setMyVote(myVoteRes.data);
-    setVoteResults(resRes.data?.results || {});
-    setSelectedOptions(myVoteRes.data?.selected_options || []);
-    setShowResults(!!myVoteRes.data);
+    try {
+      // Promise.all에 참여자 수 조회(getVoteParticipants) 추가
+      const [myVoteRes, resRes, countRes] = await Promise.all([
+        handleApiCall('VoteScreen.loadMyVote', () => voteService.getMyVote(vId, customer.id), { showAlert: false }),
+        handleApiCall('VoteScreen.loadVoteResults', () => voteService.getVoteResults(vId), { showAlert: false }),
+        handleApiCall('VoteScreen.loadCount', () => voteService.getVoteParticipants(vId), { showAlert: false }) // 👈 추가된 부분
+      ]);
+
+      setMyVote(myVoteRes.data);
+      
+      // 결과 데이터 처리 (이전 답변의 수정 사항 적용)
+      const finalResults = resRes.data?.results || {}; 
+      setVoteResults(finalResults);
+
+      // 🚨 참여자 수 업데이트
+      // service가 { count: 10 } 형태로 리턴하므로 구조에 맞게 가져옵니다.
+      setParticipantCount(countRes.data?.count || 0);
+
+      setSelectedOptions(myVoteRes.data?.selected_options || []);
+      setShowResults(!!myVoteRes.data);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useFocusEffect(useCallback(() => { loadVotes(); }, [customer]));
@@ -93,7 +109,8 @@ const VoteScreen = () => {
     const options = normalizeOptions(selectedVote.options);
     const total = Object.values(voteResults).reduce((a, b) => a + b, 0);
     const isResultView = showResults && !isEditMode;
-
+    const totalVotes = Object.values(voteResults).reduce((a, b) => a + b, 0);
+    
     return (
       <View>
         <TouchableOpacity style={styles.backLink} onPress={() => setSelectedVote(null)}>
@@ -103,7 +120,7 @@ const VoteScreen = () => {
         <View style={styles.detailHeader}>
           <Text style={styles.detailTitle}>{selectedVote.title}</Text>
           <View style={styles.detailMeta}>
-            <Text style={styles.metaText}>🗳️ 현재 {total}명 참여 중</Text>
+            <Text style={styles.metaText}>🗳️ 현재 {participantCount}명 참여 중</Text>
           </View>
         </View>
 
@@ -148,21 +165,30 @@ const VoteScreen = () => {
         </View>
 
         {(!showResults || isEditMode) && (
-          <View style={styles.btnRow}>
-            <CustomButton 
-              title={submitting ? '제출 중...' : '투표하기'} 
-              onPress={handleSubmitVote} 
-              disabled={submitting || !selectedOptions.length} 
-              style={{flex: 1}} 
-            />
+          <View style={styles.actionContainer}>
+            {/* 취소 버튼: 수정 모드일 때만 왼쪽에 작게 표시 */}
             {isEditMode && (
-              <CustomButton 
-                title="취소" 
-                variant="danger" 
-                onPress={() => { setIsEditMode(false); setShowResults(true); }} 
-                style={{flex: 0.4}} 
-              />
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => { setIsEditMode(false); setShowResults(true); }}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
             )}
+
+            {/* 투표하기 버튼: 메인으로 크게 표시 */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton, 
+                (!selectedOptions.length || submitting) && styles.submitButtonDisabled
+              ]}
+              onPress={handleSubmitVote}
+              disabled={submitting || !selectedOptions.length}
+            >
+              <Text style={styles.submitButtonText}>
+                {submitting ? '처리 중...' : (isEditMode ? '수정 완료' : '투표하기')}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -282,7 +308,47 @@ const styles = StyleSheet.create({
   resText: { color: '#999', fontSize: 14 },
   resTextMy: { color: DrawerTheme.goldBright, fontWeight: 'bold' },
   resPct: { color: '#666', fontSize: 12 },
-  btnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  actionContainer: {
+    flexDirection: 'row',
+    marginTop: 25,
+    gap: 12, // 버튼 사이 간격
+  },
+  submitButton: {
+    flex: 1, // 남은 공간 모두 차지
+    backgroundColor: DrawerTheme.goldBrass, // 메인 골드 색상
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#3D2B1F', // 비활성화 시 어두운 색
+    opacity: 0.5,
+  },
+  submitButtonText: {
+    color: '#3D2B1F', // 글자색은 어두운 브라운 (가독성 UP)
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    flex: 0.4, // 작게 차지
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)', // 옅은 테두리
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    color: '#AAA',
+    fontSize: 16,
+  },
   emptyBox: { alignItems: 'center', paddingTop: 100, paddingBottom: 40 },
   emptyIcon: { fontSize: 64, marginBottom: 20, opacity: 0.3 },
   emptyText: { fontSize: 15, color: DrawerTheme.woodLight, fontStyle: 'italic', opacity: 0.7 }
