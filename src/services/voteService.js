@@ -169,4 +169,20 @@ export const voteService = {
       return { count: 0, error };
     }
   },
+
+  async cancelVote(voteId, customerId) {
+    try {
+      const { error } = await supabase
+        .from('vote_responses')
+        .delete() // 👈 데이터 삭제
+        .eq('vote_id', voteId)
+        .eq('customer_id', customerId);
+
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      console.error('Cancel vote error:', error);
+      return { data: null, error };
+    }
+  },
 };

@@ -62,17 +62,56 @@ const VoteScreen = () => {
   useFocusEffect(useCallback(() => { loadVotes(); }, [customer]));
 
   const handleSubmitVote = async () => {
-    if (!selectedOptions.length) return Alert.alert('알림', '항목을 선택해주세요.');
+    if (submitting) return;
     setSubmitting(true);
-    const { error } = await handleApiCall('VoteScreen.submit', () => 
-      voteService.submitVote(selectedVote.id, customer.id, selectedOptions, myVote?.id)
-    );
-    if (!error) {
-      showSuccessAlert('VOTE', Alert, '참여가 완료되었습니다.');
-      await loadVoteData(selectedVote.id);
-      setIsEditMode(false);
+
+    try {
+      // 🚨 [핵심 변경] 선택된 옵션이 하나도 없다면 -> 투표 삭제(Cancel)로 처리
+      if (selectedOptions.length === 0) {
+        // (선택 사항) 사용자에게 한 번 더 물어보고 싶다면 Alert 사용
+        /*
+        Alert.alert("투표 취소", "모든 선택을 해제하여 투표를 취소하시겠습니까?", [
+          { text: "아니오", onPress: () => setSubmitting(false) },
+          { text: "네", onPress: async () => { ...삭제로직... } }
+        ]);
+        */
+        
+        // 바로 삭제 진행
+        await handleApiCall(
+          'VoteScreen.cancelVote',
+          () => voteService.cancelVote(selectedVote.id, customer.id),
+          { successMessage: '투표가 취소되었습니다.' }
+        );
+
+        // 삭제 후 데이터 갱신
+        await loadVoteData(selectedVote.id);
+        setIsEditMode(false); // 수정 모드 종료
+        setShowResults(true); // 결과 화면(또는 투표전 화면)으로 이동
+
+      } else {
+        // 🚨 기존 로직: 1개 이상 선택했으므로 정상 투표/수정 진행
+        const res = await handleApiCall(
+          'VoteScreen.submitVote',
+          () => voteService.submitVote(
+            selectedVote.id,
+            customer.id,
+            selectedOptions,
+            myVote?.id // 수정 시 기존 ID 전달
+          ),
+          { successMessage: isEditMode ? '투표가 수정되었습니다.' : '투표가 완료되었습니다.' }
+        );
+
+        if (res.data) {
+          await loadVoteData(selectedVote.id);
+          setIsEditMode(false);
+          setShowResults(true);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const renderContent = () => {
@@ -166,27 +205,36 @@ const VoteScreen = () => {
 
         {(!showResults || isEditMode) && (
           <View style={styles.actionContainer}>
-            {/* 취소 버튼: 수정 모드일 때만 왼쪽에 작게 표시 */}
+            {/* 취소(뒤로가기) 버튼 */}
             {isEditMode && (
               <TouchableOpacity 
                 style={styles.cancelButton} 
                 onPress={() => { setIsEditMode(false); setShowResults(true); }}
               >
-                <Text style={styles.cancelButtonText}>취소</Text>
+                <Text style={styles.cancelButtonText}>돌아가기</Text>
               </TouchableOpacity>
             )}
 
-            {/* 투표하기 버튼: 메인으로 크게 표시 */}
+            {/* 메인 버튼 */}
             <TouchableOpacity
               style={[
                 styles.submitButton, 
-                (!selectedOptions.length || submitting) && styles.submitButtonDisabled
+                // 🚨 수정: (새 투표이고 선택없음) 또는 (처리중) 일 때만 비활성화
+                // 즉, '수정 모드'일 때는 선택된 게 없어도 버튼이 활성화됩니다.
+                (!isEditMode && !selectedOptions.length) || submitting 
+                  ? styles.submitButtonDisabled 
+                  : null
               ]}
+              // 🚨 수정: 위 조건과 동일하게 적용
+              disabled={((!isEditMode && !selectedOptions.length) || submitting)}
               onPress={handleSubmitVote}
-              disabled={submitting || !selectedOptions.length}
             >
               <Text style={styles.submitButtonText}>
-                {submitting ? '처리 중...' : (isEditMode ? '수정 완료' : '투표하기')}
+                {submitting ? '처리 중...' : (
+                  // 선택된 게 없으면 '투표 취소하기'라고 텍스트를 바꿔주면 더 친절합니다
+                  // selectedOptions.length === 0 && isEditMode ? '투표 취소하기' : 
+                  (isEditMode ? '수정 완료' : '투표하기')
+                )}
               </Text>
             </TouchableOpacity>
           </View>
