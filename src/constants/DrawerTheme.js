@@ -31,6 +31,11 @@ export const DrawerTheme = {
   textMain: '#FFFFFF',
   textMuted: '#A0A0A0',
   textDark: '#1A0F0A',
+
+  // ✅ [SELECTION MODE] - 다중 선택 모드 색상
+  selectionMode: '#5D4E37',      // 선택 모드 활성화 버튼 배경 (진한 갈색)
+  selectionActive: '#D4AF37',    // 선택된 항목 강조 색상 (골드)
+  selectionBorder: '#FFD700',    // 선택된 항목 테두리 (밝은 골드)
 };
 
 export default DrawerTheme;

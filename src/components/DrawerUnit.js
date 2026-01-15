@@ -6,8 +6,10 @@ import { DrawerTheme } from '../constants/DrawerTheme';
  * 서랍 정면(Unit) 컴포넌트
  * @param {object} visit - 방문 기록 데이터 (is_manual 필드 포함)
  * @param {function} onSelectCard - 클릭 시 호출될 함수
+ * @param {boolean} selectionMode - 다중 선택 모드 여부
+ * @param {boolean} isSelected - 현재 선택된 상태
  */
-export const DrawerUnit = ({ visit, onSelectCard }) => {
+export const DrawerUnit = ({ visit, onSelectCard, selectionMode, isSelected }) => {
   // 1. 핵심 변경: isDbRecord 대신 is_manual을 사용
   // is_manual: false(서버기록) -> Wood 테마
   // is_manual: true(개인메모) -> Navy 테마
@@ -37,32 +39,59 @@ export const DrawerUnit = ({ visit, onSelectCard }) => {
           styles.drawerFront, 
           { backgroundColor: theme.mid, borderTopColor: theme.light },
           // 서버 기록(Wood)인데 아직 내용을 적지 않았다면 약간 투명하게 처리
-          (isOnMode && !isWritten) && { opacity: 0.7 }
+          (isOnMode && !isWritten) && { opacity: 0.7 },
+          // ✅ 선택 모드일 때 선택된 항목 강조
+          selectionMode && isSelected && { 
+            borderWidth: 3, 
+            borderColor: DrawerTheme.selectionActive,
+            backgroundColor: isOnMode ? DrawerTheme.woodDark : '#1A2530'
+          }
         ]}
       >
         <View style={styles.bezel}>
+          {/* ✅ 선택 모드일 때 체크박스 표시 */}
+          {selectionMode && (
+            <View style={styles.checkboxContainer}>
+              <View style={[
+                styles.checkbox,
+                isSelected && styles.checkboxActive
+              ]}>
+                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+            </View>
+          )}
+
           {/* 날짜 표시: 모든 서랍의 공통 요소 */}
           <Text style={[styles.dateText, { color: DrawerTheme.goldBright }]}>{displayDate}</Text>
 
           {/* 인디케이터: 서버 기록(Wood)이면서 미작성일 때만 'EMPTY' 표시 */}
-          {isOnMode && !isWritten && (
+          {isOnMode && !isWritten && !selectionMode && (
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>EMPTY</Text>
             </View>
           )}
 
           {/* 개인 메모(Navy)일 때는 펜 아이콘 인디케이터 추가 (선택 사항) */}
-          {isManualMode && (
+          {isManualMode && !selectionMode && (
              <View style={styles.statusBadge}>
                <Text style={[styles.statusText, { color: DrawerTheme.navyLight }]}>PRIVATE</Text>
              </View>
           )}
 
           {/* 공통 황동 손잡이 디자인 */}
-          <View style={styles.knobSystem}>
-            <View style={[styles.knobPlate, { backgroundColor: theme.dark, opacity: 0.5 }]} />
-            <View style={[styles.knobHandle, { backgroundColor: DrawerTheme.goldBrass, borderColor: DrawerTheme.goldDark }]} />
-          </View>
+          {!selectionMode && (
+            <View style={styles.knobSystem}>
+              <View style={[styles.knobPlate, { backgroundColor: theme.dark, opacity: 0.5 }]} />
+              <View style={[styles.knobHandle, { backgroundColor: DrawerTheme.goldBrass, borderColor: DrawerTheme.goldDark }]} />
+            </View>
+          )}
+
+          {/* ✅ 선택 모드일 때는 선택 표시 */}
+          {selectionMode && (
+            <View style={styles.selectionIndicator}>
+              <Text style={styles.selectionText}>{isSelected ? '선택됨' : '탭하여 선택'}</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     </View>
@@ -137,5 +166,43 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, 
     shadowOpacity: 0.5, 
     shadowRadius: 2 
-  }
+  },
+
+  // ✅ 체크박스 스타일
+  checkboxContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 12,
+    zIndex: 10,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxActive: {
+    borderColor: DrawerTheme.selectionActive,
+    backgroundColor: DrawerTheme.selectionActive,
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+
+  // ✅ 선택 인디케이터
+  selectionIndicator: {
+    marginTop: 10,
+  },
+  selectionText: {
+    fontSize: 11,
+    color: '#AAA',
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
 });
