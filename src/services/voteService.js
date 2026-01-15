@@ -139,13 +139,10 @@ export const voteService = {
         });
       });
 
-      // 🚨 [수정된 부분] handleApiCall이 인식할 수 있게 'data'라는 이름으로 감싸서 리턴해야 합니다.
-      // 기존: return { results, error: null };
       return { data: { results }, error: null }; 
 
     } catch (error) {
       console.error('Get vote results error:', error);
-      // 에러 상황에서도 data 구조 유지
       return { data: { results: {} }, error };
     }
   },
@@ -170,11 +167,17 @@ export const voteService = {
     }
   },
 
+  /**
+   * 투표 취소 (삭제)
+   * @param {number} voteId - 투표 ID
+   * @param {string} customerId - 고객 ID (UUID)
+   * @returns {object} { data, error }
+   */
   async cancelVote(voteId, customerId) {
     try {
       const { error } = await supabase
         .from('vote_responses')
-        .delete() // 👈 데이터 삭제
+        .delete()
         .eq('vote_id', voteId)
         .eq('customer_id', customerId);
 

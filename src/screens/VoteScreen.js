@@ -8,10 +8,10 @@ import {
   RefreshControl, 
   Alert, 
   Platform, 
-  BackHandler // 👈 BackHandler가 반드시 있어야 합니다.
+  BackHandler 
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { GradientBackground, LoadingSpinner, CustomButton, VoteCard } from '../components'; 
+import { GradientBackground, LoadingSpinner, VoteCard } from '../components'; 
 import { useAuth } from '../hooks/useAuth';
 import { voteService } from '../services/voteService';
 import { DrawerTheme } from '../constants/DrawerTheme';
@@ -31,28 +31,21 @@ const VoteScreen = ({ navigation }) => {
   const [showResults, setShowResults] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // 👇 [수정됨] 뒤로가기 버튼 핸들링 (에러 해결 버전)
+  // 뒤로가기 버튼 핸들링
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        // 1. 투표 상세 화면(selectedVote 존재)인 경우 -> 목록으로 돌아감
         if (selectedVote) {
           setSelectedVote(null);
-          setIsEditMode(false); // 수정 모드도 해제
-          return true; // 뒤로가기 기본 동작(홈으로 튕김) 방지
+          setIsEditMode(false);
+          return true;
         }
-        
-        // 2. 투표 목록 화면인 경우 -> 기본 동작(홈으로 이동) 허용
         return false;
       };
 
-      // 이벤트 리스너 등록 (subscription 객체 반환)
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      // 리스너 제거 (subscription.remove() 사용)
       return () => subscription.remove();
-      
-    }, [selectedVote]) // selectedVote 상태가 바뀔 때마다 로직 갱신
+    }, [selectedVote])
   );
 
   const normalizeOptions = (opts) => {
@@ -69,23 +62,17 @@ const VoteScreen = ({ navigation }) => {
 
   const loadVoteData = async (vId) => {
     try {
-      // Promise.all에 참여자 수 조회(getVoteParticipants) 추가
       const [myVoteRes, resRes, countRes] = await Promise.all([
         handleApiCall('VoteScreen.loadMyVote', () => voteService.getMyVote(vId, customer.id), { showAlert: false }),
         handleApiCall('VoteScreen.loadVoteResults', () => voteService.getVoteResults(vId), { showAlert: false }),
-        handleApiCall('VoteScreen.loadCount', () => voteService.getVoteParticipants(vId), { showAlert: false }) // 👈 추가된 부분
+        handleApiCall('VoteScreen.loadCount', () => voteService.getVoteParticipants(vId), { showAlert: false })
       ]);
 
       setMyVote(myVoteRes.data);
       
-      // 결과 데이터 처리 (이전 답변의 수정 사항 적용)
       const finalResults = resRes.data?.results || {}; 
       setVoteResults(finalResults);
-
-      // 🚨 참여자 수 업데이트
-      // service가 { count: 10 } 형태로 리턴하므로 구조에 맞게 가져옵니다.
       setParticipantCount(countRes.data?.count || 0);
-
       setSelectedOptions(myVoteRes.data?.selected_options || []);
       setShowResults(!!myVoteRes.data);
     } catch (e) {
@@ -97,54 +84,97 @@ const VoteScreen = ({ navigation }) => {
 
   const handleSubmitVote = async () => {
     if (submitting) return;
-    setSubmitting(true);
 
-    try {
-      // 🚨 [핵심 변경] 선택된 옵션이 하나도 없다면 -> 투표 삭제(Cancel)로 처리
-      if (selectedOptions.length === 0) {
-        // (선택 사항) 사용자에게 한 번 더 물어보고 싶다면 Alert 사용
-        /*
-        Alert.alert("투표 취소", "모든 선택을 해제하여 투표를 취소하시겠습니까?", [
-          { text: "아니오", onPress: () => setSubmitting(false) },
-          { text: "네", onPress: async () => { ...삭제로직... } }
-        ]);
-        */
-        
-        // 바로 삭제 진행
-        await handleApiCall(
+    // ✅ 복수 투표에서 max_selections 검증
+    if (selectedVote.allow_multiple && selectedVote.max_selections) {
+      if (selectedOptions.length > selectedVote.max_selections) {
+        Alert.alert(
+          '선택 초과',
+          `최대 ${selectedVote.max_selections}개까지만 선택 가능합니다.`,
+          [{ text: '확인' }]
+        );
+        return;
+      }
+    }
+
+    // ✅ 단일 투표에서 선택 안 하고 제출 시도 → 즉시 취소 처리
+    if (!selectedVote.allow_multiple && selectedOptions.length === 0 && myVote) {
+      const cancelVoteImmediately = async () => {
+        setSubmitting(true);
+        const { error } = await handleApiCall(
           'VoteScreen.cancelVote',
-          () => voteService.cancelVote(selectedVote.id, customer.id),
-          { successMessage: '투표가 취소되었습니다.' }
+          () => voteService.cancelVote(selectedVote.id, customer.id)
         );
-
-        // 삭제 후 데이터 갱신
-        await loadVoteData(selectedVote.id);
-        setIsEditMode(false); // 수정 모드 종료
-        setShowResults(true); // 결과 화면(또는 투표전 화면)으로 이동
-
-      } else {
-        // 🚨 기존 로직: 1개 이상 선택했으므로 정상 투표/수정 진행
-        const res = await handleApiCall(
-          'VoteScreen.submitVote',
-          () => voteService.submitVote(
-            selectedVote.id,
-            customer.id,
-            selectedOptions,
-            myVote?.id // 수정 시 기존 ID 전달
-          ),
-          { successMessage: isEditMode ? '투표가 수정되었습니다.' : '투표가 완료되었습니다.' }
-        );
-
-        if (res.data) {
+        
+        if (!error) {
           await loadVoteData(selectedVote.id);
           setIsEditMode(false);
-          setShowResults(true);
+          setShowResults(false);
         }
+        setSubmitting(false);
+      };
+
+      cancelVoteImmediately();
+      return;
+    }
+
+    // ✅ 복수 투표에서 모든 선택 해제 → 취소로 간주
+    if (selectedVote.allow_multiple && selectedOptions.length === 0 && myVote) {
+      setSubmitting(true);
+      const { error } = await handleApiCall(
+        'VoteScreen.cancelVote',
+        () => voteService.cancelVote(selectedVote.id, customer.id)
+      );
+      
+      if (!error) {
+        await loadVoteData(selectedVote.id);
+        setIsEditMode(false);
+        setShowResults(false);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
       setSubmitting(false);
+      return;
+    }
+
+    // ✅ 신규 투표 시 선택 안 함 → 경고
+    if (selectedOptions.length === 0 && !myVote) {
+      Alert.alert('알림', '최소 1개 이상 선택해주세요.', [{ text: '확인' }]);
+      return;
+    }
+
+    // ✅ 정상 투표/수정 진행
+    setSubmitting(true);
+    const res = await handleApiCall(
+      'VoteScreen.submitVote',
+      () => voteService.submitVote(
+        selectedVote.id,
+        customer.id,
+        selectedOptions,
+        myVote?.id
+      ),
+      { successMessage: isEditMode ? '투표가 수정되었습니다.' : '투표가 완료되었습니다.' }
+    );
+
+    if (res.data) {
+      await loadVoteData(selectedVote.id);
+      setIsEditMode(false);
+      setShowResults(true);
+    }
+    setSubmitting(false);
+  };
+
+  const handleOptionToggle = (optionId) => {
+    if (!selectedVote.allow_multiple) {
+      // 단일 투표: 이미 선택된 것을 다시 누르면 선택 해제
+      setSelectedOptions(prev => 
+        prev.includes(optionId) ? [] : [optionId]
+      );
+    } else {
+      // 복수 투표: 토글 방식
+      setSelectedOptions(prev => 
+        prev.includes(optionId) 
+          ? prev.filter(i => i !== optionId) 
+          : [...prev, optionId]
+      );
     }
   };
 
@@ -152,7 +182,6 @@ const VoteScreen = ({ navigation }) => {
     if (!selectedVote) {
       return (
         <View>
-          {/* 🪵 NoticeScreen 구조와 100% 동일하게 구성 */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <Text style={styles.title}>VOTE BOX</Text>
@@ -182,18 +211,20 @@ const VoteScreen = ({ navigation }) => {
     const options = normalizeOptions(selectedVote.options);
     const total = Object.values(voteResults).reduce((a, b) => a + b, 0);
     const isResultView = showResults && !isEditMode;
-    const totalVotes = Object.values(voteResults).reduce((a, b) => a + b, 0);
     
     return (
       <View>
         <TouchableOpacity style={styles.backLink} onPress={() => setSelectedVote(null)}>
-          <Text style={styles.backLinkText}>❮ 목록으로 돌아가기</Text>
+          <Text style={styles.backLinkText}>⬅ 목록으로 돌아가기</Text>
         </TouchableOpacity>
 
         <View style={styles.detailHeader}>
           <Text style={styles.detailTitle}>{selectedVote.title}</Text>
           <View style={styles.detailMeta}>
             <Text style={styles.metaText}>🗳️ 현재 {participantCount}명 참여 중</Text>
+            {selectedVote.allow_multiple && selectedVote.max_selections && (
+              <Text style={styles.metaText}>• 최대 {selectedVote.max_selections}개 선택 가능</Text>
+            )}
           </View>
         </View>
 
@@ -225,10 +256,7 @@ const VoteScreen = ({ navigation }) => {
               <TouchableOpacity 
                 key={opt.id} 
                 style={[styles.optBtn, isSel && styles.optSel]}
-                onPress={() => {
-                  if (!selectedVote.allow_multiple) setSelectedOptions([opt.id]);
-                  else setSelectedOptions(prev => prev.includes(opt.id) ? prev.filter(i => i !== opt.id) : [...prev, opt.id]);
-                }}
+                onPress={() => handleOptionToggle(opt.id)}
               >
                 <View style={[styles.dot, isSel && styles.dotActive]} />
                 <Text style={[styles.optText, isSel && styles.optTextActive]}>{opt.text}</Text>
@@ -239,7 +267,6 @@ const VoteScreen = ({ navigation }) => {
 
         {(!showResults || isEditMode) && (
           <View style={styles.actionContainer}>
-            {/* 취소(뒤로가기) 버튼 */}
             {isEditMode && (
               <TouchableOpacity 
                 style={styles.cancelButton} 
@@ -249,26 +276,16 @@ const VoteScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
 
-            {/* 메인 버튼 */}
             <TouchableOpacity
               style={[
-                styles.submitButton, 
-                // 🚨 수정: (새 투표이고 선택없음) 또는 (처리중) 일 때만 비활성화
-                // 즉, '수정 모드'일 때는 선택된 게 없어도 버튼이 활성화됩니다.
-                (!isEditMode && !selectedOptions.length) || submitting 
-                  ? styles.submitButtonDisabled 
-                  : null
+                styles.submitButton,
+                submitting && styles.submitButtonDisabled
               ]}
-              // 🚨 수정: 위 조건과 동일하게 적용
-              disabled={((!isEditMode && !selectedOptions.length) || submitting)}
+              disabled={submitting}
               onPress={handleSubmitVote}
             >
               <Text style={styles.submitButtonText}>
-                {submitting ? '처리 중...' : (
-                  // 선택된 게 없으면 '투표 취소하기'라고 텍스트를 바꿔주면 더 친절합니다
-                  // selectedOptions.length === 0 && isEditMode ? '투표 취소하기' : 
-                  (isEditMode ? '수정 완료' : '투표하기')
-                )}
+                {submitting ? '처리 중...' : (isEditMode ? '수정 완료' : '투표하기')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -299,14 +316,12 @@ const VoteScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  // 🪵 NoticeScreen의 listArea 명칭 및 수치 그대로 이식
   listArea: { 
     padding: 20, 
     paddingTop: Platform.OS === 'ios' ? 60 : 40, 
     paddingBottom: 100 
   },
   
-  // 🪵 NoticeScreen 헤더 스타일 완벽 복제
   header: { 
     backgroundColor: DrawerTheme.woodDark, 
     borderRadius: 12, 
@@ -348,13 +363,12 @@ const styles = StyleSheet.create({
     opacity: 0.9
   },
 
-  // 상세 페이지 및 나머지 디자인 (Notice 규격과 조화되도록 유지)
   backLink: { marginBottom: 15, paddingLeft: 5 },
   backLinkText: { color: '#A68966', fontSize: 13 },
   detailHeader: { backgroundColor: '#4A3728', borderRadius: 16, padding: 22, marginBottom: 20 },
   detailTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFF', marginBottom: 15 },
   detailMeta: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 15 },
-  metaText: { fontSize: 12, color: '#A68966' },
+  metaText: { fontSize: 12, color: '#A68966', marginBottom: 4 },
   section: { marginBottom: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' },
   sectionTitle: { color: DrawerTheme.goldBrass, fontSize: 15, fontWeight: 'bold' },
@@ -393,11 +407,11 @@ const styles = StyleSheet.create({
   actionContainer: {
     flexDirection: 'row',
     marginTop: 25,
-    gap: 12, // 버튼 사이 간격
+    gap: 12,
   },
   submitButton: {
-    flex: 1, // 남은 공간 모두 차지
-    backgroundColor: DrawerTheme.goldBrass, // 메인 골드 색상
+    flex: 1,
+    backgroundColor: DrawerTheme.goldBrass,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -409,19 +423,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   submitButtonDisabled: {
-    backgroundColor: '#3D2B1F', // 비활성화 시 어두운 색
+    backgroundColor: '#3D2B1F',
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#3D2B1F', // 글자색은 어두운 브라운 (가독성 UP)
+    color: '#3D2B1F',
     fontSize: 16,
     fontWeight: 'bold',
   },
   cancelButton: {
-    flex: 0.4, // 작게 차지
+    flex: 0.4,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)', // 옅은 테두리
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
