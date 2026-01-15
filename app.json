@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Tarot Stamp",
-    "slug": "tarot-stamp-app",
+    "name": "서랍",
+    "slug": "drawer-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tarotstamp.app",
+      "bundleIdentifier": "com.drawer.app",
       "buildNumber": "1.0.0",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "타로 도장을 찍기 위해 사진 갤러리에 접근합니다.",
@@ -29,7 +29,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a0033"
       },
-      "package": "com.tarotstamp.app",
+      "package": "com.drawer.app",
       "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
