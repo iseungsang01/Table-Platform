@@ -1,5 +1,5 @@
 import { StyleSheet, Platform, StatusBar } from 'react-native';
-import { DrawerTheme } from '../constants/DrawerTheme'; // 경로 확인 필요
+import { DrawerTheme } from '../constants/DrawerTheme';
 
 export const styles = StyleSheet.create({
   scrollContent: { 
@@ -252,6 +252,25 @@ export const styles = StyleSheet.create({
     fontSize: 13, 
     paddingVertical: 20,
     fontStyle: 'italic'
+  },
+
+  // ✅ 관리자 답변 박스 스타일 추가
+  adminResponseBox: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212, 175, 55, 0.2)',
+  },
+  adminResponseLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: DrawerTheme.goldBrass,
+    marginBottom: 6,
+  },
+  adminResponseText: {
+    fontSize: 13,
+    color: '#DDD',
+    lineHeight: 20,
   },
 
   // 앱 버전 정보

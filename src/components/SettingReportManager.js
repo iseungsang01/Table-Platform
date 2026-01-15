@@ -73,6 +73,14 @@ export const SettingReportManager = ({ myReports, onSubmit, getStatusColor, proc
             </View>
             <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={styles.historyDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+            
+            {/* ✅ 관리자 답변 표시 */}
+            {item.admin_response && item.admin_response.trim() !== '' && (
+              <View style={styles.adminResponseBox}>
+                <Text style={styles.adminResponseLabel}>💬 관리자 답변</Text>
+                <Text style={styles.adminResponseText}>{item.admin_response}</Text>
+              </View>
+            )}
           </View>
         ))
       )}
