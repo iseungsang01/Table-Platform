@@ -3,15 +3,16 @@ import { storage } from '../utils/storage';
 
 export const visitService = {
   /**
-   * 고객의 방문 기록 목록 조회
+   * 고객의 방문 기록 목록 조회 (삭제되지 않은 것만)
    */
   async getVisits(customerId) {
     try {
-      // 1. Supabase 조회 (id, customer_id, visit_date만 가져옴)
+      // 1. Supabase 조회 (is_deleted가 false인 것만 + id, customer_id, visit_date만 가져옴)
       const { data, error } = await supabase
         .from('visit_history')
-        .select('id, customer_id, visit_date') // 컬럼 명시
+        .select('id, customer_id, visit_date')
         .eq('customer_id', customerId)
+        .eq('is_deleted', false) // ✅ 삭제되지 않은 것만
         .order('visit_date', { ascending: false });
 
       if (error) throw error;
@@ -38,7 +39,7 @@ export const visitService = {
   },
 
   /**
-   * 방문 기록 수정 (핵심 수정 부분)
+   * 방문 기록 수정
    */
   async updateVisit(visitId, updates) {
     try {
@@ -51,7 +52,6 @@ export const visitService = {
       }
 
       // 2. 서버 업데이트 데이터 필터링 (DB에 있는 컬럼만 추출)
-      // updates 객체에서 visit_date만 추출합니다. (id, customer_id는 보통 수정하지 않으므로)
       const serverPayload = {};
       if (updates.visit_date) serverPayload.visit_date = updates.visit_date;
       if (updates.customer_id) serverPayload.customer_id = updates.customer_id;
@@ -91,11 +91,11 @@ export const visitService = {
   },
 
   /**
-   * 새 방문 기록 생성 (핵심 수정 부분)
+   * 새 방문 기록 생성
    */
   async createVisit(visitData) {
     try {
-      // 1. 서버용 데이터만 필터링 (id는 자동생성이면 제외, 필요시 포함)
+      // 1. 서버용 데이터만 필터링
       const serverPayload = {
         customer_id: visitData.customer_id,
         visit_date: visitData.visit_date
@@ -123,12 +123,15 @@ export const visitService = {
     }
   },
 
-  // getVisit, deleteVisit은 기존과 동일하되 select 컬럼만 주의하면 됩니다.
+  /**
+   * 단일 방문 기록 조회
+   */
   async getVisit(visitId) {
     const { data, error } = await supabase
       .from('visit_history')
       .select('id, customer_id, visit_date')
       .eq('id', visitId)
+      .eq('is_deleted', false) // ✅ 삭제되지 않은 것만
       .single();
     
     if (error) return { data: null, error };
@@ -144,26 +147,48 @@ export const visitService = {
     };
   },
 
+  /**
+   * ✅ 방문 기록 삭제 (Soft Delete)
+   * - DB에서 is_deleted = true로 변경
+   * - 로컬 스토리지의 이미지/리뷰는 실제 삭제
+   */
   async deleteVisit(visitId) {
-    const { error } = await supabase.from('visit_history').delete().eq('id', visitId);
-    if (!error) {
+    try {
+      console.log('🗑️ [visitService] 소프트 삭제 시작:', visitId);
+
+      // 1. DB에서 is_deleted = true로 변경
+      const { error } = await supabase
+        .from('visit_history')
+        .update({ is_deleted: true })
+        .eq('id', visitId);
+
+      if (error) throw error;
+
+      // 2. 로컬 스토리지의 이미지/리뷰는 실제 삭제
       await storage.deleteCardImage(visitId);
       await storage.deleteCardReview(visitId);
+
+      console.log('✅ [visitService] 소프트 삭제 완료');
+      return { error: null };
+    } catch (error) {
+      console.error('❌ [visitService] 삭제 오류:', error);
+      return { error };
     }
-    return { error };
   },
   
+  /**
+   * 고객 통계 조회
+   */
   async getCustomerStats(customerId) {
     try {
       const { data, error } = await supabase
-        .from('customers')  // 🚨 visit_history 아님! customers 테이블임
+        .from('customers')
         .select('current_stamps, visit_count')
         .eq('id', customerId)
         .single();
 
       if (error) throw error;
       
-      // 데이터만 깔끔하게 리턴 (handleApiCall 규격 호환)
       return { data, error: null };
     } catch (error) {
       console.error('스탬프 정보 조회 실패:', error);

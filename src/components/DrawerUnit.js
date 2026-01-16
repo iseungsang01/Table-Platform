@@ -6,20 +6,20 @@ import { DrawerTheme } from '../constants/DrawerTheme';
  * 서랍 정면(Unit) 컴포넌트
  * @param {object} visit - 방문 기록 데이터 (is_manual 필드 포함)
  * @param {function} onSelectCard - 클릭 시 호출될 함수
+ * @param {function} onLongPress - 오래 누르기 시 호출될 함수
  * @param {boolean} selectionMode - 다중 선택 모드 여부
  * @param {boolean} isSelected - 현재 선택된 상태
  */
-export const DrawerUnit = ({ visit, onSelectCard, selectionMode, isSelected }) => {
-  // 1. 핵심 변경: isDbRecord 대신 is_manual을 사용
+export const DrawerUnit = ({ visit, onSelectCard, onLongPress, selectionMode, isSelected }) => {
   // is_manual: false(서버기록) -> Wood 테마
   // is_manual: true(개인메모) -> Navy 테마
   const isManualMode = visit.is_manual === true;
-  const isOnMode = !isManualMode; // 서버 기록인 경우
+  const isOnMode = !isManualMode;
   
-  // 2. 작성 여부 판단 (내용이나 이미지가 있으면 작성된 서랍)
+  // 작성 여부 판단 (내용이나 이미지가 있으면 작성된 서랍)
   const isWritten = !!(visit.card_review && visit.card_review.trim()) || !!visit.card_image;
 
-  // 3. 테마 설정 분기
+  // 테마 설정 분기
   const theme = {
     mid: isOnMode ? DrawerTheme.woodMid : DrawerTheme.navyMid,
     light: isOnMode ? DrawerTheme.woodLight : DrawerTheme.navyLight,
@@ -34,18 +34,13 @@ export const DrawerUnit = ({ visit, onSelectCard, selectionMode, isSelected }) =
     <View style={[styles.drawerWrapper, { borderBottomColor: DrawerTheme.woodDark }]}>
       <TouchableOpacity 
         activeOpacity={0.9} 
-        onPress={() => onSelectCard(visit)} 
+        onPress={() => onSelectCard(visit)}
+        onLongPress={onLongPress}
         style={[
           styles.drawerFront, 
           { backgroundColor: theme.mid, borderTopColor: theme.light },
           // 서버 기록(Wood)인데 아직 내용을 적지 않았다면 약간 투명하게 처리
-          (isOnMode && !isWritten) && { opacity: 0.7 },
-          // ✅ 선택 모드일 때 선택된 항목 강조
-          selectionMode && isSelected && { 
-            borderWidth: 3, 
-            borderColor: DrawerTheme.selectionActive,
-            backgroundColor: isOnMode ? DrawerTheme.woodDark : '#1A2530'
-          }
+          (isOnMode && !isWritten) && { opacity: 0.7 }
         ]}
       >
         <View style={styles.bezel}>
@@ -71,7 +66,7 @@ export const DrawerUnit = ({ visit, onSelectCard, selectionMode, isSelected }) =
             </View>
           )}
 
-          {/* 개인 메모(Navy)일 때는 펜 아이콘 인디케이터 추가 (선택 사항) */}
+          {/* 개인 메모(Navy)일 때는 펜 아이콘 인디케이터 추가 */}
           {isManualMode && !selectionMode && (
              <View style={styles.statusBadge}>
                <Text style={[styles.statusText, { color: DrawerTheme.navyLight }]}>PRIVATE</Text>
@@ -186,8 +181,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxActive: {
-    borderColor: DrawerTheme.selectionActive,
-    backgroundColor: DrawerTheme.selectionActive,
+    borderColor: DrawerTheme.goldBrass,
+    backgroundColor: DrawerTheme.goldBrass,
   },
   checkmark: {
     fontSize: 16,

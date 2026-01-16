@@ -11,13 +11,11 @@ export const DrawerTheme = {
   woodFrame: '#4E342E',  // 가구 전체를 감싸는 묵직한 외곽 프레임
 
   // 🟦 [NAVY THEME] - 일반 메모만 있는 서랍 (OFF 상태)
-  // 갈색과 조화를 이루기 위해 채도가 낮고 무게감 있는 앤틱 네이비 선정
-  navyLight: '#5A6A8E',  // 네이비 서랍 하이라이트 (기존 #4A5A7E → 밝게 조정)
-  navyMid: '#3C4E60',   // 네이비 서랍 전면 메인색 (기존 #2C3E50 → 밝게 조정)
-  navyDark: '#2A3540',  // 네이비 서랍 깊은 음영 (기존 #1A2530 → 밝게 조정)
+  navyLight: '#5A6A8E',  // 네이비 서랍 하이라이트
+  navyMid: '#3C4E60',   // 네이비 서랍 전면 메인색
+  navyDark: '#2A3540',  // 네이비 서랍 깊은 음영
 
   // ⚜️ [METALIC POINT] - 공통 금속 장식 (손잡이 및 명판)
-  // 어떤 색상의 서랍에서도 통일감을 주는 핵심 요소
   goldBrass: '#D4AF37',  // 앤틱 황동 손잡이 메인색
   goldDark: '#B8860B',   // 손잡이 음영 및 테두리 (입체감)
   goldBright: '#FFD700', // ✨ 날짜 텍스트 및 강조 포인트용
@@ -31,11 +29,6 @@ export const DrawerTheme = {
   textMain: '#FFFFFF',
   textMuted: '#A0A0A0',
   textDark: '#1A0F0A',
-
-  // ✅ [SELECTION MODE] - 다중 선택 모드 색상
-  selectionMode: '#5D4E37',      // 선택 모드 활성화 버튼 배경 (진한 갈색)
-  selectionActive: '#D4AF37',    // 선택된 항목 강조 색상 (골드)
-  selectionBorder: '#FFD700',    // 선택된 항목 테두리 (밝은 골드)
 };
 
 export default DrawerTheme;

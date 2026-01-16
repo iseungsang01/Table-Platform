@@ -34,7 +34,7 @@ const HistoryScreen = ({ navigation }) => {
     visit_count: customer?.visit_count || 0
   });
 
-  // ✅ 새로운 상태: 필터 & 다중 선택
+  // 필터 & 다중 선택
   const [timeFilter, setTimeFilter] = useState('ALL'); // ALL, MONTH, YEAR
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -120,7 +120,7 @@ const HistoryScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  // ✅ 단일 삭제 로직
+  // 단일 삭제 로직
   const handleDeleteVisit = async (visitId) => {
     if (selectedItem && !selectedItem.is_manual) {
       // 서버 데이터 삭제
@@ -141,7 +141,15 @@ const HistoryScreen = ({ navigation }) => {
     loadData();
   };
 
-  // ✅ 다중 선택 토글
+  // ✅ 오래 누르기로 다중 선택 모드 진입
+  const handleLongPress = (id) => {
+    if (!selectionMode) {
+      setSelectionMode(true);
+      setSelectedIds(new Set([id])); // 길게 누른 항목을 첫 선택으로 추가
+    }
+  };
+
+  // 다중 선택 토글
   const toggleSelection = (id) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) {
@@ -152,7 +160,7 @@ const HistoryScreen = ({ navigation }) => {
     setSelectedIds(newSet);
   };
 
-  // ✅ 다중 삭제 실행
+  // 다중 삭제 실행
   const handleMultiDelete = async () => {
     if (selectedIds.size === 0) {
       Alert.alert('선택 없음', '삭제할 항목을 선택해주세요.');
@@ -208,7 +216,7 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
-  // ✅ 필터 적용 로직
+  // 필터 적용 로직
   const applyTimeFilter = (data) => {
     if (timeFilter === 'ALL') return data;
 
@@ -238,7 +246,7 @@ const HistoryScreen = ({ navigation }) => {
     return applyTimeFilter(data);
   };
 
-  // ✅ 연도 목록 생성 (최근 5년)
+  // 연도 목록 생성 (최근 5년)
   const getYearOptions = () => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -285,7 +293,7 @@ const HistoryScreen = ({ navigation }) => {
         ))}
       </View>
 
-      {/* ✅ 필터 섹션 */}
+      {/* 필터 섹션 */}
       <View style={styles.filterSection}>
         <View style={styles.filterRow}>
           <TouchableOpacity
@@ -339,42 +347,39 @@ const HistoryScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* ✅ 다중 선택 컨트롤 */}
-      <View style={styles.selectionControl}>
-        <TouchableOpacity
-          style={[styles.selectionButton, selectionMode && styles.selectionButtonActive]}
-          onPress={() => {
-            setSelectionMode(!selectionMode);
-            setSelectedIds(new Set());
-          }}
-        >
-          <Text style={[styles.selectionButtonText, selectionMode && styles.selectionButtonTextActive]}>
-            {selectionMode ? '선택 취소' : '📦 다중 선택'}
-          </Text>
-        </TouchableOpacity>
-
-        {selectionMode && (
+      {/* ✅ 다중 선택 모드일 때만 컨트롤 표시 */}
+      {selectionMode && (
+        <View style={styles.selectionControl}>
           <View style={styles.selectionActions}>
             <Text style={styles.selectedCount}>{selectedIds.size}개 선택됨</Text>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setSelectionMode(false);
+                setSelectedIds(new Set());
+              }}
+            >
+              <Text style={styles.cancelButtonText}>취소</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteAllButton}
               onPress={handleMultiDelete}
               disabled={selectedIds.size === 0}
             >
               <Text style={[styles.deleteAllText, selectedIds.size === 0 && styles.deleteAllTextDisabled]}>
-                🗑️ 선택 삭제
+                🗑️ 삭제
               </Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 
   const renderDrawerChest = () => {
     const displayData = getDisplayData();
     return (
-      <DrawerChest isManualMode={archiveMode === 'OFF'} selectionMode={selectionMode}>
+      <DrawerChest isManualMode={archiveMode === 'OFF'}>
         {archiveMode === 'OFF' && (
           <TouchableOpacity 
             activeOpacity={0.8}
@@ -398,6 +403,7 @@ const HistoryScreen = ({ navigation }) => {
                   setIsModalVisible(true);
                 }
               }}
+              onLongPress={() => handleLongPress(item.id)}
               selectionMode={selectionMode}
               isSelected={selectedIds.has(item.id)}
             />
@@ -457,7 +463,7 @@ const styles = StyleSheet.create({
   tabLabel: { color: '#888', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
   activeTabLabel: { color: '#FFF' },
   
-  // ✅ 필터 스타일
+  // 필터 스타일
   filterSection: { width: '92%', marginTop: 15, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   filterButton: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
@@ -475,14 +481,12 @@ const styles = StyleSheet.create({
   monthText: { fontSize: 10, color: '#999', fontWeight: 'bold' },
   monthTextActive: { color: DrawerTheme.goldBright },
 
-  // ✅ 다중 선택 컨트롤
+  // ✅ 다중 선택 컨트롤 (선택 모드일 때만 표시)
   selectionControl: { width: '92%', marginTop: 12 },
-  selectionButton: { paddingVertical: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)', alignItems: 'center' },
-  selectionButtonActive: { backgroundColor: DrawerTheme.selectionMode, borderColor: DrawerTheme.goldBright },
-  selectionButtonText: { fontSize: 14, color: DrawerTheme.goldBrass, fontWeight: 'bold' },
-  selectionButtonTextActive: { color: '#FFF' },
-  selectionActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingHorizontal: 10 },
+  selectionActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   selectedCount: { fontSize: 13, color: DrawerTheme.goldBrass, fontWeight: 'bold' },
+  cancelButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  cancelButtonText: { fontSize: 13, color: '#AAA', fontWeight: 'bold' },
   deleteAllButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.2)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.4)' },
   deleteAllText: { fontSize: 13, color: '#ff6b6b', fontWeight: 'bold' },
   deleteAllTextDisabled: { color: '#555' },
