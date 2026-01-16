@@ -16,17 +16,18 @@ import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { couponService } from '../services/couponService';
 import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
+import { storage } from '../utils/storage';
 
 const LOCAL_STORAGE_KEY = 'offline_visit_history';
 
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
-  const [visits, setVisits] = useState([]); // 서버(ON) 데이터
-  const [personalNotes, setPersonalNotes] = useState([]); // 로컬(OFF) 데이터
+  const [visits, setVisits] = useState([]);
+  const [personalNotes, setPersonalNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
-  const [archiveMode, setArchiveMode] = useState('ALL'); // ALL, ON, OFF
+  const [archiveMode, setArchiveMode] = useState('ALL');
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [stats, setStats] = useState({
@@ -34,14 +35,12 @@ const HistoryScreen = ({ navigation }) => {
     visit_count: customer?.visit_count || 0
   });
 
-  // 필터 & 다중 선택
-  const [timeFilter, setTimeFilter] = useState('ALL'); // ALL, MONTH, YEAR
+  const [timeFilter, setTimeFilter] = useState('ALL');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectionMode, setSelectionMode] = useState(false); // 다중 선택 모드
-  const [selectedIds, setSelectedIds] = useState(new Set()); // 선택된 항목 ID들
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // 화면 포커스 시마다 데이터 동기화
   useFocusEffect(
     useCallback(() => {
       if (customer) loadData();
@@ -51,7 +50,9 @@ const HistoryScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      // 1. 스탬프 & 방문횟수 최신화 (DB 조회)
+      console.log('🔄 [HistoryScreen] loadData 시작');
+
+      // 1. 스탬프 & 방문횟수 최신화
       const { data: latestStats } = await handleApiCall(
         'HistoryScreen.loadStats',
         () => visitService.getCustomerStats(customer.id),
@@ -65,7 +66,7 @@ const HistoryScreen = ({ navigation }) => {
         });
       }
 
-      // 2. 방문 기록 (서버) 로드
+      // 2. ✅ 방문 기록 로드 (Orphaned 데이터 자동 정리 포함)
       const { data: visitData } = await handleApiCall(
         'HistoryScreen.loadVisits',
         () => visitService.getVisits(customer.id)
@@ -75,9 +76,11 @@ const HistoryScreen = ({ navigation }) => {
         ...v, 
         is_manual: false 
       })) : [];
+      
+      console.log('✅ [HistoryScreen] 서버 기록 로드:', formattedVisits.length, '개');
       setVisits(formattedVisits);
 
-      // 3. 개인 메모 (로컬) 로드
+      // 3. 개인 메모 로드
       const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
       const localData = stored ? JSON.parse(stored) : [];
       
@@ -85,13 +88,16 @@ const HistoryScreen = ({ navigation }) => {
         ...v, 
         is_manual: true 
       }));
+      
+      console.log('✅ [HistoryScreen] 개인 메모 로드:', formattedNotes.length, '개');
       setPersonalNotes(formattedNotes);
 
-      // 4. 쿠폰 개수 최신화 (DB 조회)
+      // 4. 쿠폰 개수 최신화
       await loadCouponCount();
 
+      console.log('✅ [HistoryScreen] loadData 완료');
     } catch (error) {
-      console.error("Data Load Error:", error);
+      console.error("❌ [HistoryScreen] Data Load Error:", error);
     } finally {
       setLoading(false);
     }
@@ -120,36 +126,67 @@ const HistoryScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  // 단일 삭제 로직
+  /**
+   * ✅ 단일 삭제 로직 (캐시 무효화 추가)
+   */
   const handleDeleteVisit = async (visitId) => {
-    if (selectedItem && !selectedItem.is_manual) {
-      // 서버 데이터 삭제
-      const { error } = await handleApiCall('HistoryScreen.deleteVisit', () => visitService.deleteVisit(visitId));
-      if (!error) {
-        showSuccessAlert('DELETE', Alert);
-        refreshCustomer();
+    try {
+      console.log('🗑️ [HistoryScreen] 삭제 요청:', { visitId, selectedItem });
+
+      let itemToDelete = selectedItem;
+      if (!itemToDelete) {
+        const displayData = getDisplayData();
+        itemToDelete = displayData.find(v => v.id === visitId);
       }
-    } else {
-      // 로컬 데이터 삭제
-      const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
-      const list = stored ? JSON.parse(stored) : [];
-      const filtered = list.filter(v => v.id !== visitId);
-      await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-      showSuccessAlert('DELETE', Alert);
+
+      if (!itemToDelete) {
+        console.error('❌ 삭제할 항목을 찾을 수 없습니다:', visitId);
+        Alert.alert('오류', '삭제할 항목을 찾을 수 없습니다.');
+        return;
+      }
+
+      console.log('🔍 [HistoryScreen] 삭제 대상:', itemToDelete);
+
+      if (itemToDelete.is_manual) {
+        // 로컬 데이터 삭제 (개인 메모)
+        console.log('📝 [HistoryScreen] 개인 메모 삭제');
+        const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
+        const list = stored ? JSON.parse(stored) : [];
+        const filtered = list.filter(v => v.id !== visitId);
+        await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+        showSuccessAlert('DELETE', Alert);
+      } else {
+        // 서버 데이터 삭제 (is_deleted 업데이트 + 로컬 스토리지 정리)
+        console.log('🗄️ [HistoryScreen] 서버 기록 삭제');
+        const { error } = await handleApiCall(
+          'HistoryScreen.deleteVisit', 
+          () => visitService.deleteVisit(visitId)
+        );
+        
+        if (!error) {
+          showSuccessAlert('DELETE', Alert);
+          await refreshCustomer(); // 스탬프 개수 업데이트
+          
+          // ✅ 추가: 로컬 상태에서도 즉시 제거
+          setVisits(prevVisits => prevVisits.filter(v => v.id !== visitId));
+        } else {
+          console.error('❌ [HistoryScreen] 서버 삭제 실패:', error);
+          return;
+        }
+      }
+
+      setIsModalVisible(false);
+      
+      // ✅ 전체 데이터 다시 로드 (Orphaned 데이터 정리 포함)
+      console.log('🔄 [HistoryScreen] 데이터 재로드 중...');
+      await loadData();
+
+    } catch (error) {
+      console.error('❌ [HistoryScreen] handleDeleteVisit 오류:', error);
+      Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
     }
-    setIsModalVisible(false);
-    loadData();
   };
 
-  // ✅ 오래 누르기로 다중 선택 모드 진입
-  const handleLongPress = (id) => {
-    if (!selectionMode) {
-      setSelectionMode(true);
-      setSelectedIds(new Set([id])); // 길게 누른 항목을 첫 선택으로 추가
-    }
-  };
-
-  // 다중 선택 토글
   const toggleSelection = (id) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) {
@@ -160,7 +197,9 @@ const HistoryScreen = ({ navigation }) => {
     setSelectedIds(newSet);
   };
 
-  // 다중 삭제 실행
+  /**
+   * ✅ 다중 삭제 실행 (캐시 무효화 추가)
+   */
   const handleMultiDelete = async () => {
     if (selectedIds.size === 0) {
       Alert.alert('선택 없음', '삭제할 항목을 선택해주세요.');
@@ -176,47 +215,60 @@ const HistoryScreen = ({ navigation }) => {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
-            const displayData = getDisplayData();
-            const serverIds = [];
-            const localIds = [];
+            try {
+              console.log('🗑️ [HistoryScreen] 다중 삭제 시작');
+              const displayData = getDisplayData();
+              const serverIds = [];
+              const localIds = [];
 
-            // 선택된 항목을 서버/로컬로 분류
-            selectedIds.forEach(id => {
-              const item = displayData.find(v => v.id === id);
-              if (item) {
-                if (item.is_manual) {
-                  localIds.push(id);
-                } else {
-                  serverIds.push(id);
+              selectedIds.forEach(id => {
+                const item = displayData.find(v => v.id === id);
+                if (item) {
+                  if (item.is_manual) {
+                    localIds.push(id);
+                  } else {
+                    serverIds.push(id);
+                  }
                 }
+              });
+
+              console.log('📊 [HistoryScreen] 삭제 대상:', { serverIds, localIds });
+
+              // 서버 삭제
+              for (const id of serverIds) {
+                console.log('  🗄️ 서버 기록 삭제:', id);
+                await visitService.deleteVisit(id);
               }
-            });
 
-            // 서버 삭제
-            for (const id of serverIds) {
-              await visitService.deleteVisit(id);
+              // 로컬 삭제
+              if (localIds.length > 0) {
+                console.log('  📝 개인 메모 삭제:', localIds.length, '개');
+                const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
+                const list = stored ? JSON.parse(stored) : [];
+                const filtered = list.filter(v => !localIds.includes(v.id));
+                await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+              }
+
+              showSuccessAlert('DELETE', Alert);
+              setSelectedIds(new Set());
+              setSelectionMode(false);
+              
+              if (serverIds.length > 0) await refreshCustomer();
+              
+              // ✅ 전체 데이터 다시 로드
+              console.log('🔄 [HistoryScreen] 데이터 재로드 중...');
+              await loadData();
+
+            } catch (error) {
+              console.error('❌ [HistoryScreen] 다중 삭제 오류:', error);
+              Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
             }
-
-            // 로컬 삭제
-            if (localIds.length > 0) {
-              const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
-              const list = stored ? JSON.parse(stored) : [];
-              const filtered = list.filter(v => !localIds.includes(v.id));
-              await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-            }
-
-            showSuccessAlert('DELETE', Alert);
-            setSelectedIds(new Set());
-            setSelectionMode(false);
-            if (serverIds.length > 0) refreshCustomer();
-            loadData();
           }
         }
       ]
     );
   };
 
-  // 필터 적용 로직
   const applyTimeFilter = (data) => {
     if (timeFilter === 'ALL') return data;
 
@@ -246,7 +298,6 @@ const HistoryScreen = ({ navigation }) => {
     return applyTimeFilter(data);
   };
 
-  // 연도 목록 생성 (최근 5년)
   const getYearOptions = () => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -258,7 +309,6 @@ const HistoryScreen = ({ navigation }) => {
         {archiveMode === 'OFF' ? 'PRIVATE NOTES' : 'TAROT ARCHIVE'}
       </Text>
 
-      {/* 대시보드 */}
       <View style={[styles.brassBoard, { backgroundColor: DrawerTheme.woodDark, borderColor: DrawerTheme.woodFrame }]}>
         <View style={styles.statBox}>
           <Text style={[styles.statLabel, { color: DrawerTheme.woodLight }]}>스탬프</Text>
@@ -276,7 +326,6 @@ const HistoryScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* 모드 전환 탭 */}
       <View style={[styles.tabContainer, { borderColor: DrawerTheme.woodFrame }]}>
         {[
           { id: 'ON', label: 'ON', color: DrawerTheme.woodMid },
@@ -293,7 +342,6 @@ const HistoryScreen = ({ navigation }) => {
         ))}
       </View>
 
-      {/* 필터 섹션 */}
       <View style={styles.filterSection}>
         <View style={styles.filterRow}>
           <TouchableOpacity
@@ -316,7 +364,6 @@ const HistoryScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* 연도 선택 */}
         {(timeFilter === 'YEAR' || timeFilter === 'MONTH') && (
           <View style={styles.yearSelector}>
             {getYearOptions().map(year => (
@@ -331,7 +378,6 @@ const HistoryScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* 월 선택 */}
         {timeFilter === 'MONTH' && (
           <View style={styles.monthSelector}>
             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
@@ -347,39 +393,41 @@ const HistoryScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* ✅ 다중 선택 모드일 때만 컨트롤 표시 */}
-      {selectionMode && (
-        <View style={styles.selectionControl}>
+      <View style={styles.selectionControl}>
+        <TouchableOpacity
+          style={[styles.selectionButton, selectionMode && styles.selectionButtonActive]}
+          onPress={() => {
+            setSelectionMode(!selectionMode);
+            setSelectedIds(new Set());
+          }}
+        >
+          <Text style={[styles.selectionButtonText, selectionMode && styles.selectionButtonTextActive]}>
+            {selectionMode ? '선택 취소' : '📦 다중 선택'}
+          </Text>
+        </TouchableOpacity>
+
+        {selectionMode && (
           <View style={styles.selectionActions}>
             <Text style={styles.selectedCount}>{selectedIds.size}개 선택됨</Text>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => {
-                setSelectionMode(false);
-                setSelectedIds(new Set());
-              }}
-            >
-              <Text style={styles.cancelButtonText}>취소</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteAllButton}
               onPress={handleMultiDelete}
               disabled={selectedIds.size === 0}
             >
               <Text style={[styles.deleteAllText, selectedIds.size === 0 && styles.deleteAllTextDisabled]}>
-                🗑️ 삭제
+                🗑️ 선택 삭제
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 
   const renderDrawerChest = () => {
     const displayData = getDisplayData();
     return (
-      <DrawerChest isManualMode={archiveMode === 'OFF'}>
+      <DrawerChest isManualMode={archiveMode === 'OFF'} selectionMode={selectionMode}>
         {archiveMode === 'OFF' && (
           <TouchableOpacity 
             activeOpacity={0.8}
@@ -403,7 +451,6 @@ const HistoryScreen = ({ navigation }) => {
                   setIsModalVisible(true);
                 }
               }}
-              onLongPress={() => handleLongPress(item.id)}
               selectionMode={selectionMode}
               isSelected={selectedIds.has(item.id)}
             />
@@ -463,7 +510,6 @@ const styles = StyleSheet.create({
   tabLabel: { color: '#888', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
   activeTabLabel: { color: '#FFF' },
   
-  // 필터 스타일
   filterSection: { width: '92%', marginTop: 15, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   filterButton: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
@@ -481,12 +527,13 @@ const styles = StyleSheet.create({
   monthText: { fontSize: 10, color: '#999', fontWeight: 'bold' },
   monthTextActive: { color: DrawerTheme.goldBright },
 
-  // ✅ 다중 선택 컨트롤 (선택 모드일 때만 표시)
   selectionControl: { width: '92%', marginTop: 12 },
-  selectionActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
+  selectionButton: { paddingVertical: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)', alignItems: 'center' },
+  selectionButtonActive: { backgroundColor: DrawerTheme.selectionMode, borderColor: DrawerTheme.goldBright },
+  selectionButtonText: { fontSize: 14, color: DrawerTheme.goldBrass, fontWeight: 'bold' },
+  selectionButtonTextActive: { color: '#FFF' },
+  selectionActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingHorizontal: 10 },
   selectedCount: { fontSize: 13, color: DrawerTheme.goldBrass, fontWeight: 'bold' },
-  cancelButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  cancelButtonText: { fontSize: 13, color: '#AAA', fontWeight: 'bold' },
   deleteAllButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.2)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.4)' },
   deleteAllText: { fontSize: 13, color: '#ff6b6b', fontWeight: 'bold' },
   deleteAllTextDisabled: { color: '#555' },

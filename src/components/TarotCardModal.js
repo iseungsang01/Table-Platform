@@ -9,28 +9,33 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) => {
   if (!visit) return null;
 
-  // HistoryScreen에서 주입한 is_manual 값을 기준으로 판단
   const isManual = visit.is_manual;
 
-  // 날짜 형식 변환: 2026-01-12T... -> 2026.1.12
   const displayDate = visit.visit_date ? 
     visit.visit_date.split('T')[0].split('-').map(Number).join('.') : '';
 
+  /**
+   * ✅ 삭제 처리 수정: visitId만 전달
+   */
   const handleDeletePress = () => {
     Alert.alert(
-      "서랍 비우기",
+      "기록 삭제",
       isManual 
-        ? "이 개인 메모를 정말 삭제하시겠습니까?\n\n삭제된 메모는 복구할 수 없습니다." 
-        : "이 타로 기록을 정말 삭제하시겠습니까?\n\n⚠️",
+        ? "이 개인 메모 서랍을 정말 비우시겠습니까?" 
+        : "이 상담 기록을 정말 삭제하시겠습니까?",
       [
         { text: "취소", style: "cancel" },
         { 
           text: "삭제", 
           style: "destructive", 
           onPress: () => {
+            console.log('🗑️ [TarotCardModal] 삭제 버튼 클릭:', visit.id);
             onClose(); 
             // 모달 닫힘 애니메이션 후 삭제 로직 실행 (UI 꼬임 방지)
-            setTimeout(() => { onDelete(visit.id); }, 300);
+            setTimeout(() => { 
+              console.log('🗑️ [TarotCardModal] onDelete 호출:', visit.id);
+              onDelete(visit.id); // ✅ visitId만 전달
+            }, 300);
           }
         }
       ]
@@ -44,7 +49,6 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
         
         <View style={[
           styles.modalContent, 
-          // is_manual(OFF)일 때는 배경색을 딥 네이비로 변경
           isManual && { backgroundColor: '#10171E', borderColor: DrawerTheme.navyLight }
         ]}>
           <View style={[styles.modalHandle, isManual && { backgroundColor: '#1A2530' }]} />
@@ -64,7 +68,6 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
               </TouchableOpacity>
             </View>
 
-            {/* --- 사진 섹션: 타로 이미지가 있을 때만 표시 --- */}
             {visit.card_image && (
               <View style={styles.cardContainer}>
                 <View style={[styles.goldFrame, isManual && { borderColor: DrawerTheme.navyLight, shadowColor: '#000' }]}>
@@ -77,7 +80,6 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
               </View>
             )}
 
-            {/* --- 메모 섹션 --- */}
             <View style={styles.reviewSection}>
               <Text style={[styles.sectionLabel, isManual && { color: DrawerTheme.navyLight }]}>
                 {isManual ? '✒️ 비밀 서랍' : '📜 타로 노트'}
@@ -93,7 +95,6 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
               </View>
             </View>
 
-            {/* --- 액션 버튼 영역 --- */}
             <View style={styles.actionArea}>
               <TouchableOpacity 
                 style={[styles.primaryButton, isManual && { backgroundColor: DrawerTheme.navyMid }]} 
@@ -107,7 +108,7 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
                   styles.secondaryButtonText, 
                   isManual && { color: '#555', textDecorationColor: '#555' }
                 ]}>
-                  🗑️ 이 서랍 비우기
+                  🗑️ 이 서랍 비우기(삭제)
                 </Text>
               </TouchableOpacity>
             </View>
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   touchableOutside: { flex: 1 },
   modalContent: {
     height: SCREEN_HEIGHT * 0.85,
-    backgroundColor: '#1A0F0A', // 기본 Wood Brown 계열
+    backgroundColor: '#1A0F0A',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     borderWidth: 2,

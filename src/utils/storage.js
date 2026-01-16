@@ -12,7 +12,7 @@ export const STORAGE_KEYS = {
   SELECTED_CARDS: 'selected_cards',
   CARD_REVIEWS: 'card_reviews',
   CARD_IMAGES: 'card_images',
-  IMAGE_CACHE: 'image_cache', // ✅ 새로 추가
+  IMAGE_CACHE: 'image_cache',
   READ_NOTICES: 'read_notices',
   APP_SETTINGS: 'app_settings',
   VISIT_CACHE: 'visit_cache',
@@ -21,6 +21,9 @@ export const STORAGE_KEYS = {
 };
 
 export const storage = {
+  // 외부에서 접근 가능하도록 STORAGE_KEYS 노출
+  STORAGE_KEYS,
+
   // 기본 CRUD
   async save(key, value) {
     try { await AsyncStorage.setItem(key, JSON.stringify(value)); }
@@ -62,12 +65,11 @@ export const storage = {
   async getAllSelectedCards() { return await this.get(STORAGE_KEYS.SELECTED_CARDS) || {}; },
   async deleteSelectedCard(visitId) { await this._updateMap(STORAGE_KEYS.SELECTED_CARDS, visitId, null, true); },
 
-  // 카드 이미지 관련
+  // ✅ 카드 이미지 관련 (개선)
   async saveCardImage(visitId, imageData) { 
     console.log('💾 [Storage] 이미지 저장 시작:', visitId);
     await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, imageData);
     
-    // ✅ 이미지 캐시 메타데이터 저장
     const metadata = {
       visitId,
       timestamp: new Date().toISOString(),
@@ -78,21 +80,63 @@ export const storage = {
     console.log('✅ [Storage] 이미지 저장 완료');
   },
   
-  async getCardImage(visitId) { return (await this.get(STORAGE_KEYS.CARD_IMAGES) || {})[visitId] || null; },
-  async getAllCardImages() { return await this.get(STORAGE_KEYS.CARD_IMAGES) || {}; },
+  async getCardImage(visitId) { 
+    const images = await this.get(STORAGE_KEYS.CARD_IMAGES) || {};
+    return images[visitId] || null;
+  },
+  
+  async getAllCardImages() { 
+    return await this.get(STORAGE_KEYS.CARD_IMAGES) || {};
+  },
   
   async deleteCardImage(visitId) { 
-    await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, null, true);
-    await this._deleteImageCacheMetadata(visitId);
+    console.log('🗑️ [Storage] 이미지 삭제:', visitId);
+    const images = await this.get(STORAGE_KEYS.CARD_IMAGES) || {};
+    const existed = visitId in images;
+    
+    if (existed) {
+      await this._updateMap(STORAGE_KEYS.CARD_IMAGES, visitId, null, true);
+      await this._deleteImageCacheMetadata(visitId);
+      console.log('✅ [Storage] 이미지 삭제 완료');
+      return true;
+    } else {
+      console.log('⚠️ [Storage] 삭제할 이미지가 없음:', visitId);
+      return false;
+    }
   },
 
-  // 카드 리뷰 관련
-  async saveCardReview(visitId, review) { await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, review); },
-  async getCardReview(visitId) { return (await this.get(STORAGE_KEYS.CARD_REVIEWS) || {})[visitId] || null; },
-  async getAllCardReviews() { return await this.get(STORAGE_KEYS.CARD_REVIEWS) || {}; },
-  async deleteCardReview(visitId) { await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, null, true); },
+  // ✅ 카드 리뷰 관련 (개선)
+  async saveCardReview(visitId, review) { 
+    console.log('💾 [Storage] 리뷰 저장:', visitId);
+    await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, review);
+    console.log('✅ [Storage] 리뷰 저장 완료');
+  },
+  
+  async getCardReview(visitId) { 
+    const reviews = await this.get(STORAGE_KEYS.CARD_REVIEWS) || {};
+    return reviews[visitId] || null;
+  },
+  
+  async getAllCardReviews() { 
+    return await this.get(STORAGE_KEYS.CARD_REVIEWS) || {};
+  },
+  
+  async deleteCardReview(visitId) { 
+    console.log('🗑️ [Storage] 리뷰 삭제:', visitId);
+    const reviews = await this.get(STORAGE_KEYS.CARD_REVIEWS) || {};
+    const existed = visitId in reviews;
+    
+    if (existed) {
+      await this._updateMap(STORAGE_KEYS.CARD_REVIEWS, visitId, null, true);
+      console.log('✅ [Storage] 리뷰 삭제 완료');
+      return true;
+    } else {
+      console.log('⚠️ [Storage] 삭제할 리뷰가 없음:', visitId);
+      return false;
+    }
+  },
 
-  // ✅ 이미지 캐시 메타데이터 관리
+  // 이미지 캐시 메타데이터 관리
   async _updateImageCacheMetadata(visitId, metadata) {
     try {
       const cache = await this.get(STORAGE_KEYS.IMAGE_CACHE) || {};
@@ -135,7 +179,6 @@ export const storage = {
     }
   },
 
-  // ✅ 오래된 이미지 캐시 정리 (N일 이상 된 이미지)
   async clearOldImageCache(days = 30) {
     try {
       console.log('🧹 [Storage] 오래된 이미지 캐시 정리 시작:', days, '일');
@@ -162,7 +205,6 @@ export const storage = {
     }
   },
 
-  // ✅ 이미지 캐시 통계
   async getImageCacheStats() {
     try {
       const cache = await this.getImageCacheMetadata();
@@ -258,22 +300,66 @@ export const storage = {
     }
   },
 
-  // Orphaned 데이터 정리 공통 로직
+  // ✅ Orphaned 데이터 정리 공통 로직 (개선)
   async _cleanup(key, validIds) {
-    const data = await this.get(key) || {};
-    const filtered = Object.fromEntries(Object.entries(data).filter(([id]) => validIds.includes(parseInt(id))));
-    await this.save(key, filtered);
-  },
-  async cleanupOrphanedCards(ids) { await this._cleanup(STORAGE_KEYS.SELECTED_CARDS, ids); },
-  async cleanupOrphanedReviews(ids) { await this._cleanup(STORAGE_KEYS.CARD_REVIEWS, ids); },
-  async cleanupOrphanedImages(ids) { 
-    await this._cleanup(STORAGE_KEYS.CARD_IMAGES, ids);
+    console.log('🧹 [Storage] _cleanup 시작:', key);
+    console.log('  유효한 ID 목록:', validIds);
     
-    // ✅ 메타데이터도 함께 정리
+    const data = await this.get(key) || {};
+    const beforeCount = Object.keys(data).length;
+    console.log('  정리 전 데이터 개수:', beforeCount);
+    
+    const filtered = Object.fromEntries(
+      Object.entries(data).filter(([id]) => validIds.includes(parseInt(id)))
+    );
+    
+    const afterCount = Object.keys(filtered).length;
+    const removedCount = beforeCount - afterCount;
+    
+    console.log('  정리 후 데이터 개수:', afterCount);
+    console.log('  삭제된 개수:', removedCount);
+    
+    if (removedCount > 0) {
+      await this.save(key, filtered);
+      console.log('✅ [Storage] _cleanup 완료:', removedCount, '개 삭제됨');
+    } else {
+      console.log('✅ [Storage] _cleanup 완료: 삭제할 항목 없음');
+    }
+    
+    return removedCount;
+  },
+  
+  async cleanupOrphanedCards(ids) { 
+    return await this._cleanup(STORAGE_KEYS.SELECTED_CARDS, ids); 
+  },
+  
+  async cleanupOrphanedReviews(ids) { 
+    return await this._cleanup(STORAGE_KEYS.CARD_REVIEWS, ids); 
+  },
+  
+  async cleanupOrphanedImages(ids) { 
+    console.log('🧹 [Storage] cleanupOrphanedImages 시작');
+    
+    // 이미지 정리
+    const imageCount = await this._cleanup(STORAGE_KEYS.CARD_IMAGES, ids);
+    
+    // 메타데이터도 함께 정리
+    console.log('🧹 [Storage] 이미지 메타데이터 정리 중...');
     const cache = await this.get(STORAGE_KEYS.IMAGE_CACHE) || {};
+    const beforeMetaCount = Object.keys(cache).length;
+    
     const filtered = Object.fromEntries(
       Object.entries(cache).filter(([id]) => ids.includes(parseInt(id)))
     );
-    await this.save(STORAGE_KEYS.IMAGE_CACHE, filtered);
+    
+    const afterMetaCount = Object.keys(filtered).length;
+    const removedMetaCount = beforeMetaCount - afterMetaCount;
+    
+    if (removedMetaCount > 0) {
+      await this.save(STORAGE_KEYS.IMAGE_CACHE, filtered);
+      console.log('✅ [Storage] 메타데이터 정리 완료:', removedMetaCount, '개 삭제됨');
+    }
+    
+    return imageCount;
   },
 };
