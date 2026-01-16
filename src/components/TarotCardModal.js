@@ -1,15 +1,6 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-  Alert,
-  Platform,
+import {View, Text, StyleSheet, Modal, Image, TouchableOpacity,
+  ScrollView, Dimensions, Alert, Platform,
 } from 'react-native';
 import { DrawerTheme } from '../constants/DrawerTheme';
 

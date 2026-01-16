@@ -12,8 +12,6 @@ export const couponService = {
    */
   async getCoupons(customerId) {
     try {
-      console.log('Fetching coupons for customer:', customerId);
-
       const { data, error } = await supabase
         .from('coupon_history')
         .select('*')
@@ -25,9 +23,6 @@ export const couponService = {
         console.error('Fetch coupons error:', error);
         throw error;
       }
-
-      console.log('Fetched coupons:', data?.length || 0);
-
       return { data, error: null };
     } catch (error) {
       console.error('Get coupons error:', error);

@@ -9,9 +9,6 @@ export const authService = {
    */
   async login(phoneNumber, password) {
     try {
-      console.log('========================================');
-      console.log('🔐 [authService] 로그인 프로세스 시작');
-      
       const normalizedPhone = phoneNumber.trim();
       
       // 1. Supabase RPC 호출
@@ -20,9 +17,6 @@ export const authService = {
           p_phone: normalizedPhone, 
           p_password: password 
         });
-
-      // 로그 확인용
-      console.log('📡 DB 응답:', JSON.stringify(resultData, null, 2));
 
       if (rpcError) {
         console.error('❌ RPC 에러:', rpcError);
