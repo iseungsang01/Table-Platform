@@ -18,10 +18,10 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
 
   const handleDeletePress = () => {
     Alert.alert(
-      "기록 삭제",
+      "서랍 비우기",
       isManual 
-        ? "이 개인 메모 서랍을 정말 비우시겠습니까?" 
-        : "이 상담 기록을 정말 삭제하시겠습니까?",
+        ? "이 개인 메모를 정말 삭제하시겠습니까?\n\n삭제된 메모는 복구할 수 없습니다." 
+        : "이 타로 기록을 정말 삭제하시겠습니까?\n\n⚠️",
       [
         { text: "취소", style: "cancel" },
         { 
@@ -107,7 +107,7 @@ export const TarotCardModal = ({ isVisible, visit, onClose, onEdit, onDelete }) 
                   styles.secondaryButtonText, 
                   isManual && { color: '#555', textDecorationColor: '#555' }
                 ]}>
-                  🗑️ 이 서랍 비우기(삭제)
+                  🗑️ 이 서랍 비우기
                 </Text>
               </TouchableOpacity>
             </View>
