@@ -27,7 +27,7 @@ function App() {
   return (
     <div className="app-container">
       <div className="background-gradient"></div>
-      
+
       <div className="content-wrapper">
         <header className="app-header">
           <h1 className="app-title">🔮 타로 방문 체크인</h1>
@@ -42,10 +42,7 @@ function App() {
         )}
 
         <main className="main-content">
-          <VisitForm 
-            onSuccess={handleSuccess} 
-            onError={handleError} 
-          />
+          <VisitForm onSuccess={handleSuccess} onError={handleError} />
         </main>
 
         <footer className="app-footer">
