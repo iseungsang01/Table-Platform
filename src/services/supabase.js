@@ -41,17 +41,14 @@ export const findCustomerByPhone = async (phoneNumber) => {
 /**
  * 방문 횟수 증가
  */
+/**
+ * 방문 횟수 증가 (RPC 사용)
+ */
 export const incrementVisitCount = async (customerId) => {
   try {
+    // .update() 대신 .rpc() 사용
     const { data, error } = await supabase
-      .from('customers')
-      .update({
-        visit_count: supabase.raw('visit_count + 1'),
-        last_visit: new Date().toISOString(),
-      })
-      .eq('id', customerId)
-      .select()
-      .single();
+      .rpc('increment_visit_count', { customer_id: customerId });
 
     if (error) throw error;
 
