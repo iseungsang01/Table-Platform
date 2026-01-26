@@ -20,26 +20,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  */
 export const findCustomerByPhone = async (phoneNumber) => {
   try {
-    console.log('🔍 고객 조회 시작:', phoneNumber);
-
     const { data, error } = await supabase
       .from('customers')
-      .select('id, nickname, birthday, phone_number, visit_count')
+      .select('*')
       .eq('phone_number', phoneNumber)
       .is('deleted_at', null)
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('❌ 고객 조회 오류:', error);
       throw error;
     }
 
-    if (!data) {
-      console.log('❌ 고객을 찾을 수 없음');
-      return { data: null, error: null };
-    }
-
-    console.log('✅ 고객 찾음:', data);
     return { data, error: null };
   } catch (error) {
     console.error('고객 조회 오류:', error);
@@ -52,8 +43,6 @@ export const findCustomerByPhone = async (phoneNumber) => {
  */
 export const incrementVisitCount = async (customerId) => {
   try {
-    console.log('📈 방문 횟수 증가 시작:', customerId);
-
     const { data, error } = await supabase
       .from('customers')
       .update({
@@ -64,12 +53,8 @@ export const incrementVisitCount = async (customerId) => {
       .select()
       .single();
 
-    if (error) {
-      console.error('❌ 방문 횟수 증가 오류:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('✅ 방문 횟수 증가 완료:', data);
     return { data, error: null };
   } catch (error) {
     console.error('방문 횟수 증가 오류:', error);
@@ -82,8 +67,6 @@ export const incrementVisitCount = async (customerId) => {
  */
 export const createVisitHistory = async (customerId) => {
   try {
-    console.log('📝 방문 기록 생성 시작:', customerId);
-
     const { data, error } = await supabase
       .from('visit_history')
       .insert({
@@ -94,12 +77,8 @@ export const createVisitHistory = async (customerId) => {
       .select()
       .single();
 
-    if (error) {
-      console.error('❌ 방문 기록 생성 오류:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('✅ 방문 기록 생성 완료:', data);
     return { data, error: null };
   } catch (error) {
     console.error('방문 기록 생성 오류:', error);
@@ -110,12 +89,31 @@ export const createVisitHistory = async (customerId) => {
 /**
  * 통합 방문 처리 함수
  */
-export const processVisit = async (customerId) => {
+export const processVisit = async (phoneNumber) => {
   try {
-    console.log('🚀 방문 처리 시작:', customerId);
+    console.log('🔍 고객 조회 시작:', phoneNumber);
 
-    // 1. 방문 횟수 증가
-    const { error: updateError } = await incrementVisitCount(customerId);
+    // 1. 고객 찾기
+    const { data: customer, error: findError } = await findCustomerByPhone(phoneNumber);
+
+    if (findError) {
+      return { 
+        success: false, 
+        message: '고객 조회 중 오류가 발생했습니다.' 
+      };
+    }
+
+    if (!customer) {
+      return { 
+        success: false, 
+        message: '등록되지 않은 전화번호입니다.' 
+      };
+    }
+
+    console.log('✅ 고객 찾음:', customer.nickname);
+
+    // 2. 방문 횟수 증가
+    const { error: updateError } = await incrementVisitCount(customer.id);
 
     if (updateError) {
       return { 
@@ -124,8 +122,10 @@ export const processVisit = async (customerId) => {
       };
     }
 
-    // 2. 방문 기록 생성
-    const { error: createError } = await createVisitHistory(customerId);
+    console.log('✅ 방문 횟수 증가 완료');
+
+    // 3. 방문 기록 생성
+    const { error: createError } = await createVisitHistory(customer.id);
 
     if (createError) {
       return { 
@@ -134,11 +134,12 @@ export const processVisit = async (customerId) => {
       };
     }
 
-    console.log('✅ 방문 처리 완료');
+    console.log('✅ 방문 기록 생성 완료');
 
     return { 
       success: true, 
-      message: '방문이 성공적으로 기록되었습니다! 🎉'
+      message: `${customer.nickname}님, 방문해주셔서 감사합니다! 🎉`,
+      customer 
     };
   } catch (error) {
     console.error('방문 처리 오류:', error);

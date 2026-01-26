@@ -31,7 +31,7 @@ function App() {
       <div className="content-wrapper">
         <header className="app-header">
           <h1 className="app-title">🔮 타로 방문 체크인</h1>
-          <p className="app-subtitle">전화번호를 입력하시면 고객 정보를 확인할 수 있습니다</p>
+          <p className="app-subtitle">전화번호를 입력하시면 자동으로 방문 기록이 저장됩니다</p>
         </header>
 
         {message && (
