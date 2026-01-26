@@ -49,7 +49,7 @@ function App() {
         </main>
 
         <footer className="app-footer">
-          <p>© 2026 Tarot Visit Tracker</p>
+          <p>© 2026 Table Platform</p>
         </footer>
       </div>
     </div>
