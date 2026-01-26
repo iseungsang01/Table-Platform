@@ -16,7 +16,6 @@ import { useAuth } from '../hooks/useAuth';
 import { visitService } from '../services/visitService';
 import { couponService } from '../services/couponService';
 import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
-import { storage } from '../utils/storage';
 
 const LOCAL_STORAGE_KEY = 'offline_visit_history';
 
@@ -50,8 +49,6 @@ const HistoryScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      console.log('🔄 [HistoryScreen] loadData 시작');
-
       // 1. 스탬프 & 방문횟수 최신화
       const { data: latestStats } = await handleApiCall(
         'HistoryScreen.loadStats',
@@ -77,7 +74,6 @@ const HistoryScreen = ({ navigation }) => {
         is_manual: false 
       })) : [];
       
-      console.log('✅ [HistoryScreen] 서버 기록 로드:', formattedVisits.length, '개');
       setVisits(formattedVisits);
 
       // 3. 개인 메모 로드
@@ -89,7 +85,6 @@ const HistoryScreen = ({ navigation }) => {
         is_manual: true 
       }));
       
-      console.log('✅ [HistoryScreen] 개인 메모 로드:', formattedNotes.length, '개');
       setPersonalNotes(formattedNotes);
 
       // 4. 쿠폰 개수 최신화
@@ -149,7 +144,6 @@ const HistoryScreen = ({ navigation }) => {
 
       if (itemToDelete.is_manual) {
         // 로컬 데이터 삭제 (개인 메모)
-        console.log('📝 [HistoryScreen] 개인 메모 삭제');
         const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
         const list = stored ? JSON.parse(stored) : [];
         const filtered = list.filter(v => v.id !== visitId);
@@ -157,7 +151,6 @@ const HistoryScreen = ({ navigation }) => {
         showSuccessAlert('DELETE', Alert);
       } else {
         // 서버 데이터 삭제 (is_deleted 업데이트 + 로컬 스토리지 정리)
-        console.log('🗄️ [HistoryScreen] 서버 기록 삭제');
         const { error } = await handleApiCall(
           'HistoryScreen.deleteVisit', 
           () => visitService.deleteVisit(visitId)
@@ -178,11 +171,9 @@ const HistoryScreen = ({ navigation }) => {
       setIsModalVisible(false);
       
       // ✅ 전체 데이터 다시 로드 (Orphaned 데이터 정리 포함)
-      console.log('🔄 [HistoryScreen] 데이터 재로드 중...');
       await loadData();
 
     } catch (error) {
-      console.error('❌ [HistoryScreen] handleDeleteVisit 오류:', error);
       Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
     }
   };
@@ -195,6 +186,22 @@ const HistoryScreen = ({ navigation }) => {
       newSet.add(id);
     }
     setSelectedIds(newSet);
+  };
+
+  /**
+   * ✅ 롱프레스 핸들러 - 다중 선택 모드 진입
+   */
+  const handleLongPress = (visitId) => {
+    console.log('🔒 [HistoryScreen] 롱프레스 감지:', visitId);
+    
+    // 선택 모드가 아니었다면 활성화
+    if (!selectionMode) {
+      setSelectionMode(true);
+      setSelectedIds(new Set([visitId])); // 롱프레스한 항목을 첫 선택으로
+    } else {
+      // 이미 선택 모드라면 토글
+      toggleSelection(visitId);
+    }
   };
 
   /**
@@ -393,34 +400,43 @@ const HistoryScreen = ({ navigation }) => {
         )}
       </View>
 
-      <View style={styles.selectionControl}>
-        <TouchableOpacity
-          style={[styles.selectionButton, selectionMode && styles.selectionButtonActive]}
-          onPress={() => {
-            setSelectionMode(!selectionMode);
-            setSelectedIds(new Set());
-          }}
-        >
-          <Text style={[styles.selectionButtonText, selectionMode && styles.selectionButtonTextActive]}>
-            {selectionMode ? '선택 취소' : '📦 다중 선택'}
-          </Text>
-        </TouchableOpacity>
-
-        {selectionMode && (
+      {/* ✅ 선택 모드일 때만 액션 영역 표시 */}
+      {selectionMode && (
+        <View style={styles.selectionControl}>
           <View style={styles.selectionActions}>
             <Text style={styles.selectedCount}>{selectedIds.size}개 선택됨</Text>
-            <TouchableOpacity
-              style={styles.deleteAllButton}
-              onPress={handleMultiDelete}
-              disabled={selectedIds.size === 0}
-            >
-              <Text style={[styles.deleteAllText, selectedIds.size === 0 && styles.deleteAllTextDisabled]}>
-                🗑️ 선택 삭제
-              </Text>
-            </TouchableOpacity>
+            
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setSelectionMode(false);
+                  setSelectedIds(new Set());
+                }}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.deleteAllButton}
+                onPress={handleMultiDelete}
+                disabled={selectedIds.size === 0}
+              >
+                <Text style={[styles.deleteAllText, selectedIds.size === 0 && styles.deleteAllTextDisabled]}>
+                  🗑️ 선택 삭제
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
-      </View>
+        </View>
+      )}
+
+      {/* ✅ 힌트 텍스트 (선택 모드가 아닐 때만) */}
+      {!selectionMode && (
+        <View style={styles.hintContainer}>
+          <Text style={styles.hintText}>💡 서랍을 길게 누르면 다중 선택 모드로 진입합니다</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -451,6 +467,7 @@ const HistoryScreen = ({ navigation }) => {
                   setIsModalVisible(true);
                 }
               }}
+              onLongPress={() => handleLongPress(item.id)}
               selectionMode={selectionMode}
               isSelected={selectedIds.has(item.id)}
             />
@@ -527,16 +544,74 @@ const styles = StyleSheet.create({
   monthText: { fontSize: 10, color: '#999', fontWeight: 'bold' },
   monthTextActive: { color: DrawerTheme.goldBright },
 
+  // ✅ 선택 모드 UI (수정됨)
   selectionControl: { width: '92%', marginTop: 12 },
-  selectionButton: { paddingVertical: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)', alignItems: 'center' },
-  selectionButtonActive: { backgroundColor: DrawerTheme.selectionMode, borderColor: DrawerTheme.goldBright },
-  selectionButtonText: { fontSize: 14, color: DrawerTheme.goldBrass, fontWeight: 'bold' },
-  selectionButtonTextActive: { color: '#FFF' },
-  selectionActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingHorizontal: 10 },
-  selectedCount: { fontSize: 13, color: DrawerTheme.goldBrass, fontWeight: 'bold' },
-  deleteAllButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.2)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.4)' },
-  deleteAllText: { fontSize: 13, color: '#ff6b6b', fontWeight: 'bold' },
-  deleteAllTextDisabled: { color: '#555' },
+  selectionActions: { 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    borderRadius: 12, 
+    padding: 15, 
+    borderWidth: 1.5, 
+    borderColor: DrawerTheme.goldBrass 
+  },
+  selectedCount: { 
+    fontSize: 14, 
+    color: DrawerTheme.goldBrass, 
+    fontWeight: 'bold', 
+    marginBottom: 12,
+    textAlign: 'center'
+  },
+  actionButtons: { 
+    flexDirection: 'row', 
+    gap: 10 
+  },
+  cancelButton: { 
+    flex: 1, 
+    paddingVertical: 12, 
+    borderRadius: 10, 
+    backgroundColor: 'rgba(255,255,255,0.1)', 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.2)', 
+    alignItems: 'center' 
+  },
+  cancelButtonText: { 
+    fontSize: 14, 
+    color: '#AAA', 
+    fontWeight: 'bold' 
+  },
+  deleteAllButton: { 
+    flex: 1, 
+    paddingVertical: 12, 
+    borderRadius: 10, 
+    backgroundColor: 'rgba(255,107,107,0.2)', 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,107,107,0.4)', 
+    alignItems: 'center' 
+  },
+  deleteAllText: { 
+    fontSize: 14, 
+    color: '#ff6b6b', 
+    fontWeight: 'bold' 
+  },
+  deleteAllTextDisabled: { 
+    color: '#555' 
+  },
+
+  // ✅ 힌트 텍스트
+  hintContainer: { 
+    width: '92%', 
+    marginTop: 12, 
+    padding: 12, 
+    backgroundColor: 'rgba(212,175,55,0.1)', 
+    borderRadius: 10, 
+    borderWidth: 1, 
+    borderColor: 'rgba(212,175,55,0.2)' 
+  },
+  hintText: { 
+    fontSize: 12, 
+    color: DrawerTheme.woodLight, 
+    textAlign: 'center', 
+    lineHeight: 18 
+  },
 
   manualAddDrawer: { height: 100, margin: 2, borderWidth: 1.5, borderStyle: 'dashed', borderColor: DrawerTheme.goldBrass, justifyContent: 'center', alignItems: 'center', marginBottom: 5 },
   manualAddText: { fontSize: 16, fontWeight: 'bold' },

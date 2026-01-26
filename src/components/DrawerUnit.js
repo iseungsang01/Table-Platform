@@ -6,7 +6,7 @@ import { DrawerTheme } from '../constants/DrawerTheme';
  * 서랍 정면(Unit) 컴포넌트
  * @param {object} visit - 방문 기록 데이터 (is_manual 필드 포함)
  * @param {function} onSelectCard - 클릭 시 호출될 함수
- * @param {function} onLongPress - 오래 누르기 시 호출될 함수
+ * @param {function} onLongPress - 롱프레스 시 호출될 함수
  * @param {boolean} selectionMode - 다중 선택 모드 여부
  * @param {boolean} isSelected - 현재 선택된 상태
  */
@@ -36,11 +36,14 @@ export const DrawerUnit = ({ visit, onSelectCard, onLongPress, selectionMode, is
         activeOpacity={0.9} 
         onPress={() => onSelectCard(visit)}
         onLongPress={onLongPress}
+        delayLongPress={500}
         style={[
           styles.drawerFront, 
           { backgroundColor: theme.mid, borderTopColor: theme.light },
           // 서버 기록(Wood)인데 아직 내용을 적지 않았다면 약간 투명하게 처리
-          (isOnMode && !isWritten) && { opacity: 0.7 }
+          (isOnMode && !isWritten) && { opacity: 0.7 },
+          // ✅ 선택된 상태일 때 강조 효과
+          isSelected && styles.selectedDrawer
         ]}
       >
         <View style={styles.bezel}>
@@ -103,6 +106,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1.5, 
     borderBottomWidth: 5, 
     borderBottomColor: 'rgba(0,0,0,0.3)' 
+  },
+  // ✅ 선택된 서랍 강조 효과
+  selectedDrawer: {
+    borderWidth: 2,
+    borderColor: DrawerTheme.goldBrass,
+    shadowColor: DrawerTheme.goldBrass,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bezel: { 
     flex: 1, 
