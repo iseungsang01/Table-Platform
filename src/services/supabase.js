@@ -16,7 +16,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
- * 전화번호로 고객 찾기
+ * 1. 전화번호로 고객 찾기
  */
 export const findCustomerByPhone = async (phoneNumber) => {
   try {
@@ -27,9 +27,12 @@ export const findCustomerByPhone = async (phoneNumber) => {
       .is('deleted_at', null)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
-      throw error;
+    // 데이터가 없는 경우(PGRST116)는 에러가 아닌 null 반환 처리
+    if (error && error.code === 'PGRST116') {
+      return { data: null, error: null };
     }
+
+    if (error) throw error;
 
     return { data, error: null };
   } catch (error) {
@@ -39,28 +42,29 @@ export const findCustomerByPhone = async (phoneNumber) => {
 };
 
 /**
- * 방문 횟수 증가
- */
-/**
- * 방문 횟수 증가 (RPC 사용)
+ * 2. 방문 횟수 증가 (수정됨: RPC 사용)
+ * - 기존 .update() 방식의 문법 오류를 해결하기 위해 DB 함수를 호출합니다.
  */
 export const incrementVisitCount = async (customerId) => {
   try {
-    // .update() 대신 .rpc() 사용
-    const { data, error } = await supabase
-      .rpc('increment_visit_count', { customer_id: customerId });
+    // .update() 대신 .rpc()를 사용합니다.
+    // 'increment_visit_count'는 1단계에서 만든 SQL 함수 이름입니다.
+    const { error } = await supabase
+      .rpc('increment_visit_count', { 
+        target_customer_id: customerId 
+      });
 
     if (error) throw error;
 
-    return { data, error: null };
+    return { success: true, error: null };
   } catch (error) {
     console.error('방문 횟수 증가 오류:', error);
-    return { data: null, error };
+    return { success: false, error };
   }
 };
 
 /**
- * 방문 기록 생성
+ * 3. 방문 기록 생성
  */
 export const createVisitHistory = async (customerId) => {
   try {
@@ -84,7 +88,7 @@ export const createVisitHistory = async (customerId) => {
 };
 
 /**
- * 통합 방문 처리 함수
+ * ✅ 통합 방문 처리 함수 (Main)
  */
 export const processVisit = async (phoneNumber) => {
   try {
@@ -96,7 +100,7 @@ export const processVisit = async (phoneNumber) => {
     if (findError) {
       return { 
         success: false, 
-        message: '고객 조회 중 오류가 발생했습니다.' 
+        message: '고객 조회 중 시스템 오류가 발생했습니다.' 
       };
     }
 
@@ -109,7 +113,7 @@ export const processVisit = async (phoneNumber) => {
 
     console.log('✅ 고객 찾음:', customer.nickname);
 
-    // 2. 방문 횟수 증가
+    // 2. 방문 횟수 증가 (RPC 호출)
     const { error: updateError } = await incrementVisitCount(customer.id);
 
     if (updateError) {
@@ -138,8 +142,9 @@ export const processVisit = async (phoneNumber) => {
       message: `${customer.nickname}님, 방문해주셔서 감사합니다! 🎉`,
       customer 
     };
+
   } catch (error) {
-    console.error('방문 처리 오류:', error);
+    console.error('방문 처리 치명적 오류:', error);
     return { 
       success: false, 
       message: '예상치 못한 오류가 발생했습니다.' 
