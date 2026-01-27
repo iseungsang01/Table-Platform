@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, Platform, View, StyleSheet } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -11,7 +12,7 @@ import CouponScreen from '../screens/CouponScreen';
 import VoteScreen from '../screens/VoteScreen';
 import NoticeScreen from '../screens/NoticeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import VisitDetailScreen from '../screens/VisitDetailScreen'; // ✅ 변경된 이름
+import VisitDetailScreen from '../screens/VisitDetailScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -29,9 +30,11 @@ const TabIcon = ({ emoji, hasNotification }) => (
 /**
  * 탭 네비게이터
  * 하단 탭 바로 주요 화면들 전환
+ * ✅ SafeAreaInsets 적용으로 홈 버튼 영역 보호
  */
 const TabNavigator = () => {
   const { hasAnyUnread } = useNotifications();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -41,15 +44,16 @@ const TabNavigator = () => {
           backgroundColor: Colors.purpleMid,
           borderTopColor: Colors.gold,
           borderTopWidth: 2,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
+          paddingBottom: insets.bottom, // ✅ 안전 영역만큼 패딩 추가
           paddingTop: 5,
-          height: Platform.OS === 'ios' ? 85 : 60,
+          height: 60 + insets.bottom, // ✅ 높이도 안전 영역 고려
         },
         tabBarActiveTintColor: Colors.gold,
         tabBarInactiveTintColor: Colors.lavender,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
+          marginBottom: insets.bottom > 0 ? 0 : 5, // ✅ 홈 버튼이 있는 기기는 여백 조정
         },
       }}
     >
@@ -121,7 +125,7 @@ const MainNavigator = () => {
     >
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen
-        name="VisitDetail" // ✅ 변경된 라우트 이름
+        name="VisitDetail"
         component={VisitDetailScreen}
         options={{
           presentation: 'card',
