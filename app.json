@@ -2,7 +2,7 @@
   "expo": {
     "name": "서랍",
     "slug": "drawer-app",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.drawer.app",
-      "buildNumber": "1.0.0",
+      "buildNumber": "1.0.3",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "타로 도장을 찍기 위해 사진 갤러리에 접근합니다.",
         "NSCameraUsageDescription": "타로 도장을 찍기 위해 카메라에 접근합니다.",
@@ -30,7 +30,7 @@
         "backgroundColor": "#1a0033"
       },
       "package": "com.drawer.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
