@@ -5,7 +5,7 @@
     "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -21,7 +21,7 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "타로 도장을 찍기 위해 사진 갤러리에 접근합니다.",
         "NSCameraUsageDescription": "타로 도장을 찍기 위해 카메라에 접근합니다.",
-        "UIUserInterfaceStyle": "Dark"
+        "UIUserInterfaceStyle": "Light"
       }
     },
     "android": {
