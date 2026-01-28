@@ -7,9 +7,6 @@ export const visitService = {
    */
   async getVisits(customerId) {
     try {
-
-
-      // 1. Supabase 조회 (삭제되지 않은 기록만)
       const { data, error } = await supabase
         .from('visit_history')
         .select('id, customer_id, visit_date')
@@ -18,42 +15,10 @@ export const visitService = {
         .order('visit_date', { ascending: false });
 
       if (error) throw error;
-
-
-
-      // 2. 유효한 visit ID 목록 추출
-      const validVisitIds = (data || []).map(v => v.id);
-
-
-      // 3. ✅ Orphaned 데이터 정리 (DB에 없는 이미지/리뷰 삭제)
-
-      await storage.cleanupOrphanedImages(validVisitIds);
-      await storage.cleanupOrphanedReviews(validVisitIds);
-
-
-      // 4. 로컬 데이터(이미지/리뷰) 로드
-      const allImages = await storage.getAllCardImages();
-      const allReviews = await storage.getAllCardReviews();
-
-
-
-      // 5. UI용 데이터 병합
-      const visitsWithLocalData = (data || []).map(visit => ({
-        ...visit,
-        is_manual: false,
-        card_image: allImages[visit.id] || null,
-        card_review: allReviews[visit.id] || null,
-      }));
-
-      // 6. 캐시 저장
-      await storage.cacheVisits(visitsWithLocalData);
-
-
-      return { data: visitsWithLocalData, error: null };
+      return { data, error: null };
     } catch (error) {
       console.error('❌ [visitService] getVisits 오류:', error.message);
-      const cached = await storage.getCachedVisits();
-      return { data: cached.map(v => ({ ...v, is_manual: false })), error };
+      return { data: [], error };
     }
   },
 
@@ -62,7 +27,7 @@ export const visitService = {
    */
   async updateVisit(visitId, updates) {
     try {
-      // 1. 로컬 데이터 처리 (이미지/리뷰)
+      // 1. 로컬 데이터 처리 (이미지/리뷰) - *여전히 UI에서 개별 호출하거나 훅에서 처리 가능하지만, 호환성을 위해 유지하되 단순화*
       if (updates.card_image !== undefined) {
         updates.card_image ? await storage.saveCardImage(visitId, updates.card_image) : await storage.deleteCardImage(visitId);
       }
@@ -70,37 +35,25 @@ export const visitService = {
         updates.card_review ? await storage.saveCardReview(visitId, updates.card_review) : await storage.deleteCardReview(visitId);
       }
 
-      // 2. 서버 업데이트 데이터 필터링
+      // 2. 서버 업데이트
       const serverPayload = {};
       if (updates.visit_date) serverPayload.visit_date = updates.visit_date;
       if (updates.customer_id) serverPayload.customer_id = updates.customer_id;
 
       let updatedServerData = {};
-
       if (Object.keys(serverPayload).length > 0) {
         const { data, error } = await supabase
           .from('visit_history')
           .update(serverPayload)
           .eq('id', visitId)
-          .select('id, customer_id, visit_date')
+          .select()
           .single();
 
         if (error) throw error;
         updatedServerData = data;
-      } else {
-        const { data } = await this.getVisit(visitId);
-        updatedServerData = data;
       }
 
-      return {
-        data: {
-          ...updatedServerData,
-          is_manual: false,
-          card_image: await storage.getCardImage(visitId),
-          card_review: await storage.getCardReview(visitId)
-        },
-        error: null
-      };
+      return { data: updatedServerData, error: null };
     } catch (error) {
       console.error('❌ [visitService] updateVisit 오류:', error);
       return { data: null, error };
@@ -164,70 +117,20 @@ export const visitService = {
    */
   async deleteVisit(visitId) {
     try {
-
-
-      // 1. 삭제 전 현재 상태 확인
-
-      const { data: beforeData, error: beforeError } = await supabase
-        .from('visit_history')
-        .select('id, customer_id, visit_date, is_deleted')
-        .eq('id', visitId)
-        .single();
-
-      if (beforeError) {
-        console.error('❌ 현재 상태 조회 실패:', beforeError);
-        throw beforeError;
-      }
-
-
-
-      // 2. is_deleted를 true로 업데이트
-
-
-      const { data: updateData, error: updateError } = await supabase
+      const { error } = await supabase
         .from('visit_history')
         .update({ is_deleted: true })
-        .eq('id', visitId)
-        .select('id, customer_id, visit_date, is_deleted');
+        .eq('id', visitId);
 
-      if (updateError) {
-        console.error('❌ UPDATE 쿼리 실패:', updateError);
-        console.error('❌ 에러 코드:', updateError.code);
-        console.error('❌ 에러 메시지:', updateError.message);
-        throw updateError;
-      }
+      if (error) throw error;
 
-
-
-      // 3. 업데이트 후 상태 재확인
-
-      const { data: afterData, error: afterError } = await supabase
-        .from('visit_history')
-        .select('id, customer_id, visit_date, is_deleted')
-        .eq('id', visitId)
-        .single();
-
-      if (afterError) {
-        console.error('❌ 재확인 조회 실패:', afterError);
-      }
-
-      // 4. 로컬 스토리지 완전 정리
+      // 로컬 스토리지 정리
       await storage.deleteCardImage(visitId);
       await storage.deleteCardReview(visitId);
 
-      // 캐시 무효화
-      await storage.remove(storage.STORAGE_KEYS.VISIT_CACHE);
-      await storage.remove(storage.STORAGE_KEYS.LAST_SYNC);
-
-
-
       return { error: null };
     } catch (error) {
-
-      console.error('Error:', error);
-      console.error('Error Message:', error.message);
-      console.error('Error Code:', error.code);
-
+      console.error('❌ [visitService] deleteVisit 오류:', error);
       return { error };
     }
   },

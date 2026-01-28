@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Alert, Platform, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useVisits } from '../hooks/useVisits';
 
 // 컴포넌트 및 테마
 import { GradientBackground } from '../components/GradientBackground';
@@ -21,9 +22,11 @@ const LOCAL_STORAGE_KEY = 'offline_visit_history';
 
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
-  const [visits, setVisits] = useState([]);
+  /* React Query Hook 적용 */
+  const { visits: serverVisits, isLoading: isVisitsLoading, refetch, deleteVisit } = useVisits(customer?.id);
+
+  /* 기존 로컬 상태 */
   const [personalNotes, setPersonalNotes] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
   const [archiveMode, setArchiveMode] = useState('ALL');
@@ -34,67 +37,55 @@ const HistoryScreen = ({ navigation }) => {
     visit_count: customer?.visit_count || 0
   });
 
+  /* 필터 관련 상태 */
   const [timeFilter, setTimeFilter] = useState('ALL');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+
+  /* 선택 모드 상태 */
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useFocusEffect(
     useCallback(() => {
-      if (customer) loadData();
-      else setLoading(false);
+      if (customer) {
+        // 화면 포커스 시 데이터 새로고침 (React Query refetch + 로컬 데이터 + 통계)
+        refreshAllData();
+      }
     }, [customer])
   );
 
-  const loadData = async () => {
+  const refreshAllData = async () => {
     try {
-      // 1. 스탬프 & 방문횟수 최신화
-      const { data: latestStats } = await handleApiCall(
-        'HistoryScreen.loadStats',
-        () => visitService.getCustomerStats(customer.id),
-        { showAlert: false }
-      );
+      await Promise.all([
+        refetch(),
+        loadLocalData(),
+        loadStats(),
+        loadCouponCount()
+      ]);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-      if (latestStats) {
-        setStats({
-          current_stamps: latestStats.current_stamps,
-          visit_count: latestStats.visit_count
-        });
-      }
+  const loadLocalData = async () => {
+    const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
+    const localData = stored ? JSON.parse(stored) : [];
+    const formattedNotes = localData.map(v => ({ ...v, is_manual: true }));
+    setPersonalNotes(formattedNotes);
+  };
 
-      // 2. ✅ 방문 기록 로드 (Orphaned 데이터 자동 정리 포함)
-      const { data: visitData } = await handleApiCall(
-        'HistoryScreen.loadVisits',
-        () => visitService.getVisits(customer.id)
-      );
-      
-      const formattedVisits = visitData ? visitData.map(v => ({ 
-        ...v, 
-        is_manual: false 
-      })) : [];
-      
-      setVisits(formattedVisits);
-
-      // 3. 개인 메모 로드
-      const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
-      const localData = stored ? JSON.parse(stored) : [];
-      
-      const formattedNotes = localData.map(v => ({ 
-        ...v, 
-        is_manual: true 
-      }));
-      
-      setPersonalNotes(formattedNotes);
-
-      // 4. 쿠폰 개수 최신화
-      await loadCouponCount();
-
-      console.log('✅ [HistoryScreen] loadData 완료');
-    } catch (error) {
-      console.error("❌ [HistoryScreen] Data Load Error:", error);
-    } finally {
-      setLoading(false);
+  const loadStats = async () => {
+    const { data: latestStats } = await handleApiCall(
+      'HistoryScreen.loadStats',
+      () => visitService.getCustomerStats(customer.id),
+      { showAlert: false }
+    );
+    if (latestStats) {
+      setStats({
+        current_stamps: latestStats.current_stamps,
+        visit_count: latestStats.visit_count
+      });
     }
   };
 
@@ -117,7 +108,7 @@ const HistoryScreen = ({ navigation }) => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await refreshAllData();
     setRefreshing(false);
   };
 
@@ -143,38 +134,24 @@ const HistoryScreen = ({ navigation }) => {
       console.log('🔍 [HistoryScreen] 삭제 대상:', itemToDelete);
 
       if (itemToDelete.is_manual) {
-        // 로컬 데이터 삭제 (개인 메모)
+        // 로컬 데이터 삭제
         const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
         const list = stored ? JSON.parse(stored) : [];
         const filtered = list.filter(v => v.id !== visitId);
         await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-        showSuccessAlert('DELETE', Alert);
+        await loadLocalData(); // 로컬 리스트 갱신
       } else {
-        // 서버 데이터 삭제 (is_deleted 업데이트 + 로컬 스토리지 정리)
-        const { error } = await handleApiCall(
-          'HistoryScreen.deleteVisit', 
-          () => visitService.deleteVisit(visitId)
-        );
-        
-        if (!error) {
-          showSuccessAlert('DELETE', Alert);
-          await refreshCustomer(); // 스탬프 개수 업데이트
-          
-          // ✅ 추가: 로컬 상태에서도 즉시 제거
-          setVisits(prevVisits => prevVisits.filter(v => v.id !== visitId));
-        } else {
-          console.error('❌ [HistoryScreen] 서버 삭제 실패:', error);
-          return;
-        }
+        // 서버 데이터 삭제 (React Query Mutation)
+        await deleteVisit(visitId);
+        await refreshCustomer();
       }
 
+      showSuccessAlert('DELETE', Alert);
       setIsModalVisible(false);
-      
-      // ✅ 전체 데이터 다시 로드 (Orphaned 데이터 정리 포함)
-      await loadData();
 
     } catch (error) {
       Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
+      console.error(error);
     }
   };
 
@@ -193,7 +170,7 @@ const HistoryScreen = ({ navigation }) => {
    */
   const handleLongPress = (visitId) => {
     console.log('🔒 [HistoryScreen] 롱프레스 감지:', visitId);
-    
+
     // 선택 모드가 아니었다면 활성화
     if (!selectionMode) {
       setSelectionMode(true);
@@ -242,29 +219,23 @@ const HistoryScreen = ({ navigation }) => {
               console.log('📊 [HistoryScreen] 삭제 대상:', { serverIds, localIds });
 
               // 서버 삭제
-              for (const id of serverIds) {
-                console.log('  🗄️ 서버 기록 삭제:', id);
-                await visitService.deleteVisit(id);
-              }
+              const deletePromises = serverIds.map(id => deleteVisit(id));
+              await Promise.all(deletePromises);
 
               // 로컬 삭제
               if (localIds.length > 0) {
-                console.log('  📝 개인 메모 삭제:', localIds.length, '개');
                 const stored = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
                 const list = stored ? JSON.parse(stored) : [];
                 const filtered = list.filter(v => !localIds.includes(v.id));
                 await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+                await loadLocalData();
               }
 
               showSuccessAlert('DELETE', Alert);
               setSelectedIds(new Set());
               setSelectionMode(false);
-              
+
               if (serverIds.length > 0) await refreshCustomer();
-              
-              // ✅ 전체 데이터 다시 로드
-              console.log('🔄 [HistoryScreen] 데이터 재로드 중...');
-              await loadData();
 
             } catch (error) {
               console.error('❌ [HistoryScreen] 다중 삭제 오류:', error);
@@ -296,9 +267,11 @@ const HistoryScreen = ({ navigation }) => {
 
   const getDisplayData = () => {
     let data = [];
-    if (archiveMode === 'ON') data = visits;
+    const formattedServerVisits = serverVisits.map(v => ({ ...v, is_manual: false }));
+
+    if (archiveMode === 'ON') data = formattedServerVisits;
     else if (archiveMode === 'OFF') data = personalNotes;
-    else data = [...visits, ...personalNotes].sort((a, b) => 
+    else data = [...formattedServerVisits, ...personalNotes].sort((a, b) =>
       new Date(b.visit_date) - new Date(a.visit_date)
     );
 
@@ -405,7 +378,7 @@ const HistoryScreen = ({ navigation }) => {
         <View style={styles.selectionControl}>
           <View style={styles.selectionActions}>
             <Text style={styles.selectedCount}>{selectedIds.size}개 선택됨</Text>
-            
+
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -416,7 +389,7 @@ const HistoryScreen = ({ navigation }) => {
               >
                 <Text style={styles.cancelButtonText}>취소</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.deleteAllButton}
                 onPress={handleMultiDelete}
@@ -445,7 +418,7 @@ const HistoryScreen = ({ navigation }) => {
     return (
       <DrawerChest isManualMode={archiveMode === 'OFF'} selectionMode={selectionMode}>
         {archiveMode === 'OFF' && (
-          <TouchableOpacity 
+          <TouchableOpacity
             activeOpacity={0.8}
             style={[styles.manualAddDrawer, { backgroundColor: DrawerTheme.navyDark }]}
             onPress={() => navigation.navigate('VisitDetail', { mode: 'manual', is_manual: true })}
@@ -453,7 +426,7 @@ const HistoryScreen = ({ navigation }) => {
             <Text style={[styles.manualAddText, { color: DrawerTheme.goldBrass }]}>+ 개인 메모 서랍 추가</Text>
           </TouchableOpacity>
         )}
-        
+
         {displayData.length > 0 ? (
           displayData.map((item) => (
             <DrawerUnit
@@ -483,7 +456,7 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
-  if (loading) return <GradientBackground><LoadingSpinner /></GradientBackground>;
+  if (isVisitsLoading && !refreshing) return <GradientBackground><LoadingSpinner /></GradientBackground>;
 
   return (
     <GradientBackground>
@@ -494,17 +467,17 @@ const HistoryScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />}
       />
-      
+
       <TarotCardModal
         isVisible={isModalVisible}
         visit={selectedItem}
         onClose={() => setIsModalVisible(false)}
         onEdit={(id) => {
           setIsModalVisible(false);
-          navigation.navigate('VisitDetail', { 
-            visitId: id, 
+          navigation.navigate('VisitDetail', {
+            visitId: id,
             is_manual: selectedItem?.is_manual,
-            mode: selectedItem?.is_manual ? 'manual' : 'server' 
+            mode: selectedItem?.is_manual ? 'manual' : 'server'
           });
         }}
         onDelete={handleDeleteVisit}
@@ -526,7 +499,7 @@ const styles = StyleSheet.create({
   tabButton: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'transparent' },
   tabLabel: { color: '#888', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
   activeTabLabel: { color: '#FFF' },
-  
+
   filterSection: { width: '92%', marginTop: 15, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   filterButton: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
@@ -546,71 +519,71 @@ const styles = StyleSheet.create({
 
   // ✅ 선택 모드 UI (수정됨)
   selectionControl: { width: '92%', marginTop: 12 },
-  selectionActions: { 
-    backgroundColor: 'rgba(0,0,0,0.5)', 
-    borderRadius: 12, 
-    padding: 15, 
-    borderWidth: 1.5, 
-    borderColor: DrawerTheme.goldBrass 
+  selectionActions: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1.5,
+    borderColor: DrawerTheme.goldBrass
   },
-  selectedCount: { 
-    fontSize: 14, 
-    color: DrawerTheme.goldBrass, 
-    fontWeight: 'bold', 
+  selectedCount: {
+    fontSize: 14,
+    color: DrawerTheme.goldBrass,
+    fontWeight: 'bold',
     marginBottom: 12,
     textAlign: 'center'
   },
-  actionButtons: { 
-    flexDirection: 'row', 
-    gap: 10 
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10
   },
-  cancelButton: { 
-    flex: 1, 
-    paddingVertical: 12, 
-    borderRadius: 10, 
-    backgroundColor: 'rgba(255,255,255,0.1)', 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.2)', 
-    alignItems: 'center' 
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center'
   },
-  cancelButtonText: { 
-    fontSize: 14, 
-    color: '#AAA', 
-    fontWeight: 'bold' 
+  cancelButtonText: {
+    fontSize: 14,
+    color: '#AAA',
+    fontWeight: 'bold'
   },
-  deleteAllButton: { 
-    flex: 1, 
-    paddingVertical: 12, 
-    borderRadius: 10, 
-    backgroundColor: 'rgba(255,107,107,0.2)', 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,107,107,0.4)', 
-    alignItems: 'center' 
+  deleteAllButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,107,107,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.4)',
+    alignItems: 'center'
   },
-  deleteAllText: { 
-    fontSize: 14, 
-    color: '#ff6b6b', 
-    fontWeight: 'bold' 
+  deleteAllText: {
+    fontSize: 14,
+    color: '#ff6b6b',
+    fontWeight: 'bold'
   },
-  deleteAllTextDisabled: { 
-    color: '#555' 
+  deleteAllTextDisabled: {
+    color: '#555'
   },
 
   // ✅ 힌트 텍스트
-  hintContainer: { 
-    width: '92%', 
-    marginTop: 12, 
-    padding: 12, 
-    backgroundColor: 'rgba(212,175,55,0.1)', 
-    borderRadius: 10, 
-    borderWidth: 1, 
-    borderColor: 'rgba(212,175,55,0.2)' 
+  hintContainer: {
+    width: '92%',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(212,175,55,0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.2)'
   },
-  hintText: { 
-    fontSize: 12, 
-    color: DrawerTheme.woodLight, 
-    textAlign: 'center', 
-    lineHeight: 18 
+  hintText: {
+    fontSize: 12,
+    color: DrawerTheme.woodLight,
+    textAlign: 'center',
+    lineHeight: 18
   },
 
   manualAddDrawer: { height: 100, margin: 2, borderWidth: 1.5, borderStyle: 'dashed', borderColor: DrawerTheme.goldBrass, justifyContent: 'center', alignItems: 'center', marginBottom: 5 },

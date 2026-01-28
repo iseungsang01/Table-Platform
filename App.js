@@ -7,22 +7,28 @@ import { ErrorProvider } from './src/context/ErrorContext';
 import { ErrorBoundary, GlobalErrorDisplay } from './src/components';
 import AppNavigator from './src/navigation/AppNavigator';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
 export default function App() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <ErrorProvider>
-            <AuthProvider>
-              <StatusBar 
-                barStyle="light-content" 
-                backgroundColor="#1a0033"
-              />
-              <AppNavigator />
-              <GlobalErrorDisplay />
-            </AuthProvider>
-          </ErrorProvider>
-        </SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <ErrorProvider>
+              <AuthProvider>
+                <StatusBar
+                  barStyle="light-content"
+                  backgroundColor="#1a0033"
+                />
+                <AppNavigator />
+                <GlobalErrorDisplay />
+              </AuthProvider>
+            </ErrorProvider>
+          </SafeAreaProvider>
+        </QueryClientProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
   );
