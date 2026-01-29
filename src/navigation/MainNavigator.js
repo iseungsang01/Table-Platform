@@ -17,12 +17,18 @@ import VisitDetailScreen from '../screens/VisitDetailScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+import { Ionicons } from '@expo/vector-icons';
+
 /**
- * 탭 아이콘 컴포넌트 (빨간점 포함)
+ * 탭 아이콘 컴포넌트 (라인 아이콘 적용)
  */
-const TabIcon = ({ emoji, hasNotification }) => (
+const TabIcon = ({ name, focused, hasNotification }) => (
   <View style={styles.iconContainer}>
-    <Text style={styles.iconEmoji}>{emoji}</Text>
+    <Ionicons
+      name={focused ? name : `${name}-outline`}
+      size={24}
+      color={focused ? Colors.goldMain : Colors.lavender}
+    />
     {hasNotification && <View style={styles.redDot} />}
   </View>
 );
@@ -42,13 +48,13 @@ const TabNavigator = () => {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: Colors.purpleMid,
-          borderTopColor: Colors.gold,
+          borderTopColor: Colors.goldMain,
           borderTopWidth: 2,
           paddingBottom: insets.bottom, // ✅ 안전 영역만큼 패딩 추가
           paddingTop: 5,
           height: 60 + insets.bottom, // ✅ 높이도 안전 영역 고려
         },
-        tabBarActiveTintColor: Colors.gold,
+        tabBarActiveTintColor: Colors.goldMain,
         tabBarInactiveTintColor: Colors.lavender,
         tabBarLabelStyle: {
           fontSize: 12,
@@ -63,7 +69,7 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: '홈',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="🏠" hasNotification={false} />
+            <TabIcon name="home" focused={focused} hasNotification={false} />
           ),
         }}
       />
@@ -73,7 +79,7 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: '쿠폰',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="🎟️" hasNotification={false} />
+            <TabIcon name="ticket" focused={focused} hasNotification={false} />
           ),
         }}
       />
@@ -83,7 +89,7 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: '투표',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="🗳️" hasNotification={false} />
+            <TabIcon name="checkbox" focused={focused} hasNotification={false} />
           ),
         }}
       />
@@ -93,7 +99,7 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: '공지',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="📢" hasNotification={hasAnyUnread} />
+            <TabIcon name="megaphone" focused={focused} hasNotification={hasAnyUnread} />
           ),
         }}
       />
@@ -103,7 +109,7 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: '설정',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="⚙️" hasNotification={false} />
+            <TabIcon name="settings" focused={focused} hasNotification={false} />
           ),
         }}
       />

@@ -16,15 +16,15 @@ export const DrawerTheme = {
   navyDark: '#2A3540',  // 네이비 서랍 깊은 음영
 
   // ⚜️ [METALIC POINT] - 공통 금속 장식 (손잡이 및 명판)
-  goldBrass: '#D4AF37',  // 앤틱 황동 손잡이 메인색
-  goldDark: '#B8860B',   // 손잡이 음영 및 테두리 (입체감)
-  goldBright: '#FFD700', // ✨ 날짜 텍스트 및 강조 포인트용
+  goldBrass: '#D4AF37',  // 앤틱 황동 손잡이 메인색 (Main Gold)
+  goldDark: '#D4AF37',   // 손잡이 음영 (Unified to Main Gold)
+  goldBright: '#F3E5AB', // ✨ 날짜 텍스트 및 강조 포인트용 (Auxiliary Light Gold)
 
   // 🌫️ [EFFECTS] - 그림자 및 오버레이
   shadow: 'rgba(0,0,0,0.6)',
   overlay: 'rgba(0,0,0,0.85)',
   glass: 'rgba(255,255,255,0.1)', // 유리 질감 효과
-  
+
   // 텍스트 색상
   textMain: '#FFFFFF',
   textMuted: '#A0A0A0',

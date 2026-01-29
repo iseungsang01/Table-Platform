@@ -12,9 +12,9 @@ export const CouponCard = ({ coupon, type, onPress }) => {
     <TouchableOpacity
       style={[
         styles.card,
-        { 
-          borderColor: isExpired ? '#333' : 'rgba(212, 175, 55, 0.3)',
-          backgroundColor: isExpired ? 'rgba(20,20,20,0.6)' : DrawerTheme.woodDark 
+        {
+          // 테두리 제거 요청 반영 (배경색과 그림자로 구분)
+          backgroundColor: isExpired ? 'rgba(20,20,20,0.6)' : DrawerTheme.woodDark
         },
         isExpired && styles.cardExpired,
       ]}
@@ -27,7 +27,7 @@ export const CouponCard = ({ coupon, type, onPress }) => {
 
       <View style={styles.content}>
         <Text style={[styles.icon, isExpired && styles.iconExpired]}>{icon}</Text>
-        
+
         <View style={styles.info}>
           <View style={styles.header}>
             <Text style={[styles.category, { color: isExpired ? '#666' : themeColor }]}>
@@ -54,7 +54,7 @@ export const CouponCard = ({ coupon, type, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    borderWidth: 1,
+    // borderWidth: 1, // 테두리 제거
     borderRadius: 6,
     marginBottom: 8,
     height: 70, // 일자 추가로 인해 5px만 살짝 키움
