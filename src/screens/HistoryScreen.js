@@ -12,32 +12,30 @@ import { DrawerUnit } from '../components/DrawerUnit';
 import { TarotCardModal } from '../components/TarotCardModal';
 import { DrawerTheme } from '../constants/DrawerTheme';
 
-import { useCustomerStats } from '../hooks/useCustomerStats';
-import { useCouponCount } from '../hooks/useCouponCount';
-
-// ... other imports ...
 // 서비스 및 유틸리티
 import { useAuth } from '../hooks/useAuth';
-// visitService, couponService removed as they are utilized via hooks
-import { showSuccessAlert } from '../utils/errorHandler';
+import { visitService } from '../services/visitService';
+import { couponService } from '../services/couponService';
+import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
 
 const LOCAL_STORAGE_KEY = 'offline_visit_history';
 
 const HistoryScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
-
   /* React Query Hook 적용 */
   const { visits: serverVisits, isLoading: isVisitsLoading, refetch, deleteVisit } = useVisits(customer?.id);
-  const { data: stats, refetch: refetchStats } = useCustomerStats(customer?.id);
-  const { data: couponCount, refetch: refetchCouponCount } = useCouponCount(customer?.id);
 
   /* 기존 로컬 상태 */
   const [personalNotes, setPersonalNotes] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  // stats, couponCount removed (replaced by hooks)
+  const [couponCount, setCouponCount] = useState(0);
   const [archiveMode, setArchiveMode] = useState('ALL');
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [stats, setStats] = useState({
+    current_stamps: customer?.current_stamps || 0,
+    visit_count: customer?.visit_count || 0
+  });
 
   /* 필터 관련 상태 */
   const [timeFilter, setTimeFilter] = useState('ALL');
@@ -51,7 +49,7 @@ const HistoryScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       if (customer) {
-        // 화면 포커스 시 데이터 새로고침
+        // 화면 포커스 시 데이터 새로고침 (React Query refetch + 로컬 데이터 + 통계)
         refreshAllData();
       }
     }, [customer])
@@ -62,8 +60,8 @@ const HistoryScreen = ({ navigation }) => {
       await Promise.all([
         refetch(),
         loadLocalData(),
-        refetchStats(),
-        refetchCouponCount()
+        loadStats(),
+        loadCouponCount()
       ]);
     } catch (e) {
       console.error(e);
@@ -77,7 +75,36 @@ const HistoryScreen = ({ navigation }) => {
     setPersonalNotes(formattedNotes);
   };
 
-  // loadStats, loadCouponCount removed
+  const loadStats = async () => {
+    const { data: latestStats } = await handleApiCall(
+      'HistoryScreen.loadStats',
+      () => visitService.getCustomerStats(customer.id),
+      { showAlert: false }
+    );
+    if (latestStats) {
+      setStats({
+        current_stamps: latestStats.current_stamps,
+        visit_count: latestStats.visit_count
+      });
+    }
+  };
+
+  const loadCouponCount = async () => {
+    try {
+      const { count, error } = await couponService.getValidCouponCount(customer.id);
+      if (error) {
+        console.error("쿠폰 조회 에러:", error);
+        return;
+      }
+      if (typeof count === 'number') {
+        setCouponCount(count);
+      } else {
+        setCouponCount(0);
+      }
+    } catch (err) {
+      console.error("loadCouponCount 실행 중 오류:", err);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
