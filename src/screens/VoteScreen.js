@@ -1,21 +1,22 @@
 import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  RefreshControl, 
-  Alert, 
-  Platform, 
-  BackHandler 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  Platform,
+  BackHandler
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { GradientBackground, LoadingSpinner, VoteCard } from '../components'; 
+import { GradientBackground, LoadingSpinner, VoteCard } from '../components';
 import { useAuth } from '../hooks/useAuth';
 import { voteService } from '../services/voteService';
 import { DrawerTheme } from '../constants/DrawerTheme';
 import { handleApiCall, showSuccessAlert } from '../utils/errorHandler';
+import { CommonStyles } from '../styles/CommonStyles';
 
 const VoteScreen = ({ navigation }) => {
   const { customer } = useAuth();
@@ -69,8 +70,8 @@ const VoteScreen = ({ navigation }) => {
       ]);
 
       setMyVote(myVoteRes.data);
-      
-      const finalResults = resRes.data?.results || {}; 
+
+      const finalResults = resRes.data?.results || {};
       setVoteResults(finalResults);
       setParticipantCount(countRes.data?.count || 0);
       setSelectedOptions(myVoteRes.data?.selected_options || []);
@@ -105,7 +106,7 @@ const VoteScreen = ({ navigation }) => {
           'VoteScreen.cancelVote',
           () => voteService.cancelVote(selectedVote.id, customer.id)
         );
-        
+
         if (!error) {
           await loadVoteData(selectedVote.id);
           setIsEditMode(false);
@@ -125,7 +126,7 @@ const VoteScreen = ({ navigation }) => {
         'VoteScreen.cancelVote',
         () => voteService.cancelVote(selectedVote.id, customer.id)
       );
-      
+
       if (!error) {
         await loadVoteData(selectedVote.id);
         setIsEditMode(false);
@@ -165,14 +166,14 @@ const VoteScreen = ({ navigation }) => {
   const handleOptionToggle = (optionId) => {
     if (!selectedVote.allow_multiple) {
       // 단일 투표: 이미 선택된 것을 다시 누르면 선택 해제
-      setSelectedOptions(prev => 
+      setSelectedOptions(prev =>
         prev.includes(optionId) ? [] : [optionId]
       );
     } else {
       // 복수 투표: 토글 방식
-      setSelectedOptions(prev => 
-        prev.includes(optionId) 
-          ? prev.filter(i => i !== optionId) 
+      setSelectedOptions(prev =>
+        prev.includes(optionId)
+          ? prev.filter(i => i !== optionId)
           : [...prev, optionId]
       );
     }
@@ -197,10 +198,10 @@ const VoteScreen = ({ navigation }) => {
             </View>
           ) : (
             votes.map(v => (
-              <VoteCard 
-                key={v.id} 
-                vote={v} 
-                onPress={async (v) => { setSelectedVote(v); await loadVoteData(v.id); }} 
+              <VoteCard
+                key={v.id}
+                vote={v}
+                onPress={async (v) => { setSelectedVote(v); await loadVoteData(v.id); }}
               />
             ))
           )}
@@ -211,7 +212,7 @@ const VoteScreen = ({ navigation }) => {
     const options = normalizeOptions(selectedVote.options);
     const total = Object.values(voteResults).reduce((a, b) => a + b, 0);
     const isResultView = showResults && !isEditMode;
-    
+
     return (
       <View>
         <TouchableOpacity style={styles.backLink} onPress={() => setSelectedVote(null)}>
@@ -253,8 +254,8 @@ const VoteScreen = ({ navigation }) => {
                 </View>
               </View>
             ) : (
-              <TouchableOpacity 
-                key={opt.id} 
+              <TouchableOpacity
+                key={opt.id}
                 style={[styles.optBtn, isSel && styles.optSel]}
                 onPress={() => handleOptionToggle(opt.id)}
               >
@@ -268,8 +269,8 @@ const VoteScreen = ({ navigation }) => {
         {(!showResults || isEditMode) && (
           <View style={styles.actionContainer}>
             {isEditMode && (
-              <TouchableOpacity 
-                style={styles.cancelButton} 
+              <TouchableOpacity
+                style={styles.cancelButton}
                 onPress={() => { setIsEditMode(false); setShowResults(true); }}
               >
                 <Text style={styles.cancelButtonText}>돌아가기</Text>
@@ -298,16 +299,16 @@ const VoteScreen = ({ navigation }) => {
 
   return (
     <GradientBackground>
-      <FlatList 
-        data={[{id: 1}]} 
+      <FlatList
+        data={[{ id: 1 }]}
         renderItem={renderContent}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.listArea}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={async () => { setRefreshing(true); await loadVotes(); setRefreshing(false); }} 
-            tintColor={DrawerTheme.goldBrass} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => { setRefreshing(true); await loadVotes(); setRefreshing(false); }}
+            tintColor={DrawerTheme.goldBrass}
           />
         }
       />
@@ -316,52 +317,17 @@ const VoteScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  listArea: { 
-    padding: 20, 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
-    paddingBottom: 100 
+  listArea: {
+    padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 100
   },
-  
-  header: { 
-    backgroundColor: DrawerTheme.woodDark, 
-    borderRadius: 12, 
-    paddingVertical: 25, 
-    paddingHorizontal: 20,
-    marginBottom: 25, 
-    borderWidth: 1.5,
-    borderColor: DrawerTheme.woodFrame,
-    alignItems: 'center',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 6 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 10, 
-    elevation: 8 
-  },
-  titleRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 12,
-    marginBottom: 8
-  },
-  title: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: DrawerTheme.goldBrass, 
-    letterSpacing: 3,
-    fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
-  },
-  headerDivider: { 
-    width: 50, 
-    height: 2, 
-    backgroundColor: DrawerTheme.goldBrass, 
-    marginVertical: 10,
-    opacity: 0.7
-  },
-  subtitle: { 
-    fontSize: 12, 
-    color: DrawerTheme.woodLight, 
-    opacity: 0.9
-  },
+
+  header: CommonStyles.headerBoard,
+  titleRow: CommonStyles.titleRow,
+  title: CommonStyles.title,
+  headerDivider: CommonStyles.headerDivider,
+  subtitle: CommonStyles.subtitle,
 
   backLink: { marginBottom: 15, paddingLeft: 5 },
   backLinkText: { color: '#A68966', fontSize: 13 },
@@ -373,30 +339,30 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' },
   sectionTitle: { color: DrawerTheme.goldBrass, fontSize: 15, fontWeight: 'bold' },
   editLink: { color: '#888', fontSize: 12, textDecorationLine: 'underline' },
-  optBtn: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: 'rgba(255,255,255,0.03)', 
-    borderRadius: 10, 
-    padding: 18, 
-    marginBottom: 10, 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.1)' 
+  optBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    padding: 18,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
   },
   optSel: { borderColor: DrawerTheme.goldBrass, backgroundColor: 'rgba(212, 175, 55, 0.05)' },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 15 },
   dotActive: { backgroundColor: DrawerTheme.goldBrass },
   optText: { color: '#AAA', fontSize: 15 },
   optTextActive: { color: '#FFF', fontWeight: 'bold' },
-  resBar: { 
-    height: 52, 
-    backgroundColor: 'rgba(0,0,0,0.2)', 
-    borderRadius: 10, 
-    marginBottom: 10, 
-    justifyContent: 'center', 
-    overflow: 'hidden', 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.05)' 
+  resBar: {
+    height: 52,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 10,
+    marginBottom: 10,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)'
   },
   resMy: { borderColor: 'rgba(212, 175, 55, 0.3)' },
   progress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(212, 175, 55, 0.15)' },

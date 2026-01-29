@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, 
 import * as Device from 'expo-device';
 
 // 통합 컴포넌트 임포트
-import { 
-  GradientBackground, 
-  CustomButton, 
-  SettingPasswordForm, 
-  SettingReportManager, 
-  SettingDeleteAccount 
+import {
+  GradientBackground,
+  CustomButton,
+  SettingPasswordForm,
+  SettingReportManager,
+  SettingDeleteAccount
 } from '../components';
 
 import { useAuth } from '../hooks/useAuth';
@@ -17,16 +17,16 @@ import { noticeService } from '../services/noticeService';
 import { supabase } from '../services/supabase';
 import { DrawerTheme } from '../constants/DrawerTheme';
 import { APP_INFO } from '../constants/Config';
-import { 
-  handleApiCall, 
+import {
+  handleApiCall,
   createValidationError,
   showErrorAlert,
-  showSuccessAlert 
+  showSuccessAlert
 } from '../utils/errorHandler';
 import { styles } from '../styles/SettingsStyles';
 
-const getStatusColor = (s) => ({ 
-  접수: '#ffa500', 확인중: '#2196f3', 완료: '#4caf50' 
+const getStatusColor = (s) => ({
+  접수: '#ffa500', 확인중: '#2196f3', 완료: '#4caf50'
 }[s] || DrawerTheme.woodLight);
 
 const SettingsScreen = () => {
@@ -133,10 +133,12 @@ const SettingsScreen = () => {
       }
       Alert.alert('회원 탈퇴', '정말 탈퇴하시겠습니까?', [
         { text: '취소', onPress: () => setProcessing(false) },
-        { text: '탈퇴', style: 'destructive', onPress: async () => {
-          const { error } = await handleApiCall('SettingsScreen.delete', () => customerService.deleteCustomer(customer.id));
-          if (!error) await logout();
-        }}
+        {
+          text: '탈퇴', style: 'destructive', onPress: async () => {
+            const { error } = await handleApiCall('SettingsScreen.delete', () => customerService.deleteCustomer(customer.id));
+            if (!error) await logout();
+          }
+        }
       ]);
     } catch { setProcessing(false); }
   };
@@ -146,9 +148,9 @@ const SettingsScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* 헤더 */}
         <View style={styles.header}>
-          <View style={styles.titleRow}><Text style={styles.icon}>⚙️</Text><Text style={styles.title}>설정</Text></View>
+          <View style={styles.titleRow}><Text style={styles.title}>SETTINGS</Text></View>
           <View style={styles.headerDivider} />
-          <Text style={styles.subtitle}>{customer?.nickname}님 계정</Text>
+          <Text style={styles.subtitle}>{customer?.nickname}님 계정 설정을 관리하세요</Text>
         </View>
 
         {/* 내 정보 */}
@@ -183,10 +185,10 @@ const SettingsScreen = () => {
           {activeSection === 'delete' && <SettingDeleteAccount onDelete={handleDeleteAccount} processing={processing} />}
         </View>
 
-        <CustomButton 
-          title="로그아웃" 
-          onPress={() => Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [{text:'취소'}, {text:'로그아웃', onPress: logout}])} 
-          variant="secondary" 
+        <CustomButton
+          title="로그아웃"
+          onPress={() => Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [{ text: '취소' }, { text: '로그아웃', onPress: logout }])}
+          variant="secondary"
         />
         <View style={styles.appInfo}><Text style={styles.appInfoText}>Tarot Stamp v{APP_INFO.version}</Text></View>
       </ScrollView>

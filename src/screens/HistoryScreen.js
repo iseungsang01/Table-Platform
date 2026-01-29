@@ -488,58 +488,68 @@ const HistoryScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   scrollContainer: { paddingBottom: 80 },
-  header: { alignItems: 'center', paddingTop: 40, marginBottom: 20 },
-  title: { fontSize: 26, letterSpacing: 5, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' },
-  brassBoard: { flexDirection: 'row', width: '92%', marginTop: 20, padding: 15, borderRadius: 8, borderWidth: 2, elevation: 10 },
+  // 헤더 여백 축소
+  header: { alignItems: 'center', paddingTop: 20, marginBottom: 10 },
+  // 타이틀 크기 및 자간 축소
+  title: { fontSize: 22, letterSpacing: 3, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' },
+  // 보드 마진 및 패딩 축소
+  brassBoard: { flexDirection: 'row', width: '92%', marginTop: 10, padding: 10, borderRadius: 8, borderWidth: 2, elevation: 10 },
   statBox: { alignItems: 'center', flex: 1 },
-  statLabel: { fontSize: 10, marginBottom: 4, fontWeight: 'bold' },
-  statValue: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
+  // 스탯 폰트 축소
+  statLabel: { fontSize: 9, marginBottom: 2, fontWeight: 'bold' },
+  statValue: { fontSize: 16, color: '#FFF', fontWeight: 'bold' },
   divider: { width: 1, height: 25 },
-  tabContainer: { flexDirection: 'row', width: '92%', height: 46, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, marginTop: 20, padding: 4, borderWidth: 1 },
+  // 탭 컨테이너 높이 및 마진 축소
+  tabContainer: { flexDirection: 'row', width: '92%', height: 38, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, marginTop: 10, padding: 3, borderWidth: 1 },
   tabButton: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'transparent' },
-  tabLabel: { color: '#888', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
+  // 탭 라벨 폰트 축소
+  tabLabel: { color: '#888', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
   activeTabLabel: { color: '#FFF' },
 
-  filterSection: { width: '92%', marginTop: 15, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  filterButton: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
+  // 필터 섹션 마진 및 패딩 축소
+  filterSection: { width: '92%', marginTop: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 8, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
+  filterRow: { flexDirection: 'row', gap: 6, marginBottom: 6 },
+  filterButton: { flex: 1, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
   filterButtonActive: { backgroundColor: DrawerTheme.goldBrass, borderColor: DrawerTheme.goldBright },
-  filterText: { fontSize: 12, color: '#AAA', fontWeight: 'bold' },
+  // 필터 텍스트 폰트 축소
+  filterText: { fontSize: 10, color: '#AAA', fontWeight: 'bold' },
   filterTextActive: { color: '#1A0F0A' },
-  yearSelector: { flexDirection: 'row', gap: 6, marginBottom: 8 },
-  yearButton: { flex: 1, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
+  yearSelector: { flexDirection: 'row', gap: 6, marginBottom: 6 },
+  yearButton: { flex: 1, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
   yearButtonActive: { backgroundColor: DrawerTheme.woodMid, borderColor: DrawerTheme.goldBrass },
-  yearText: { fontSize: 11, color: '#999', fontWeight: 'bold' },
+  // 연도 텍스트 폰트 축소
+  yearText: { fontSize: 10, color: '#999', fontWeight: 'bold' },
   yearTextActive: { color: DrawerTheme.goldBright },
   monthSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  monthButton: { width: '15%', paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
+  monthButton: { width: '15%', paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
   monthButtonActive: { backgroundColor: DrawerTheme.woodMid, borderColor: DrawerTheme.goldBrass },
-  monthText: { fontSize: 10, color: '#999', fontWeight: 'bold' },
+  // 월 텍스트 폰트 축소
+  monthText: { fontSize: 9, color: '#999', fontWeight: 'bold' },
   monthTextActive: { color: DrawerTheme.goldBright },
 
   // ✅ 선택 모드 UI (수정됨)
-  selectionControl: { width: '92%', marginTop: 12 },
+  selectionControl: { width: '92%', marginTop: 8 },
   selectionActions: {
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 12,
-    padding: 15,
+    padding: 10,
     borderWidth: 1.5,
     borderColor: DrawerTheme.goldBrass
   },
   selectedCount: {
-    fontSize: 14,
+    fontSize: 13,
     color: DrawerTheme.goldBrass,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: 'center'
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 10
+    gap: 8
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
@@ -547,13 +557,13 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   cancelButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#AAA',
     fontWeight: 'bold'
   },
   deleteAllButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: 'rgba(255,107,107,0.2)',
     borderWidth: 1,
@@ -561,7 +571,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   deleteAllText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#ff6b6b',
     fontWeight: 'bold'
   },
@@ -572,18 +582,18 @@ const styles = StyleSheet.create({
   // ✅ 힌트 텍스트
   hintContainer: {
     width: '92%',
-    marginTop: 12,
-    padding: 12,
+    marginTop: 8,
+    padding: 8,
     backgroundColor: 'rgba(212,175,55,0.1)',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(212,175,55,0.2)'
   },
   hintText: {
-    fontSize: 12,
+    fontSize: 11,
     color: DrawerTheme.woodLight,
     textAlign: 'center',
-    lineHeight: 18
+    lineHeight: 16
   },
 
   manualAddDrawer: { height: 100, margin: 2, borderWidth: 1.5, borderStyle: 'dashed', borderColor: DrawerTheme.goldBrass, justifyContent: 'center', alignItems: 'center', marginBottom: 5 },

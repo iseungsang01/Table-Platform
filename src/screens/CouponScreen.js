@@ -7,6 +7,7 @@ import { couponService } from '../services/couponService';
 import { AdminPassword } from '../services/supabase';
 import { DrawerTheme } from '../constants/DrawerTheme';
 import { handleApiCall, createValidationError, showErrorAlert, showSuccessAlert } from '../utils/errorHandler';
+import { CommonStyles } from '../styles/CommonStyles';
 
 const CouponScreen = ({ navigation }) => {
   const { customer, refreshCustomer } = useAuth();
@@ -55,27 +56,29 @@ const CouponScreen = ({ navigation }) => {
       showErrorAlert(createValidationError('PASSWORD_EMPTY'), Alert);
       return;
     }
-    
+
     if (password !== AdminPassword) {
       Alert.alert('인증 실패', '관리자 비밀번호가 일치하지 않습니다.');
       return;
     }
-    
+
     Keyboard.dismiss();
     const typeNm = getCouponType(coupon.coupon_code) === 'birthday' ? '생일 쿠폰' : '스탬프 쿠폰';
 
     Alert.alert('쿠폰 사용', `${typeNm}을 사용하시겠습니까?`, [
       { text: '취소', style: 'cancel' },
-      { text: '사용 확정', onPress: async () => {
-        setProcessing(true);
-        const { error } = await handleApiCall('CouponScreen.handleUseCoupon', () => couponService.useCoupon(coupon.id));
-        if (!error) {
-          showSuccessAlert('COUPON_USED', Alert, `✅ ${typeNm}이 사용되었습니다!`);
-          handleCancelUse();
-          await Promise.all([loadCoupons(), refreshCustomer()]);
+      {
+        text: '사용 확정', onPress: async () => {
+          setProcessing(true);
+          const { error } = await handleApiCall('CouponScreen.handleUseCoupon', () => couponService.useCoupon(coupon.id));
+          if (!error) {
+            showSuccessAlert('COUPON_USED', Alert, `✅ ${typeNm}이 사용되었습니다!`);
+            handleCancelUse();
+            await Promise.all([loadCoupons(), refreshCustomer()]);
+          }
+          setProcessing(false);
         }
-        setProcessing(false);
-      }}
+      }
     ]);
   };
 
@@ -86,13 +89,13 @@ const CouponScreen = ({ navigation }) => {
 
     return (
       <View key={coupon.id} style={styles.couponWrapper}>
-        <CouponCard 
-          coupon={coupon} 
-          type={type} 
-          onPress={() => handleSelectCoupon(coupon)} 
+        <CouponCard
+          coupon={coupon}
+          type={type}
+          onPress={() => handleSelectCoupon(coupon)}
           containerStyle={isSelected ? styles.selectedCard : null}
         />
-        
+
         {isSelected && (
           <View style={styles.inlineForm}>
             <View style={styles.formHeader}>
@@ -100,21 +103,21 @@ const CouponScreen = ({ navigation }) => {
               <Text style={styles.formLabel}>관리자 인증이 필요합니다</Text>
             </View>
 
-            <TextInput 
-              ref={passwordInputRef} 
-              style={styles.inlineInput} 
-              value={password} 
-              onChangeText={setPassword} 
-              placeholder="관리자 비밀번호" 
-              placeholderTextColor="rgba(255,255,255,0.15)" 
-              secureTextEntry 
+            <TextInput
+              ref={passwordInputRef}
+              style={styles.inlineInput}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="관리자 비밀번호"
+              placeholderTextColor="rgba(255,255,255,0.15)"
+              secureTextEntry
               autoCapitalize="none"
               onSubmitEditing={() => handleUseCoupon(coupon)}
             />
 
             <View style={styles.formButtons}>
-              <TouchableOpacity 
-                style={[styles.btn, styles.submitBtn]} 
+              <TouchableOpacity
+                style={[styles.btn, styles.submitBtn]}
                 onPress={() => handleUseCoupon(coupon)}
                 disabled={processing}
               >
@@ -137,8 +140,8 @@ const CouponScreen = ({ navigation }) => {
 
   return (
     <GradientBackground>
-      <ScrollView 
-        contentContainerStyle={styles.listArea} 
+      <ScrollView
+        contentContainerStyle={styles.listArea}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={DrawerTheme.goldBrass} />}
       >
         {/* 🪵 NoticeScreen 규격과 100% 동일한 헤더 */}
@@ -148,7 +151,7 @@ const CouponScreen = ({ navigation }) => {
           </View>
           <View style={styles.headerDivider} />
           <Text style={styles.subtitle}>{customer.nickname}님의 소중한 혜택</Text>
-          
+
           {/* 통계 Row (헤더 내부 배치) */}
           <View style={styles.statsRow}>
             {[[coupons.length, '보유중'], [stampCoupons.length, '스탬프'], [birthdayCoupons.length, '생일']].map(([val, lab], i) => (
@@ -196,65 +199,32 @@ const CouponScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  // 🪵 NoticeScreen 규격 그대로 이식
-  listArea: { 
-    padding: 20, 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
-    paddingBottom: 100 
+  // 🪵 NoticeScreen 규격 그대로 이식 (CommonStyles 사용)
+  listArea: {
+    padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 100
   },
-  header: { 
-    backgroundColor: DrawerTheme.woodDark, 
-    borderRadius: 12, 
-    paddingVertical: 25, 
-    paddingHorizontal: 20,
-    marginBottom: 25, 
-    borderWidth: 1.5,
-    borderColor: DrawerTheme.woodFrame,
-    alignItems: 'center',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 6 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 10, 
-    elevation: 8 
-  },
-  titleRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 12,
-    marginBottom: 8
-  },
-  title: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: DrawerTheme.goldBrass, 
-    letterSpacing: 3,
-    fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
-  },
-  headerDivider: { 
-    width: 50, 
-    height: 2, 
-    backgroundColor: DrawerTheme.goldBrass, 
-    marginVertical: 10,
-    opacity: 0.7
-  },
-  subtitle: { 
-    fontSize: 12, 
-    color: DrawerTheme.woodLight, 
-    opacity: 0.9,
+  header: CommonStyles.headerBoard,
+  titleRow: CommonStyles.titleRow,
+  title: CommonStyles.title,
+  headerDivider: CommonStyles.headerDivider,
+  subtitle: {
+    ...CommonStyles.subtitle,
     marginBottom: 20 // 통계 Row와의 간격
   },
 
   // 쿠폰 전용 통계 스타일
   statsRow: { flexDirection: 'row', gap: 10 },
-  statBox: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.3)', 
-    borderRadius: 6, 
-    paddingVertical: 10, 
-    paddingHorizontal: 15, 
-    alignItems: 'center', 
-    borderWidth: 0.5, 
-    borderColor: 'rgba(212,175,55,0.2)' 
+  statBox: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(212,175,55,0.2)'
   },
   statValue: { fontSize: 18, fontWeight: 'bold', color: '#FFF' },
   statLabel: { fontSize: 10, color: DrawerTheme.woodLight, marginTop: 2 },
@@ -264,10 +234,10 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: 'bold', color: DrawerTheme.goldBrass, marginBottom: 15, marginLeft: 5 },
   couponWrapper: { marginBottom: 12 },
   selectedCard: { borderColor: DrawerTheme.goldBrass, borderWidth: 1.5 },
-  
+
   // 비밀번호 입력 폼
-  inlineForm: { 
-    backgroundColor: 'rgba(24, 22, 20, 0.98)', 
+  inlineForm: {
+    backgroundColor: 'rgba(24, 22, 20, 0.98)',
     marginTop: -4, marginHorizontal: 4,
     borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
     padding: 18, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.3)', borderTopWidth: 0,
@@ -276,8 +246,8 @@ const styles = StyleSheet.create({
   formHeader: { alignItems: 'center', marginBottom: 15 },
   selectedCouponTitle: { color: '#FFF', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   formLabel: { color: '#666', fontSize: 10 },
-  inlineInput: { 
-    backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 6, padding: 14, 
+  inlineInput: {
+    backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 6, padding: 14,
     color: DrawerTheme.goldBright, fontSize: 15, textAlign: 'center', marginBottom: 15,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)'
   },

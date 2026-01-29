@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { GradientBackground, LoadingSpinner, NoticeCard } from '../components'; 
+import { GradientBackground, LoadingSpinner, NoticeCard } from '../components';
 import { useAuth } from '../hooks/useAuth';
 import { noticeService } from '../services/noticeService';
 import { DrawerTheme } from '../constants/DrawerTheme';
+import { CommonStyles } from '../styles/CommonStyles';
 
 const NoticeScreen = () => {
   const { customer } = useAuth();
@@ -58,10 +59,10 @@ const NoticeScreen = () => {
         }
         contentContainerStyle={styles.listArea}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={handleRefresh} 
-            tintColor={DrawerTheme.goldBrass} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={DrawerTheme.goldBrass}
           />
         }
       />
@@ -70,70 +71,32 @@ const NoticeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  listArea: { 
-    padding: 20, 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
-    paddingBottom: 100 
-  },
-  
-  // 헤더
-  header: { 
-    backgroundColor: DrawerTheme.woodDark, 
-    borderRadius: 12, 
-    paddingVertical: 25, 
-    paddingHorizontal: 20,
-    marginBottom: 25, 
-    borderWidth: 1.5,
-    borderColor: DrawerTheme.woodFrame,
-    alignItems: 'center',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 6 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 10, 
-    elevation: 8 
-  },
-  titleRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 12,
-    marginBottom: 8
-  },
-  icon: { 
-    fontSize: 28 
-  },
-  title: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: DrawerTheme.goldBrass, 
-    letterSpacing: 3,
-    fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
-  },
-  headerDivider: { 
-    width: 50, 
-    height: 2, 
-    backgroundColor: DrawerTheme.goldBrass, 
-    marginVertical: 10,
-    opacity: 0.7
-  },
-  subtitle: { 
-    fontSize: 12, 
-    color: DrawerTheme.woodLight, 
-    opacity: 0.9
+  listArea: {
+    padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 100
   },
 
+  // 헤더 (CommonStyles 적용)
+  header: CommonStyles.headerBoard,
+  titleRow: CommonStyles.titleRow,
+  title: CommonStyles.title,
+  headerDivider: CommonStyles.headerDivider,
+  subtitle: CommonStyles.subtitle,
+
   // 빈 상태
-  emptyBox: { 
-    alignItems: 'center', 
+  emptyBox: {
+    alignItems: 'center',
     paddingTop: 100,
     paddingBottom: 40
   },
-  emptyIcon: { 
-    fontSize: 64, 
-    marginBottom: 20, 
-    opacity: 0.3 
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+    opacity: 0.3
   },
-  emptyText: { 
-    fontSize: 15, 
+  emptyText: {
+    fontSize: 15,
     color: DrawerTheme.woodLight,
     fontStyle: 'italic',
     opacity: 0.7
