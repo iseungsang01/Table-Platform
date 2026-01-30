@@ -15,7 +15,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, guestLogin } = useAuth();
 
   const resetMsg = () => message.text && setMessage({ text: '', type: '' });
 
@@ -46,17 +46,12 @@ const LoginScreen = () => {
     setMessage({ text: '정보를 확인하고 있습니다...', type: 'info' });
 
     try {
-      const result = await login(phone, password);
-      if (result.success) {
+      const { data, error } = await login(phone, password);
+
+      if (data) {
         setMessage({ text: '환영합니다!', type: 'success' });
       } else {
-        let errorMessage = result.message;
-        if (result.message.includes('등록되지 않은')) {
-          errorMessage = ERROR_MESSAGES.AUTH.NOT_REGISTERED.message;
-        } else if (result.message.includes('비밀번호')) {
-          errorMessage = ERROR_MESSAGES.AUTH.WRONG_PASSWORD.message;
-        }
-        setMessage({ text: errorMessage, type: 'error' });
+        setMessage({ text: error?.message || '로그인에 실패했습니다.', type: 'error' });
       }
     } catch (error) {
       setMessage({ text: '오류가 발생했습니다. 다시 시도해주세요.', type: 'error' });
@@ -67,12 +62,12 @@ const LoginScreen = () => {
 
   return (
     <GradientBackground>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
-          
+
           {/* 상단 Antic 헤더 영역 */}
           <View style={styles.headerArea}>
             <Text style={styles.mainTitle}>MEMBERSHIP LOGIN</Text>
@@ -85,37 +80,37 @@ const LoginScreen = () => {
             <View style={styles.inputSection}>
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>전화번호</Text>
-                <TextInput 
-                  style={styles.textInput} 
-                  value={phone} 
-                  onChangeText={handlePhoneChange} 
-                  placeholder="010-0000-0000" 
-                  placeholderTextColor="rgba(166, 137, 102, 0.4)" 
-                  keyboardType="phone-pad" 
-                  maxLength={13} 
-                  editable={!loading} 
+                <TextInput
+                  style={styles.textInput}
+                  value={phone}
+                  onChangeText={handlePhoneChange}
+                  placeholder="010-0000-0000"
+                  placeholderTextColor="rgba(166, 137, 102, 0.4)"
+                  keyboardType="phone-pad"
+                  maxLength={13}
+                  editable={!loading}
                 />
               </View>
 
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>비밀번호</Text>
-                <TextInput 
-                  style={styles.textInput} 
-                  value={password} 
-                  onChangeText={handlePasswordChange} 
-                  placeholder="********" 
-                  placeholderTextColor="rgba(166, 137, 102, 0.4)" 
-                  secureTextEntry 
-                  editable={!loading} 
-                  onSubmitEditing={handleLogin} 
+                <TextInput
+                  style={styles.textInput}
+                  value={password}
+                  onChangeText={handlePasswordChange}
+                  placeholder="********"
+                  placeholderTextColor="rgba(166, 137, 102, 0.4)"
+                  secureTextEntry
+                  editable={!loading}
+                  onSubmitEditing={handleLogin}
                 />
               </View>
             </View>
 
             {/* ✅ 골드 브라운 커스텀 버튼 */}
-            <TouchableOpacity 
-              onPress={handleLogin} 
-              disabled={loading} 
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={loading}
               activeOpacity={0.8}
               style={styles.loginButtonWrapper}
             >
@@ -131,6 +126,28 @@ const LoginScreen = () => {
               </LinearGradient>
             </TouchableOpacity>
 
+            {/* ✅ 게스트 로그인 버튼 */}
+            <TouchableOpacity
+              onPress={async () => {
+                console.log('Guest Login Button Pressed'); // Debug Log
+                try {
+                  const { error } = await guestLogin();
+
+                  if (error) {
+                    setMessage({ text: '게스트 로그인 오류', type: 'error' });
+                  }
+                } catch (e) {
+                  console.error('Guest Login Error in UI:', e);
+                }
+              }}
+              disabled={loading}
+              activeOpacity={0.7}
+              style={styles.guestButtonWrapper}
+            >
+              <Text style={styles.guestButtonText}>게스트로 둘러보기</Text>
+            </TouchableOpacity>
+
+
             {/* 알림 메시지 디자인 */}
             {message.text && (
               <View style={[styles.statusMsg, styles[`status${message.type.charAt(0).toUpperCase() + message.type.slice(1)}`]]}>
@@ -140,10 +157,10 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.footerArea}>
-             <View style={styles.titleLine} />
-             <Text style={styles.footerHelp}>
-                매장에 등록하신 번호로 이용 가능합니다.{"\n"}정보가 기억나지 않으시면 가게에 문의해주세요.
-             </Text>
+            <View style={styles.titleLine} />
+            <Text style={styles.footerHelp}>
+              매장에 등록하신 번호로 이용 가능합니다.{"\n"}정보가 기억나지 않으시면 가게에 문의해주세요.
+            </Text>
           </View>
 
         </ScrollView>
@@ -154,82 +171,82 @@ const LoginScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { 
-    flexGrow: 1, 
-    justifyContent: 'center', 
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     padding: 24,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
-  
+
   // 헤더 (NoticeScreen 스타일 계승)
-  headerArea: { 
-    backgroundColor: DrawerTheme.woodDark, 
-    borderRadius: 12, 
-    paddingVertical: 30, 
+  headerArea: {
+    backgroundColor: DrawerTheme.woodDark,
+    borderRadius: 12,
+    paddingVertical: 30,
     paddingHorizontal: 20,
-    marginBottom: 25, 
+    marginBottom: 25,
     borderWidth: 1.5,
     borderColor: DrawerTheme.woodFrame,
     alignItems: 'center',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 6 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 10, 
-    elevation: 8 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8
   },
-  mainTitle: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: DrawerTheme.goldBrass, 
+  mainTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: DrawerTheme.goldBrass,
     letterSpacing: 4,
     fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif'
   },
-  headerDivider: { 
-    width: 40, 
-    height: 2, 
-    backgroundColor: DrawerTheme.goldBrass, 
+  headerDivider: {
+    width: 40,
+    height: 2,
+    backgroundColor: DrawerTheme.goldBrass,
     marginVertical: 12,
     opacity: 0.7
   },
-  mainSubtitle: { 
-    fontSize: 12, 
-    color: DrawerTheme.woodLight, 
+  mainSubtitle: {
+    fontSize: 12,
+    color: DrawerTheme.woodLight,
     opacity: 0.8,
     letterSpacing: 0.5
   },
 
   // 입력 카드 (HistoryScreen의 대시보드 스타일 계승)
-  mainCard: { 
+  mainCard: {
     backgroundColor: '#2A1B12',
-    borderRadius: 16, 
-    padding: 24, 
-    width: '100%', 
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
     borderWidth: 1.5,
     borderColor: '#5D4037',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowOpacity: 0.5, 
-    shadowRadius: 20, 
-    elevation: 15 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 15
   },
 
   inputSection: { marginBottom: 10 },
   inputWrapper: { marginBottom: 20 },
-  inputLabel: { 
-    fontSize: 11, 
-    fontWeight: 'bold', 
-    color: DrawerTheme.goldBrass, 
-    marginBottom: 8, 
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: DrawerTheme.goldBrass,
+    marginBottom: 8,
     paddingLeft: 4,
     letterSpacing: 1.5
   },
-  
-  textInput: { 
-    backgroundColor: '#1A110B', 
-    borderRadius: 8, 
-    padding: 16, 
-    fontSize: 16, 
-    color: '#E0C9A6', 
+
+  textInput: {
+    backgroundColor: '#1A110B',
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 16,
+    color: '#E0C9A6',
     textAlign: 'center',
     fontWeight: '500',
     borderWidth: 1,
@@ -240,8 +257,8 @@ const styles = StyleSheet.create({
   loginButtonWrapper: {
     marginTop: 10,
   },
-  loginButton: { 
-    height: 56, 
+  loginButton: {
+    height: 56,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -263,6 +280,20 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 
+  // ✅ 게스트 로그인 버튼 스타일
+  guestButtonWrapper: {
+    marginTop: 15,
+    alignItems: 'center',
+    padding: 10,
+  },
+  guestButtonText: {
+    color: DrawerTheme.woodLight,
+    fontSize: 14,
+    textDecorationLine: 'underline',
+    opacity: 0.8,
+  },
+
+
   // 알림 메시지 디자인
   statusMsg: { padding: 12, borderRadius: 8, marginTop: 20, borderWidth: 1 },
   statusError: { backgroundColor: 'rgba(255, 82, 82, 0.05)', borderColor: 'rgba(255, 82, 82, 0.3)' },
@@ -272,10 +303,10 @@ const styles = StyleSheet.create({
 
   footerArea: { alignItems: 'center', marginTop: 30 },
   titleLine: { width: 20, height: 1, backgroundColor: DrawerTheme.woodFrame, marginBottom: 15 },
-  footerHelp: { 
-    fontSize: 12, 
-    color: DrawerTheme.woodLight, 
-    textAlign: 'center', 
+  footerHelp: {
+    fontSize: 12,
+    color: DrawerTheme.woodLight,
+    textAlign: 'center',
     lineHeight: 18,
     opacity: 0.6
   },

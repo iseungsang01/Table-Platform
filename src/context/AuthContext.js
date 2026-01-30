@@ -43,22 +43,22 @@ export const AuthProvider = ({ children }) => {
    * 로그인
    * @param {string} phoneNumber - 전화번호
    * @param {string} password - 비밀번호
-   * @returns {object} { success, message?, customer? }
+   * @returns {object} { data, error }
    */
   const login = async (phoneNumber, password) => {
     try {
-      const result = await authService.login(phoneNumber, password);
-      
-      if (result.success) {
-        setCustomer(result.customer);
+      const { data, error } = await authService.login(phoneNumber, password);
+
+      if (data) {
+        setCustomer(data);
       }
-      
-      return result;
+
+      return { data, error };
     } catch (error) {
       logError('AuthContext.login', error, { phoneNumber });
-      return { 
-        success: false, 
-        message: '로그인 중 오류가 발생했습니다.' 
+      return {
+        data: null,
+        error: { message: '로그인 중 오류가 발생했습니다.' }
       };
     }
   };
@@ -79,8 +79,8 @@ export const AuthProvider = ({ children }) => {
    * 고객 정보 새로고침
    */
   const refreshCustomer = async () => {
-    if (!customer) return;
-    
+    if (!customer || customer.isGuest) return;
+
     try {
       const refreshed = await authService.refreshCustomer(customer.id);
       if (refreshed) {
@@ -91,12 +91,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * 게스트 로그인
+   */
+  const guestLogin = async () => {
+    console.log('AuthContext: guestLogin called'); // Debug Log
+    try {
+      const guestUser = {
+        id: 'guest',
+        nickname: '게스트',
+        isGuest: true,
+        current_stamps: 0,
+        visit_count: 0
+      };
+
+      setCustomer(guestUser);
+      return { data: guestUser, error: null };
+    } catch (error) {
+      logError('AuthContext.guestLogin', error);
+      console.error('AuthContext: guestLogin failed', error); // Debug Log
+      return { data: null, error: { message: '게스트 로그인 실패' } };
+    }
+  };
+
   const value = {
     customer,
     loading,
     login,
     logout,
     refreshCustomer,
+    guestLogin,
   };
 
   return (

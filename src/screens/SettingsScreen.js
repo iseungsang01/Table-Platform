@@ -159,31 +159,35 @@ const SettingsScreen = () => {
           <View style={styles.infoCard}>
             <View style={styles.infoRow}><Text style={styles.infoLabel}>닉네임</Text><Text style={styles.infoValue}>{customer?.nickname}</Text></View>
             <View style={styles.divider} />
-            <View style={styles.infoRow}><Text style={styles.infoLabel}>연락처</Text><Text style={styles.infoValue}>{customer?.phone_number}</Text></View>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>연락처</Text><Text style={styles.infoValue}>{customer?.isGuest ? '게스트' : customer?.phone_number}</Text></View>
           </View>
         </View>
 
-        {/* 설정 메뉴 */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.menuButton} onPress={() => toggleSection('password')}>
-            <Text style={styles.menuButtonText}>🔐 비밀번호 재설정 {activeSection === 'password' ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-          {activeSection === 'password' && <SettingPasswordForm onSubmit={handlePasswordReset} processing={processing} />}
-        </View>
+        {/* 설정 메뉴 (게스트는 숨김) */}
+        {!customer?.isGuest && (
+          <>
+            <View style={styles.section}>
+              <TouchableOpacity style={styles.menuButton} onPress={() => toggleSection('password')}>
+                <Text style={styles.menuButtonText}>🔐 비밀번호 재설정 {activeSection === 'password' ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {activeSection === 'password' && <SettingPasswordForm onSubmit={handlePasswordReset} processing={processing} />}
+            </View>
 
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.menuButton} onPress={() => toggleSection('report')}>
-            <Text style={styles.menuButtonText}>🛠️ 버그 및 불편사항 관리 {activeSection === 'report' ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-          {activeSection === 'report' && <SettingReportManager myReports={myReports} onSubmit={handleSubmitReport} getStatusColor={getStatusColor} processing={processing} />}
-        </View>
+            <View style={styles.section}>
+              <TouchableOpacity style={styles.menuButton} onPress={() => toggleSection('report')}>
+                <Text style={styles.menuButtonText}>🛠️ 버그 및 불편사항 관리 {activeSection === 'report' ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {activeSection === 'report' && <SettingReportManager myReports={myReports} onSubmit={handleSubmitReport} getStatusColor={getStatusColor} processing={processing} />}
+            </View>
 
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.menuButtonDanger} onPress={() => toggleSection('delete')}>
-            <Text style={styles.menuButtonTextDanger}>🗑️ 회원 탈퇴 {activeSection === 'delete' ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-          {activeSection === 'delete' && <SettingDeleteAccount onDelete={handleDeleteAccount} processing={processing} />}
-        </View>
+            <View style={styles.section}>
+              <TouchableOpacity style={styles.menuButtonDanger} onPress={() => toggleSection('delete')}>
+                <Text style={styles.menuButtonTextDanger}>🗑️ 회원 탈퇴 {activeSection === 'delete' ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {activeSection === 'delete' && <SettingDeleteAccount onDelete={handleDeleteAccount} processing={processing} />}
+            </View>
+          </>
+        )}
 
         <CustomButton
           title="로그아웃"

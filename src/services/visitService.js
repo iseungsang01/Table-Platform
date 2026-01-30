@@ -6,6 +6,11 @@ export const visitService = {
    * 고객의 방문 기록 목록 조회
    */
   async getVisits(customerId) {
+    // ✅ 게스트 모드: 빈 데이터 반환
+    if (customerId === 'guest') {
+      return { data: [], error: null };
+    }
+
     try {
       const { data, error } = await supabase
         .from('visit_history')
@@ -69,6 +74,11 @@ export const visitService = {
         customer_id: visitData.customer_id,
         visit_date: visitData.visit_date
       };
+
+      // ✅ 게스트 모드: 서버 저장 차단 (혹은 에러 반환)
+      if (visitData.customer_id === 'guest') {
+        return { data: null, error: 'Guest cannot save to server' };
+      }
 
       const { data, error } = await supabase
         .from('visit_history')
@@ -136,6 +146,11 @@ export const visitService = {
   },
 
   async getCustomerStats(customerId) {
+    // ✅ 게스트 모드: 기본 스탯 반환
+    if (customerId === 'guest') {
+      return { data: { current_stamps: 0, visit_count: 0 }, error: null };
+    }
+
     try {
       const { data, error } = await supabase
         .from('customers')

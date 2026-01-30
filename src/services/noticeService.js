@@ -131,6 +131,9 @@ export const noticeService = {
    * @returns {object} { data, error }
    */
   async submitReport(reportData) {
+    if (reportData.customer_id === 'guest') {
+      return { data: null, error: 'Guest cannot submit reports' };
+    }
     try {
       const { data, error } = await supabase
         .from('bug_reports')
@@ -160,6 +163,7 @@ export const noticeService = {
    * @returns {object} { data, error }
    */
   async getMyReports(customerId) {
+    if (customerId === 'guest') return { data: [], error: null };
     try {
       const { data, error } = await supabase
         .from('bug_reports')

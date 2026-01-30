@@ -11,6 +11,7 @@ export const couponService = {
    * @returns {object} { data, error }
    */
   async getCoupons(customerId) {
+    if (customerId === 'guest') return { data: [], error: null };
     try {
       const { data, error } = await supabase
         .from('coupon_history')
@@ -36,6 +37,7 @@ export const couponService = {
    * @returns {object} { count, error }
    */
   async getCouponCount(customerId) {
+    if (customerId === 'guest') return { count: 0, error: null };
     try {
       console.log('Counting coupons for customer:', customerId);
 
@@ -142,6 +144,7 @@ export const couponService = {
    * @returns {object} { data, error }
    */
   async getValidCoupons(customerId) {
+    if (customerId === 'guest') return { data: [], error: null };
     try {
       const now = new Date().toISOString();
 
@@ -166,6 +169,7 @@ export const couponService = {
    * @returns {object} { count, error }
    */
   async getValidCouponCount(customerId) {
+    if (customerId === 'guest') return { count: 0, error: null };
     try {
       const now = new Date().toISOString();
 

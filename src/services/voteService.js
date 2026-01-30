@@ -41,6 +41,7 @@ export const voteService = {
    * @returns {object} { data, error }
    */
   async getMyVote(voteId, customerId) {
+    if (customerId === 'guest') return { data: null, error: null };
     try {
       const { data, error } = await supabase
         .from('vote_responses')
@@ -70,6 +71,7 @@ export const voteService = {
    * @returns {object} { data, error }
    */
   async submitVote(voteId, customerId, selectedOptions, existingVoteId = null) {
+    if (customerId === 'guest') return { data: null, error: 'Guest cannot vote' };
     try {
       if (existingVoteId) {
         // 투표 수정
@@ -125,10 +127,10 @@ export const voteService = {
       (data || []).forEach((response) => {
         // 데이터가 배열인지 JSON 문자열인지 확인하여 안전하게 파싱
         let options = response.selected_options;
-        
+
         // 만약 문자열로 저장되어 있다면 파싱, 아니면 그대로 사용
         if (typeof options === 'string') {
-           try { options = JSON.parse(options); } catch(e) { options = []; }
+          try { options = JSON.parse(options); } catch (e) { options = []; }
         }
         if (!Array.isArray(options)) options = [];
 
@@ -139,7 +141,7 @@ export const voteService = {
         });
       });
 
-      return { data: { results }, error: null }; 
+      return { data: { results }, error: null };
 
     } catch (error) {
       console.error('Get vote results error:', error);
@@ -174,6 +176,7 @@ export const voteService = {
    * @returns {object} { data, error }
    */
   async cancelVote(voteId, customerId) {
+    if (customerId === 'guest') return { data: null, error: 'Guest cannot cancel vote' };
     try {
       const { error } = await supabase
         .from('vote_responses')
