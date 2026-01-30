@@ -10,7 +10,7 @@ import { CommonStyles } from '../styles/CommonStyles';
 const NoticeScreen = () => {
   const { customer } = useAuth();
   const [notices, setNotices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {

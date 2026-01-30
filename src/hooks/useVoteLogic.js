@@ -10,6 +10,7 @@ export const useVoteLogic = () => {
 
     // State
     const [votes, setVotes] = useState([]);
+    const [myVoteMap, setMyVoteMap] = useState({}); // ✅ 내 투표 기록 전체 캐싱
     const [selectedVote, setSelectedVote] = useState(null);
     const [selectedOptions, setSelectedOptions] = useState([]);
     const [myVote, setMyVote] = useState(null);
@@ -17,40 +18,53 @@ export const useVoteLogic = () => {
     const [participantCount, setParticipantCount] = useState(0);
 
     // UI State
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false); // ✅ 초기값을 false로 변경하여 깜빡임 제거
+    const [voteDataLoading, setVoteDataLoading] = useState(false); // ✅ 투표 상세 데이터 로딩 상태
     const [refreshing, setRefreshing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showResults, setShowResults] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
-    // Load list of votes
+    // Load list of votes and my responses
     const loadVotes = useCallback(async () => {
-        const { data, error } = await handleApiCall('VoteScreen.loadVotes', () => voteService.getVotes());
-        if (!error && data) setVotes(data);
+        // 1. 투표 목록 로드
+        const { data: votesData, error: votesError } = await handleApiCall('VoteScreen.loadVotes', () => voteService.getVotes());
+
+        // 2. 내 투표 기록 로드 (병렬 처리)
+        const { data: myResponseMap } = await handleApiCall('VoteScreen.loadMyResp', () => voteService.getMyAllResponses(customer.id), { showAlert: false });
+
+        if (!votesError && votesData) {
+            setVotes(votesData);
+        }
+        if (myResponseMap) {
+            setMyVoteMap(myResponseMap);
+        }
         setLoading(false);
-    }, []);
+    }, [customer.id]);
 
     // Initial load
     useFocusEffect(useCallback(() => { loadVotes(); }, [loadVotes]));
 
-    // Load specific vote data
+    // Load specific vote data (Results & Counts only)
     const loadVoteData = useCallback(async (vId) => {
+        setVoteDataLoading(true);
         try {
-            const [myVoteRes, resRes, countRes] = await Promise.all([
-                handleApiCall('VoteScreen.loadMyVote', () => voteService.getMyVote(vId, customer.id), { showAlert: false }),
+            const [resRes, countRes] = await Promise.all([
+                // voteService.getMyVote(vId, customer.id), // ❌ 이미 myVoteMap에서 가져왔으므로 네트워크 요청 제거
                 handleApiCall('VoteScreen.loadVoteResults', () => voteService.getVoteResults(vId), { showAlert: false }),
                 handleApiCall('VoteScreen.loadCount', () => voteService.getVoteParticipants(vId), { showAlert: false })
             ]);
 
-            setMyVote(myVoteRes.data);
-
             const finalResults = resRes.data?.results || {};
             setVoteResults(finalResults);
             setParticipantCount(countRes.data?.count || 0);
-            setSelectedOptions(myVoteRes.data?.selected_options || []);
-            setShowResults(!!myVoteRes.data);
+
+            // 결과 화면 업데이트 (이미 보여지고 있겠지만 최신 데이터로 업데이트)
+            // setShowResults(!!myVote); // ❌ onSelectVote에서 이미 처리했으므로 제거
         } catch (e) {
             console.error(e);
+        } finally {
+            setVoteDataLoading(false);
         }
     }, [customer.id]);
 
@@ -78,7 +92,20 @@ export const useVoteLogic = () => {
     };
 
     const onSelectVote = async (vote) => {
+        setVoteDataLoading(true);
         setSelectedVote(vote);
+
+        // ✅ 잔상 제거: 이전 결과 초기화
+        setVoteResults({});
+        setParticipantCount(0);
+
+        // ✅ 1. 캐시된 내 투표 정보 즉시 적용 (딜레이 제거)
+        const cachedMyVote = myVoteMap[vote.id] || null;
+        setMyVote(cachedMyVote);
+        setSelectedOptions(cachedMyVote?.selected_options || []);
+        setShowResults(!!cachedMyVote); // 투표했으면 바로 결과화면 보여줌
+
+        // 2. 백그라운드에서 최신 집계 데이터 로드
         await loadVoteData(vote.id);
     };
 
@@ -117,6 +144,14 @@ export const useVoteLogic = () => {
             );
 
             if (!error) {
+                // 로컬 상태 업데이트
+                setMyVoteMap(prev => {
+                    const next = { ...prev };
+                    delete next[selectedVote.id];
+                    return next;
+                });
+                setMyVote(null);
+
                 await loadVoteData(selectedVote.id);
                 setIsEditMode(false);
                 setShowResults(false);
@@ -140,6 +175,10 @@ export const useVoteLogic = () => {
         );
 
         if (res.data) {
+            // 로컬 상태 업데이트
+            setMyVoteMap(prev => ({ ...prev, [selectedVote.id]: res.data }));
+            setMyVote(res.data);
+
             await loadVoteData(selectedVote.id);
             setIsEditMode(false);
             setShowResults(true);
@@ -163,6 +202,7 @@ export const useVoteLogic = () => {
             voteResults,
             participantCount,
             loading,
+            voteDataLoading,
             refreshing,
             submitting,
             showResults,

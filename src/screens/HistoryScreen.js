@@ -131,7 +131,10 @@ const HistoryScreen = ({ navigation }) => {
     );
   };
 
-  if (isVisitsLoading && !refreshing) return <GradientBackground><LoadingSpinner /></GradientBackground>;
+  // ✅ 데이터가 없고 로딩 중일 때만 스피너 표시 (캐시된 데이터가 있으면 보여줌)
+  const isInitialLoading = isVisitsLoading && !refreshing && (!getDisplayData() || getDisplayData().length === 0);
+
+  if (isInitialLoading) return <GradientBackground><LoadingSpinner /></GradientBackground>;
 
   return (
     <GradientBackground>

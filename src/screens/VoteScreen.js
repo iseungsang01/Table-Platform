@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, FlatList, RefreshControl, Platform } from 'react-native';
+import { StyleSheet, FlatList, RefreshControl, Platform, View } from 'react-native';
 
 // Components
 import { GradientBackground } from '../components/GradientBackground';
@@ -26,6 +26,7 @@ const VoteScreen = ({ navigation }) => {
     voteResults,
     participantCount,
     loading,
+    voteDataLoading,
     refreshing,
     submitting,
     showResults,
@@ -52,6 +53,14 @@ const VoteScreen = ({ navigation }) => {
           votes={votes}
           onSelectVote={onSelectVote}
         />
+      );
+    }
+
+    if (voteDataLoading) {
+      return (
+        <View style={{ height: 400, justifyContent: 'center' }}>
+          <LoadingSpinner message="투표 데이터를 가져오는 중..." />
+        </View>
       );
     }
 

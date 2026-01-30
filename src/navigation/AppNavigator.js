@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
+import { Colors } from '../constants/Colors';
 import { GradientBackground } from '../components/GradientBackground';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import AuthNavigator from './AuthNavigator';
@@ -23,7 +24,19 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      theme={{
+        dark: true,
+        colors: {
+          background: Colors.purpleDark,
+          primary: Colors.gold,
+          card: Colors.purpleMid,
+          text: '#ffffff',
+          border: Colors.purpleLight,
+          notification: Colors.red,
+        },
+      }}
+    >
       {customer ? <MainNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

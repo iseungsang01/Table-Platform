@@ -63,6 +63,34 @@ export const voteService = {
   },
 
   /**
+   * 내 모든 투표 참여 기록 조회 (최적화용)
+   * @param {number} customerId - 고객 ID
+   * @returns {object} { data: Object<voteId, response>, error }
+   */
+  async getMyAllResponses(customerId) {
+    if (customerId === 'guest') return { data: {}, error: null };
+    try {
+      const { data, error } = await supabase
+        .from('vote_responses')
+        .select('*')
+        .eq('customer_id', customerId);
+
+      if (error) throw error;
+
+      // vote_id를 키로 하는 맵 생성
+      const responseMap = {};
+      (data || []).forEach(item => {
+        responseMap[item.vote_id] = item;
+      });
+
+      return { data: responseMap, error: null };
+    } catch (error) {
+      console.error('Get all my responses error:', error);
+      return { data: {}, error };
+    }
+  },
+
+  /**
    * 투표하기 또는 수정하기
    * @param {number} voteId - 투표 ID
    * @param {number} customerId - 고객 ID

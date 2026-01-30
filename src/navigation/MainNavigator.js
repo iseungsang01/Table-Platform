@@ -57,6 +57,9 @@ const TabNavigator = () => {
           marginBottom: insets.bottom > 0 ? 0 : 5, // ✅ 홈 버튼이 있는 기기는 여백 조정
         },
       }}
+      sceneContainerStyle={{
+        backgroundColor: Colors.purpleDark,
+      }}
     >
       <Tab.Screen
         name="Home"
