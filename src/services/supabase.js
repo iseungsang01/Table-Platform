@@ -74,18 +74,33 @@ export const createCustomer = async (phoneNumber, nickname, birthday) => {
  */
 export const confirmVisit = async (customerId) => {
   try {
-    // 1. 방문 횟수 증가
+    // 1. 현재 고객 정보 조회
+    const { data: customer, error: fetchError } = await supabase
+      .from('customers')
+      .select('visit_count')
+      .eq('id', customerId)
+      .single();
+
+    if (fetchError) {
+      console.error('고객 정보 조회 오류:', fetchError);
+      throw fetchError;
+    }
+
+    // 2. 방문 횟수 증가
     const { error: updateError } = await supabase
       .from('customers')
       .update({ 
-        visit_count: supabase.raw('visit_count + 1'),
+        visit_count: customer.visit_count + 1,
         last_visit: new Date().toISOString()
       })
       .eq('id', customerId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('방문 횟수 업데이트 오류:', updateError);
+      throw updateError;
+    }
 
-    // 2. 방문 기록 생성
+    // 3. 방문 기록 생성
     const { error: insertError } = await supabase
       .from('visit_history')
       .insert({
@@ -94,7 +109,10 @@ export const confirmVisit = async (customerId) => {
         is_deleted: false,
       });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('방문 기록 생성 오류:', insertError);
+      throw insertError;
+    }
 
     return { success: true, error: null };
   } catch (error) {
