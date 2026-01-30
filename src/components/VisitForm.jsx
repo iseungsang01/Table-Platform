@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { findCustomerByPhone, confirmVisit } from '../services/supabase';
+import { findCustomerByPhone, createCustomer, confirmVisit } from '../services/supabase';
 
 const VisitForm = ({ onSuccess, onError }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: 전화번호 입력, 2: 고객 정보 확인
+  const [step, setStep] = useState(1); // 1: 전화번호 입력, 2: 고객 정보 확인, 3: 신규 고객 등록
+
+  // 신규 고객 등록 폼 데이터
+  const [newCustomer, setNewCustomer] = useState({
+    nickname: '',
+    birthday: '',
+  });
 
   /**
    * 전화번호 포맷팅 (010-1234-5678)
@@ -38,6 +44,16 @@ const VisitForm = ({ onSuccess, onError }) => {
   };
 
   /**
+   * 신규 고객 정보 입력 핸들러
+   */
+  const handleNewCustomerChange = (field, value) => {
+    setNewCustomer((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  /**
    * 1단계: 고객 조회
    */
   const handleSearchCustomer = async (e) => {
@@ -60,13 +76,56 @@ const VisitForm = ({ onSuccess, onError }) => {
       }
 
       if (!data) {
-        onError('등록되지 않은 전화번호입니다.');
+        // 고객이 없는 경우 → 신규 등록 단계로 이동
+        setStep(3);
         return;
       }
 
       // 고객 정보 저장 및 2단계로 이동
       setCustomer(data);
       setStep(2);
+    } catch (error) {
+      onError('서버 연결에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * 신규 고객 등록 처리
+   */
+  const handleRegisterCustomer = async (e) => {
+    e.preventDefault();
+
+    // 유효성 검사
+    if (!newCustomer.nickname.trim()) {
+      onError('닉네임을 입력해주세요.');
+      return;
+    }
+
+    if (!newCustomer.birthday) {
+      onError('생일을 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await createCustomer(
+        phoneNumber,
+        newCustomer.nickname,
+        newCustomer.birthday
+      );
+
+      if (error) {
+        onError('고객 등록 중 오류가 발생했습니다.');
+        return;
+      }
+
+      // 등록된 고객 정보 저장 및 확인 단계로 이동
+      setCustomer(data);
+      setStep(2);
+      onSuccess(`${data.nickname}님, 환영합니다! 회원 등록이 완료되었습니다. 🎉`);
     } catch (error) {
       onError('서버 연결에 실패했습니다. 다시 시도해주세요.');
     } finally {
@@ -88,6 +147,7 @@ const VisitForm = ({ onSuccess, onError }) => {
         // 폼 초기화
         setPhoneNumber('');
         setCustomer(null);
+        setNewCustomer({ nickname: '', birthday: '' });
         setStep(1);
       } else {
         onError('방문 처리 중 오류가 발생했습니다.');
@@ -104,6 +164,7 @@ const VisitForm = ({ onSuccess, onError }) => {
    */
   const handleCancel = () => {
     setCustomer(null);
+    setNewCustomer({ nickname: '', birthday: '' });
     setStep(1);
   };
 
@@ -122,7 +183,9 @@ const VisitForm = ({ onSuccess, onError }) => {
         <div className="form-header">
           <h2 className="form-title">방문 체크인</h2>
           <p className="form-description">
-            {step === 1 ? '등록된 전화번호를 입력해주세요' : '고객 정보를 확인해주세요'}
+            {step === 1 && '등록된 전화번호를 입력해주세요'}
+            {step === 2 && '고객 정보를 확인해주세요'}
+            {step === 3 && '신규 고객 정보를 입력해주세요'}
           </p>
         </div>
 
@@ -224,9 +287,96 @@ const VisitForm = ({ onSuccess, onError }) => {
           </div>
         )}
 
+        {/* 3단계: 신규 고객 등록 */}
+        {step === 3 && (
+          <form onSubmit={handleRegisterCustomer} className="visit-form new-customer-form">
+            <div className="register-notice">
+              <p className="register-notice-text">
+                📝 등록되지 않은 전화번호입니다.<br />
+                신규 고객 정보를 입력해주세요.
+              </p>
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="register-phone" className="input-label">
+                📱 전화번호
+              </label>
+              <input
+                id="register-phone"
+                type="tel"
+                value={phoneNumber}
+                disabled
+                className="phone-input disabled"
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="nickname" className="input-label">
+                👤 닉네임 <span className="required">*</span>
+              </label>
+              <input
+                id="nickname"
+                type="text"
+                value={newCustomer.nickname}
+                onChange={(e) => handleNewCustomerChange('nickname', e.target.value)}
+                placeholder="홍길동"
+                maxLength={20}
+                disabled={loading}
+                className="text-input"
+                autoComplete="name"
+              />
+              <span className="input-hint">20자 이내로 입력해주세요</span>
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="birthday" className="input-label">
+                🎂 생일 <span className="required">*</span>
+              </label>
+              <input
+                id="birthday"
+                type="date"
+                value={newCustomer.birthday}
+                onChange={(e) => handleNewCustomerChange('birthday', e.target.value)}
+                disabled={loading}
+                className="date-input"
+                max={new Date().toISOString().split('T')[0]}
+              />
+              <span className="input-hint">생년월일을 선택해주세요</span>
+            </div>
+
+            <div className="action-buttons">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={loading}
+                className="cancel-button"
+              >
+                ❌ 취소
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`confirm-button ${loading ? 'loading' : ''}`}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    등록 중...
+                  </>
+                ) : (
+                  <>
+                    ✅ 등록 완료
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
         {step === 1 && (
           <div className="form-footer">
-            <p className="info-text">💡 등록되지 않은 번호는 매장에 문의해주세요</p>
+            <p className="info-text">💡 신규 고객은 자동으로 등록 안내가 표시됩니다</p>
           </div>
         )}
       </div>

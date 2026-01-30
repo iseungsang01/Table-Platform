@@ -42,14 +42,46 @@ export const findCustomerByPhone = async (phoneNumber) => {
 };
 
 /**
+ * 신규 고객 등록
+ */
+export const createCustomer = async (phoneNumber, nickname, birthday) => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .insert({
+        phone_number: phoneNumber,
+        nickname: nickname,
+        birthday: birthday,
+        current_stamps: 0,
+        total_stamps: 0,
+        coupons: 0,
+        visit_count: 0,
+      })
+      .select('id, phone_number, nickname, birthday, visit_count')
+      .single();
+
+    if (error) throw error;
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('고객 등록 오류:', error);
+    return { data: null, error };
+  }
+};
+
+/**
  * 2단계: 방문 확인 처리 (방문 횟수 증가 + 방문 기록 생성)
  */
 export const confirmVisit = async (customerId) => {
   try {
     // 1. 방문 횟수 증가
-    const { error: updateError } = await supabase.rpc('increment_visit_count', {
-      target_customer_id: customerId,
-    });
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({ 
+        visit_count: supabase.raw('visit_count + 1'),
+        last_visit: new Date().toISOString()
+      })
+      .eq('id', customerId);
 
     if (updateError) throw updateError;
 

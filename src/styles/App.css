@@ -164,24 +164,48 @@ body {
   margin-bottom: 8px;
 }
 
-.phone-input {
+.required {
+  color: #ff4500;
+  font-weight: 700;
+}
+
+.phone-input,
+.text-input,
+.date-input {
   width: 100%;
   padding: 16px;
   font-size: 1.1rem;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   transition: all 0.3s ease;
-  text-align: center;
   font-weight: 500;
 }
 
-.phone-input:focus {
+.phone-input {
+  text-align: center;
+}
+
+.text-input {
+  text-align: left;
+}
+
+.date-input {
+  text-align: left;
+  font-family: inherit;
+}
+
+.phone-input:focus,
+.text-input:focus,
+.date-input:focus {
   outline: none;
   border-color: #8a2be2;
   box-shadow: 0 0 0 4px rgba(138, 43, 226, 0.1);
 }
 
-.phone-input:disabled {
+.phone-input:disabled,
+.text-input:disabled,
+.date-input:disabled,
+.phone-input.disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
   opacity: 0.7;
@@ -192,6 +216,23 @@ body {
   font-size: 0.8rem;
   color: #999;
   margin-top: 6px;
+}
+
+/* 신규 고객 등록 안내 */
+.register-notice {
+  background: linear-gradient(135deg, #fff9e6 0%, #ffe6f0 100%);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.register-notice-text {
+  font-size: 0.95rem;
+  color: #8a2be2;
+  font-weight: 600;
+  line-height: 1.6;
 }
 
 /* 제출 버튼 */
@@ -411,7 +452,9 @@ body {
     font-size: 1.5rem;
   }
 
-  .phone-input {
+  .phone-input,
+  .text-input,
+  .date-input {
     font-size: 1rem;
     padding: 14px;
   }
@@ -441,5 +484,13 @@ body {
   .cancel-button,
   .confirm-button {
     width: 100%;
+  }
+
+  .register-notice {
+    padding: 16px;
+  }
+
+  .register-notice-text {
+    font-size: 0.9rem;
   }
 }
