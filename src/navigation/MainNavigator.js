@@ -40,6 +40,7 @@ const TabNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        unmountOnBlur: true, // ✅ 탭 이동 시 화면 초기화 (다른 탭 갔다 오면 처음 상태로)
         tabBarStyle: {
           backgroundColor: Colors.purpleMid,
           borderTopColor: Colors.gold,

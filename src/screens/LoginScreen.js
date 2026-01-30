@@ -159,7 +159,7 @@ const LoginScreen = () => {
           <View style={styles.footerArea}>
             <View style={styles.titleLine} />
             <Text style={styles.footerHelp}>
-              매장에 등록하신 번호로 이용 가능합니다.{"\n"}정보가 기억나지 않으시면 가게에 문의해주세요.
+              매장에 등록하신 번호로 이용 가능합니다.{"\n"}정보가 기억나지 않으시면 가게에 문의해주세요.{"\n"}초기 비밀번호는 1234입니다.{"\n"}로그인 후 비밀번호를 변경해주세요.
             </Text>
           </View>
 
