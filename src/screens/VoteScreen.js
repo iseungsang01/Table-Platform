@@ -32,6 +32,7 @@ const VoteScreen = ({ navigation }) => {
     showResults,
     isEditMode,
     customer,
+    isEnded,
   } = state;
 
   const {
@@ -76,6 +77,7 @@ const VoteScreen = ({ navigation }) => {
         participantCount={participantCount}
         showResults={showResults}
         isEditMode={isEditMode}
+        isEnded={isEnded}
         submitting={submitting}
         isGuest={customer?.isGuest}
         onOptionToggle={handleOptionToggle}

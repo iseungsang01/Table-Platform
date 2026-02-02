@@ -154,7 +154,7 @@ const CouponScreen = ({ navigation }) => {
 
           {/* 통계 Row (헤더 내부 배치) */}
           <View style={styles.statsRow}>
-            {[[coupons.length, '보유중'], [stampCoupons.length, '스탬프'], [birthdayCoupons.length, '생일']].map(([val, lab], i) => (
+            {[[coupons.length, '보유중'], [stampCoupons.length, '스탬프'], [birthdayCoupons.length, '기타']].map(([val, lab], i) => (
               <View key={i} style={styles.statBox}>
                 <Text style={styles.statValue}>{val}</Text>
                 <Text style={styles.statLabel}>{lab}</Text>
@@ -190,7 +190,7 @@ const CouponScreen = ({ navigation }) => {
             • 쿠폰을 탭하면 인증 화면이 나타납니다{'\n'}
             • 관리자에게 화면을 보여주세요{'\n'}
             • 스탬프 쿠폰: 스탬프 10개 모으면 쿠폰 1개 지급{'\n'}
-            • 생일 쿠폰: 유효기간 내 1회 사용 가능
+            • 기타 쿠폰: 유효기간 내 1회 사용 가능
           </Text>
         </View>
       </ScrollView>

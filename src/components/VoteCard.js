@@ -16,8 +16,8 @@ export const VoteCard = ({ vote, onPress }) => {
   const isExpired = vote.ends_at && new Date(vote.ends_at) < new Date();
 
   return (
-    <TouchableOpacity 
-      style={[styles.card, isExpired && styles.cardExpired]} 
+    <TouchableOpacity
+      style={[styles.card, isExpired && styles.cardExpired]}
       onPress={() => onPress(vote)}
       activeOpacity={0.8}
     >
@@ -47,7 +47,7 @@ export const VoteCard = ({ vote, onPress }) => {
       {/* 하단 푸터 */}
       <View style={styles.cardFooter}>
         <Text style={styles.footerInfo}>소중한 의견을 남겨주세요</Text>
-        <Text style={styles.enterText}>참여하기 ❯</Text>
+        <Text style={styles.enterText}>{isExpired ? '결과보기 ❯' : '참여하기 ❯'}</Text>
       </View>
     </TouchableOpacity>
   );

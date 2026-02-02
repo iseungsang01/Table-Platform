@@ -12,6 +12,7 @@ export const VoteDetail = ({
     participantCount,
     showResults,
     isEditMode,
+    isEnded,
     submitting,
     isGuest,
     onOptionToggle,
@@ -21,7 +22,7 @@ export const VoteDetail = ({
     onEditRequest
 }) => {
     const total = Object.values(voteResults).reduce((a, b) => a + b, 0);
-    const isResultView = (showResults || isGuest) && !isEditMode;
+    const isResultView = (showResults || isGuest || isEnded) && !isEditMode;
 
     return (
         <View>
@@ -42,7 +43,7 @@ export const VoteDetail = ({
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>{isResultView ? '📊 결과 현황' : '🗳️ 항목 선택'}</Text>
-                    {isResultView && !isGuest && (
+                    {isResultView && !isGuest && !isEnded && (
                         <TouchableOpacity onPress={onEditRequest}>
                             <Text style={styles.editLink}>다시 투표하기</Text>
                         </TouchableOpacity>
@@ -94,15 +95,17 @@ export const VoteDetail = ({
                     <TouchableOpacity
                         style={[
                             styles.submitButton,
-                            (submitting || isGuest) && styles.submitButtonDisabled
+                            (submitting || isGuest || isEnded) && styles.submitButtonDisabled
                         ]}
-                        disabled={submitting || isGuest}
+                        disabled={submitting || isGuest || isEnded}
                         onPress={onSubmit}
                     >
                         <Text style={styles.submitButtonText}>
                             {isGuest
                                 ? '로그인이 필요한 기능입니다'
-                                : (submitting ? '처리 중...' : (isEditMode ? '수정 완료' : '투표하기'))
+                                : (isEnded
+                                    ? '종료된 투표입니다'
+                                    : (submitting ? '처리 중...' : (isEditMode ? '수정 완료' : '투표하기')))
                             }
                         </Text>
                     </TouchableOpacity>

@@ -91,6 +91,14 @@ export const useVoteLogic = () => {
         setRefreshing(false);
     };
 
+    const isVoteEnded = (vote) => {
+        if (!vote) return false;
+        if (vote.ends_at && new Date(vote.ends_at) < new Date()) {
+            return true;
+        }
+        return false;
+    };
+
     const onSelectVote = async (vote) => {
         setVoteDataLoading(true);
         setSelectedVote(vote);
@@ -103,13 +111,18 @@ export const useVoteLogic = () => {
         const cachedMyVote = myVoteMap[vote.id] || null;
         setMyVote(cachedMyVote);
         setSelectedOptions(cachedMyVote?.selected_options || []);
-        setShowResults(!!cachedMyVote); // 투표했으면 바로 결과화면 보여줌
+
+        // 종료된 투표인 경우 결과 화면을 우선적으로 보여줌
+        const isEnded = isVoteEnded(vote);
+        setShowResults(!!cachedMyVote || isEnded);
 
         // 2. 백그라운드에서 최신 집계 데이터 로드
         await loadVoteData(vote.id);
     };
 
     const handleOptionToggle = (optionId) => {
+        if (isVoteEnded(selectedVote)) return;
+
         if (!selectedVote.allow_multiple) {
             setSelectedOptions(prev => prev.includes(optionId) ? [] : [optionId]);
         } else {
@@ -123,6 +136,12 @@ export const useVoteLogic = () => {
 
     const handleSubmitVote = async () => {
         if (submitting) return;
+
+        // 종료된 투표인지 확인
+        if (isVoteEnded(selectedVote)) {
+            Alert.alert('알림', '이미 종료된 투표입니다.', [{ text: '확인' }]);
+            return;
+        }
 
         // Validation
         if (selectedVote.allow_multiple && selectedVote.max_selections) {
@@ -208,6 +227,7 @@ export const useVoteLogic = () => {
             showResults,
             isEditMode,
             customer, // exposing customer for guest check logic in UI
+            isEnded: isVoteEnded(selectedVote),
         },
         actions: {
             setSelectedVote,
