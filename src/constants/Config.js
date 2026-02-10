@@ -1,8 +1,8 @@
 /** 앱 설정 상수 */
 
 export const APP_INFO = {
-  name: '서랍',
-  version: '1.0.0',
+  name: 'drawer',
+  version: '1.0.4',
   description: '타로 카드 선택 및 스탬프 적립 앱',
 };
 
