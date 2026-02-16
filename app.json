@@ -2,7 +2,7 @@
   "expo": {
     "name": "drawer",
     "slug": "drawer",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,8 +17,8 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.drawer.app",
-      "buildNumber": "1.0.4",
+      "bundleIdentifier": "com.tarotstamp.app",
+      "buildNumber": "1.0.5",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "타로 도장을 찍기 위해 사진 갤러리에 접근합니다.",
         "NSCameraUsageDescription": "타로 도장을 찍기 위해 카메라에 접근합니다.",
@@ -30,12 +30,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a0033"
       },
-      "package": "com.drawer.app",
-      "versionCode": 3,
+      "package": "com.tarotstamp.app",
+      "versionCode": 4,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -65,7 +66,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "fd92790a-ebf7-470d-bcc7-f657ef5f7568"
+        "projectId": "9bd97c79-0da9-4e10-8ea1-3504e95df837"
       }
     }
   }
