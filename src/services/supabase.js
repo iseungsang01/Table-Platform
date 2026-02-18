@@ -15,4 +15,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export const AdminPassword = process.env.EXPO_PUBLIC_ADMIN_PASSWORD;

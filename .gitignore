@@ -82,3 +82,6 @@ web-build/
 *.lock
 .yarn/
 
+# SQL & Database Docs
+SupabaseSQL.md
+

@@ -44,9 +44,13 @@ export const noticeService = {
 
       if (noticesError) throw noticesError;
 
-      // 2. 로컬 스토리지에 읽음 처리
+      // 2. 로컬 스토리지에 읽음 처리 (현재 존재하는 모든 공지사항 ID로 덮어쓰기 하여 정리)
       const noticeIds = (allNotices || []).map(n => n.id);
-      await storage.markNoticesAsRead(noticeIds);
+      if (noticeIds.length > 0) {
+        await storage.markNoticesAsRead(noticeIds);
+      } else {
+        await storage.save(STORAGE_KEYS.READ_NOTICES, []);
+      }
 
       return { error: null };
     } catch (error) {
@@ -112,10 +116,13 @@ export const noticeService = {
 
       const allNoticeIds = (data || []).map(n => n.id);
 
-      // 2. 로컬 스토리지에서 읽은 공지사항 조회
+      // 2. 로컬 스토리지 동기화 (삭제된 공지사항 ID 제거 - 용량 최소화)
+      await storage.syncReadNotices(allNoticeIds);
+
+      // 3. 로컬 스토리지에서 읽은 공지사항 조회
       const readNotices = await storage.getReadNotices();
 
-      // 3. 하나라도 안 읽은 공지사항이 있는지 확인
+      // 4. 하나라도 안 읽은 공지사항이 있는지 확인
       const hasUnread = allNoticeIds.some(id => !readNotices.includes(id));
 
       return { hasUnread, error: null };

@@ -316,13 +316,29 @@ export const storage = {
   async markNoticeAsRead(noticeId) { await this.markNoticesAsRead([noticeId]); },
   async markNoticesAsRead(noticeIds) {
     const read = await this.get(STORAGE_KEYS.READ_NOTICES) || [];
-    await this.save(STORAGE_KEYS.READ_NOTICES, [...new Set([...read, ...noticeIds])]);
+    const updated = [...new Set([...read, ...noticeIds])];
+    await this.save(STORAGE_KEYS.READ_NOTICES, updated);
   },
   async isNoticeRead(noticeId) { return (await this.get(STORAGE_KEYS.READ_NOTICES) || []).includes(noticeId); },
   async getReadNotices() { return await this.get(STORAGE_KEYS.READ_NOTICES) || []; },
   async getUnreadNoticeCount(allNoticeIds) {
     const read = await this.get(STORAGE_KEYS.READ_NOTICES) || [];
     return allNoticeIds.filter(id => !read.includes(id)).length;
+  },
+
+  /**
+   * 읽은 공지사항 목록 동기화 (삭제된 공지사항 정리)
+   * @param {number[]} activeIds - 현재 서버에 존재하는 공지사항 ID 목록
+   */
+  async syncReadNotices(activeIds) {
+    const read = await this.get(STORAGE_KEYS.READ_NOTICES) || [];
+    const filtered = read.filter(id => activeIds.includes(id));
+
+    // 개수가 달라졌다면 (삭제된 게 있다면) 다시 저장
+    if (read.length !== filtered.length) {
+      await this.save(STORAGE_KEYS.READ_NOTICES, filtered);
+      console.log(`🧹 [Storage] 삭제된 공지사항 ID 정리 완료 (${read.length} -> ${filtered.length})`);
+    }
   },
 
   // 앱 설정 및 캐시

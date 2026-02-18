@@ -26,9 +26,7 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (customer) {
-      loadNotifications();
-    }
+    loadNotifications();
   }, [customer]);
 
   /**
@@ -36,8 +34,8 @@ export const useNotifications = () => {
    * 개수 대신 boolean 값만 조회
    */
   const loadNotifications = async () => {
-    if (!customer) return;
-
+    // customer 정보가 로딩 중일 때는 건너뜀 (단, guest는 허용)
+    // AuthContext의 loading 상태가 false일 때 실행하는 것이 안전
     setLoading(true);
 
     try {
@@ -56,7 +54,7 @@ export const useNotifications = () => {
    */
   const refresh = useCallback(() => {
     loadNotifications();
-  }, [customer]);
+  }, []);
 
   /**
    * 하나라도 안 읽은 알림이 있는지

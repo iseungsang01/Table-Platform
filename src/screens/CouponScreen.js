@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { GradientBackground, LoadingSpinner, CouponCard } from '../components';
 import { useAuth } from '../hooks/useAuth';
 import { couponService } from '../services/couponService';
-import { AdminPassword } from '../services/supabase';
+import { adminService } from '../services/adminService';
 import { DrawerTheme } from '../constants/DrawerTheme';
 import { handleApiCall, createValidationError, showErrorAlert, showSuccessAlert } from '../utils/errorHandler';
 import { CommonStyles } from '../styles/CommonStyles';
@@ -57,10 +57,15 @@ const CouponScreen = ({ navigation }) => {
       return;
     }
 
-    if (password !== AdminPassword) {
+    setProcessing(true);
+    const { data: success, error: verifyError } = await handleApiCall('CouponScreen.verifyPassword', () => adminService.verifyPassword(password));
+
+    if (verifyError || !success) {
+      setProcessing(false);
       Alert.alert('인증 실패', '관리자 비밀번호가 일치하지 않습니다.');
       return;
     }
+    setProcessing(false);
 
     Keyboard.dismiss();
     const typeNm = getCouponType(coupon.coupon_code) === 'birthday' ? '생일 쿠폰' : '스탬프 쿠폰';
