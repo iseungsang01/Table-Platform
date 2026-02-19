@@ -70,14 +70,14 @@ export const createCustomer = async (phoneNumber, nickname, birthday) => {
 };
 
 /**
- * 2단계: 방문 확인 처리 (방문 횟수 증가 + 방문 기록 생성)
+ * 2단계: 방문 확인 처리 (방문 횟수는 하루에 한 번만 증가 + 방문 기록은 매번 생성)
  */
 export const confirmVisit = async (customerId) => {
   try {
-    // 1. 현재 고객 정보 조회
+    // 1. 현재 고객 정보 조회 (방문 횟수와 마지막 방문일 확인)
     const { data: customer, error: fetchError } = await supabase
       .from('customers')
-      .select('visit_count')
+      .select('visit_count, last_visit')
       .eq('id', customerId)
       .single();
 
@@ -86,26 +86,34 @@ export const confirmVisit = async (customerId) => {
       throw fetchError;
     }
 
-    // 2. 방문 횟수 증가
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const lastVisitDate = customer.last_visit ? customer.last_visit.split('T')[0] : null;
+
+    // 오늘 첫 방문인 경우에만 방문 횟수 증가
+    const shouldIncrementVisit = lastVisitDate !== today;
+    const newVisitCount = shouldIncrementVisit ? customer.visit_count + 1 : customer.visit_count;
+
+    // 2. 방문 정보 업데이트 (마지막 방문일은 매번 갱신)
     const { error: updateError } = await supabase
       .from('customers')
-      .update({ 
-        visit_count: customer.visit_count + 1,
-        last_visit: new Date().toISOString()
+      .update({
+        visit_count: newVisitCount,
+        last_visit: now.toISOString()
       })
       .eq('id', customerId);
 
     if (updateError) {
-      console.error('방문 횟수 업데이트 오류:', updateError);
+      console.error('방문 정보 업데이트 오류:', updateError);
       throw updateError;
     }
 
-    // 3. 방문 기록 생성
+    // 3. 방문 기록 생성 (유저 서랍 개수 - 매 방문마다 생성)
     const { error: insertError } = await supabase
       .from('visit_history')
       .insert({
         customer_id: customerId,
-        visit_date: new Date().toISOString(),
+        visit_date: now.toISOString(),
         is_deleted: false,
       });
 

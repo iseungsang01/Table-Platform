@@ -97,23 +97,12 @@ const VisitForm = ({ onSuccess, onError }) => {
   const handleRegisterCustomer = async (e) => {
     e.preventDefault();
 
-    // 유효성 검사
-    if (!newCustomer.nickname.trim()) {
-      onError('닉네임을 입력해주세요.');
-      return;
-    }
-
-    if (!newCustomer.birthday) {
-      onError('생일을 입력해주세요.');
-      return;
-    }
-
     setLoading(true);
 
     try {
       const { data, error } = await createCustomer(
         phoneNumber,
-        newCustomer.nickname,
+        newCustomer.nickname.trim(),
         newCustomer.birthday
       );
 
@@ -125,7 +114,7 @@ const VisitForm = ({ onSuccess, onError }) => {
       // 등록된 고객 정보 저장 및 확인 단계로 이동
       setCustomer(data);
       setStep(2);
-      onSuccess(`${data.nickname}님, 환영합니다! 회원 등록이 완료되었습니다. 🎉`);
+      onSuccess(`${data.nickname || '고객'}님, 환영합니다! 회원 등록이 완료되었습니다. 🎉`);
     } catch (error) {
       onError('서버 연결에 실패했습니다. 다시 시도해주세요.');
     } finally {
@@ -143,7 +132,7 @@ const VisitForm = ({ onSuccess, onError }) => {
       const { success } = await confirmVisit(customer.id);
 
       if (success) {
-        onSuccess(`${customer.nickname}님, 방문해주셔서 감사합니다! 🎉`);
+        onSuccess(`${customer.nickname || '고객'}님, 방문해주셔서 감사합니다! 🎉`);
         // 폼 초기화
         setPhoneNumber('');
         setCustomer(null);
@@ -312,14 +301,14 @@ const VisitForm = ({ onSuccess, onError }) => {
 
             <div className="input-group">
               <label htmlFor="nickname" className="input-label">
-                👤 닉네임 <span className="required">*</span>
+                👤 닉네임
               </label>
               <input
                 id="nickname"
                 type="text"
                 value={newCustomer.nickname}
                 onChange={(e) => handleNewCustomerChange('nickname', e.target.value)}
-                placeholder="홍길동"
+                placeholder="홍길동 (선택)"
                 maxLength={20}
                 disabled={loading}
                 className="text-input"
@@ -330,7 +319,7 @@ const VisitForm = ({ onSuccess, onError }) => {
 
             <div className="input-group">
               <label htmlFor="birthday" className="input-label">
-                🎂 생일 <span className="required">*</span>
+                🎂 생일
               </label>
               <input
                 id="birthday"
@@ -341,7 +330,7 @@ const VisitForm = ({ onSuccess, onError }) => {
                 className="date-input"
                 max={new Date().toISOString().split('T')[0]}
               />
-              <span className="input-hint">생년월일을 선택해주세요</span>
+              <span className="input-hint">생년월일을 선택해주세요 (선택)</span>
             </div>
 
             <div className="action-buttons">
