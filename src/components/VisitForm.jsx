@@ -102,8 +102,8 @@ const VisitForm = ({ onSuccess, onError }) => {
     try {
       const { data, error } = await createCustomer(
         phoneNumber,
-        newCustomer.nickname.trim(),
-        newCustomer.birthday
+        newCustomer.nickname.trim() || null,
+        newCustomer.birthday || null
       );
 
       if (error) {

@@ -74,7 +74,7 @@ export const createCustomer = async (phoneNumber, nickname, birthday) => {
  */
 export const confirmVisit = async (customerId) => {
   try {
-    // 1. 현재 고객 정보 조회 (방문 횟수와 마지막 방문일 확인)
+    // 1. 현재 고객 정보 조회
     const { data: customer, error: fetchError } = await supabase
       .from('customers')
       .select('visit_count, last_visit')
@@ -87,14 +87,22 @@ export const confirmVisit = async (customerId) => {
     }
 
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const lastVisitDate = customer.last_visit ? customer.last_visit.split('T')[0] : null;
+    // 한국 시간(KST) 기준 날짜 생성 (YYYY-MM-DD)
+    const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const today = kstNow.toISOString().split('T')[0];
+
+    let lastVisitDate = null;
+    if (customer.last_visit) {
+      const kstLast = new Date(new Date(customer.last_visit).getTime() + (9 * 60 * 60 * 1000));
+      lastVisitDate = kstLast.toISOString().split('T')[0];
+    }
 
     // 오늘 첫 방문인 경우에만 방문 횟수 증가
     const shouldIncrementVisit = lastVisitDate !== today;
-    const newVisitCount = shouldIncrementVisit ? customer.visit_count + 1 : customer.visit_count;
+    const currentCount = Number(customer.visit_count) || 0;
+    const newVisitCount = shouldIncrementVisit ? currentCount + 1 : currentCount;
 
-    // 2. 방문 정보 업데이트 (마지막 방문일은 매번 갱신)
+    // 2. 방문 정보 업데이트
     const { error: updateError } = await supabase
       .from('customers')
       .update({
@@ -108,7 +116,7 @@ export const confirmVisit = async (customerId) => {
       throw updateError;
     }
 
-    // 3. 방문 기록 생성 (유저 서랍 개수 - 매 방문마다 생성)
+    // 3. 방문 기록 생성 (유저 서랍 개수용 - 매 방문마다 생성)
     const { error: insertError } = await supabase
       .from('visit_history')
       .insert({
