@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>서랍 (tarot-user-app)</title>
+    <title>서랍 (tarot-user-app) - 시스템 구조</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
@@ -43,43 +43,82 @@
         }
 
         /* Content Layout */
-        .content-wrapper { display: flex; flex: 1; gap: 5vw; z-index: 10; align-items: center; }
+        .content-wrapper { display: flex; flex: 1; gap: 3vw; z-index: 10; align-items: center; }
 
-        /* Left Visual (Phone Mockup) */
-        .visual-area { flex: 0 0 320px; position: relative; }
-        .phone-frame {
-            width: 280px; height: 560px; border: 4px solid #334155; border-radius: 36px;
-            background-color: #0f172a; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden;
+        /* Graph Visual Area */
+        .graph-area { 
+            flex: 1.2; 
+            height: 70vh; 
+            position: relative; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
         }
-        .phone-screen { width: 100%; height: 100%; background-color: #1e1e2e; display: flex; flex-direction: column; }
-        .app-header-ui { height: 50px; background-color: #2a2a3e; display: flex; align-items: center; padding: 0 20px; }
-        
-        .card-stack { position: relative; height: 260px; width: 100%; margin-top: 30px; display: flex; justify-content: center; }
-        .tarot-card-ui {
-            width: 160px; height: 240px; background-color: #2d2d44; border: 1px solid #7b2fbe;
-            border-radius: 12px; position: absolute; display: flex; justify-content: center; align-items: center;
-        }
-        .card-1 { transform: rotate(-10deg) translateX(-20px); z-index: 1; opacity: 0.6; }
-        .card-2 { transform: rotate(5deg) translateX(10px); z-index: 2; border-color: #d4af37; }
 
-        .nav-bar-ui { height: 60px; background-color: #2a2a3e; margin-top: auto; display: flex; justify-content: space-around; align-items: center; color: #64748b; }
+        /* Node Styles */
+        .node {
+            position: absolute;
+            padding: 15px 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 8px;
+            transition: transform 0.3s ease;
+            z-index: 5;
+        }
+        .node:hover { transform: scale(1.05); }
+        .node i { font-size: 1.4rem; }
+
+        /* Custom Colors from Mermaid Defs */
+        .node-admin { background: #fff3e0; border: 2px solid #ef6c00; color: #e65100; } /* Orange */
+        .node-core { background: #e3f2fd; border: 2px solid #1565c0; color: #0d47a1; } /* Blue */
+        .node-support { background: #e8f5e9; border: 2px solid #2e7d32; color: #1b5e20; } /* Green */
+        .node-server { 
+            background: #f3e5f5; border: 3px solid #7b1fa2; color: #4a148c; 
+            width: 140px; height: 140px; border-radius: 50%; justify-content: center;
+            font-weight: 700;
+        }
+
+        /* Layout Positions (Adjusting gap as requested) */
+        .pos-qr { top: 10%; left: 10%; }
+        .pos-mgr { bottom: 10%; left: 10%; }
+        .pos-server { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .pos-user { top: 25%; right: 10%; }
+        .pos-dev { bottom: 25%; right: 10%; }
+
+        /* Connection Labels */
+        .edge-label {
+            position: absolute;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            background: rgba(13, 13, 26, 0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        /* SVG Lines */
+        .connector-svg {
+            position: absolute; width: 100%; height: 100%;
+            top: 0; left: 0; z-index: 1; pointer-events: none;
+        }
+        line { stroke: rgba(255, 255, 255, 0.2); stroke-width: 2; stroke-dasharray: 5; }
 
         /* Right Content (Text) */
-        .text-area { flex: 1; display: flex; flex-direction: column; }
+        .text-area { flex: 0.8; display: flex; flex-direction: column; }
         .feature-item {
             display: flex; margin-bottom: 1.5vh; background-color: rgba(255, 255, 255, 0.03);
             padding: 18px; border-radius: 12px; border-left: 4px solid #7b2fbe; transition: 0.2s;
         }
-        .feature-item:hover { transform: translateX(10px); background-color: rgba(123, 47, 190, 0.1); }
         .feature-icon { flex: 0 0 50px; font-size: 1.5rem; color: #d4af37; }
         .feature-content h3 { margin: 0 0 4px 0; color: #e2e8f0; font-size: 1.1rem; font-weight: 600; }
         .feature-content p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; }
 
         .status-box { margin-top: auto; display: flex; gap: 15px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
         .status-item { font-size: 0.85rem; color: #cbd5e1; background-color: rgba(13, 115, 119, 0.15); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(13, 115, 119, 0.3); }
-
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        .floating { animation: float 3s ease-in-out infinite; }
     </style>
 </head>
 <body>
@@ -88,70 +127,71 @@
     <div class="bg-circle circle-2"></div>
 
     <div class="header">
-        <h1 class="title">서랍 (tarot-user-app)</h1>
-        <span class="app-badge">CORE APP</span>
+        <h1 class="title">서랍 (tarot-user-app) 아키텍처</h1>
+        <span class="app-badge">SYSTEM TOPOLOGY</span>
     </div>
 
     <div class="content-wrapper">
-        <div class="visual-area floating">
-            <div class="phone-frame">
-                <div class="phone-screen">
-                    <div class="app-header-ui"><div style="width: 60px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px;"></div></div>
-                    <div style="padding: 20px;">
-                        <p style="color: #d4af37; font-size: 1.1rem; font-family: 'Song Myung', serif; margin: 0;">나의 서랍</p>
-                        <p style="color: #64748b; font-size: 0.7rem;">기록된 타로 이야기</p>
-                    </div>
-                    <div class="card-stack">
-                        <div class="tarot-card-ui card-1"><i class="fa-solid fa-moon text-2xl text-slate-700"></i></div>
-                        <div class="tarot-card-ui card-2">
-                            <div class="text-center">
-                                <i class="fa-solid fa-star text-3xl text-yellow-500 opacity-80 mb-2"></i>
-                                <p style="font-size: 0.7rem; color: #d4af37; font-family: 'Song Myung', serif;">THE STAR</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="nav-bar-ui">
-                        <i class="fa-solid fa-house" style="color: #7b2fbe;"></i>
-                        <i class="fa-solid fa-book-open"></i>
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                </div>
+        <div class="graph-area">
+            <svg class="connector-svg">
+                <line x1="20%" y1="20%" x2="45%" y2="45%" /> <line x1="20%" y1="80%" x2="45%" y2="55%" /> <line x1="80%" y1="35%" x2="55%" y2="48%" /> <line x1="80%" y1="65%" x2="55%" y2="52%" /> </svg>
+
+            <div class="node node-admin pos-qr">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>📷 QR 앱</span>
             </div>
+            <div class="edge-label" style="top: 35%; left: 25%;">방문 기록 저장</div>
+
+            <div class="node node-admin pos-mgr">
+                <i class="fa-solid fa-desktop"></i>
+                <span>💻 매니저 앱</span>
+            </div>
+            <div class="edge-label" style="bottom: 35%; left: 22%;">투표/공지 & 결과 조회</div>
+
+            <div class="node node-server pos-server">
+                <i class="fa-solid fa-cloud"></i>
+                <span>중앙 DB<br>서버</span>
+            </div>
+
+            <div class="node node-core pos-user">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span>📱 서랍 앱 (User)</span>
+            </div>
+            <div class="edge-label" style="top: 40%; right: 20%;">기록 동기화</div>
+
+            <div class="node node-support pos-dev">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                <span>🛠️ 개발자 앱</span>
+            </div>
+            <div class="edge-label" style="bottom: 40%; right: 18%;">버그 리포트 / 로그</div>
         </div>
 
         <div class="text-area">
             <div class="feature-item">
                 <div class="feature-icon"><i class="fa-solid fa-box-archive"></i></div>
                 <div class="feature-content">
-                    <h3>서랍 (기록 공간) 획득</h3>
-                    <p>QR 방문 체크인 시 자동으로 생성되는 나만의 타로 기록 공간 제공</p>
+                    <h3>중앙 서버 중심의 생태계</h3>
+                    <p>모든 데이터는 클라우드 서버를 통해 실시간으로 동기화되며 각 앱의 목적에 맞게 분산 처리됩니다.</p>
                 </div>
             </div>
             <div class="feature-item">
-                <div class="feature-icon"><i class="fa-solid fa-scroll"></i></div>
+                <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
                 <div class="feature-content">
-                    <h3>타로 상담 기록 관리</h3>
-                    <p>개인 타로 상담 내용을 날짜별로 저장하고 언제든 다시 열람 가능</p>
+                    <h3>역할 기반 시스템 분리</h3>
+                    <p>사용자(서랍), 관리자(QR/매니저), 유지보수(개발자) 환경을 독립적으로 구축하여 보안과 편의성 확보</p>
                 </div>
             </div>
             <div class="feature-item">
-                <div class="feature-icon"><i class="fa-solid fa-check-to-slot"></i></div>
+                <div class="feature-icon"><i class="fa-solid fa-link"></i></div>
                 <div class="feature-content">
-                    <h3>공지사항 & 투표</h3>
-                    <p>매장의 새로운 소식을 확인하고, 진행 중인 투표에 참여하여 의견 반영</p>
-                </div>
-            </div>
-            <div class="feature-item" style="border-left-color: #0d7377;">
-                <div class="feature-icon"><i class="fa-solid fa-robot" style="color: #0d7377;"></i></div>
-                <div class="feature-content">
-                    <h3>[확장 예정] AI 데일리 운세</h3>
-                    <p>매일 확인하는 운세 기능 추가 검토 중 (대회용 기능 확장)</p>
+                    <h3>매끄러운 데이터 흐름</h3>
+                    <p>QR 체크인부터 상담 기록 저장, 투표 참여까지 단일 DB를 통해 통합된 사용자 경험을 제공합니다.</p>
                 </div>
             </div>
 
             <div class="status-box">
-                <div class="status-item"><i class="fa-brands fa-android mr-2 text-green-400"></i>Android App</div>
-                <div class="status-item" style="border-color: #7b2fbe;"><i class="fa-solid fa-flask mr-2 text-purple-400"></i>알파 테스트 중</div>
+                <div class="status-item"><i class="fa-solid fa-network-wired mr-2 text-blue-400"></i>Multi-App Architecture</div>
+                <div class="status-item" style="border-color: #7b2fbe;"><i class="fa-solid fa-database mr-2 text-purple-400"></i>Firebase Cloud Infra</div>
             </div>
         </div>
     </div>
@@ -159,14 +199,14 @@
 
 <script>
     document.body.addEventListener('click', () => {
-        window.location.href = 'Drawer_page5.html'; // 마지막 페이지로
+        // window.location.href = 'Drawer_page5.html'; 
     });
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowRight' || e.key === ' ') {
-            window.location.href = 'Drawer_page5.html';
+            // window.location.href = 'Drawer_page5.html';
         } else if (e.key === 'ArrowLeft') {
-            window.location.href = 'Drawer_page3.html'; // 이전 아키텍처 페이지로
+            // window.location.href = 'Drawer_page3.html';
         }
     });
 </script>
