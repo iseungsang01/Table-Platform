@@ -6,6 +6,7 @@ const VisitForm = ({ onSuccess, onError }) => {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: 전화번호 입력, 2: 고객 정보 확인, 3: 신규 고객 등록
+  const [drawerCount, setDrawerCount] = useState(1); // 생성할 서랍(방문 기록) 개수
 
   // 신규 고객 등록 폼 데이터
   const [newCustomer, setNewCustomer] = useState({
@@ -127,9 +128,8 @@ const VisitForm = ({ onSuccess, onError }) => {
    */
   const handleConfirmVisit = async () => {
     setLoading(true);
-
     try {
-      const { success } = await confirmVisit(customer.id);
+      const { success } = await confirmVisit(customer.id, drawerCount);
 
       if (success) {
         onSuccess(`${customer.nickname || '고객'}님, 방문해주셔서 감사합니다! 🎉`);
@@ -137,6 +137,7 @@ const VisitForm = ({ onSuccess, onError }) => {
         setPhoneNumber('');
         setCustomer(null);
         setNewCustomer({ nickname: '', birthday: '' });
+        setDrawerCount(1);
         setStep(1);
       } else {
         onError('방문 처리 중 오류가 발생했습니다.');
@@ -154,6 +155,7 @@ const VisitForm = ({ onSuccess, onError }) => {
   const handleCancel = () => {
     setCustomer(null);
     setNewCustomer({ nickname: '', birthday: '' });
+    setDrawerCount(1);
     setStep(1);
   };
 
@@ -245,6 +247,37 @@ const VisitForm = ({ onSuccess, onError }) => {
                 <span className="info-label">총 방문 횟수</span>
                 <span className="info-value highlight">{customer.visit_count}회</span>
               </div>
+            </div>
+
+            <div className="drawer-count-selector">
+              <label htmlFor="drawer-count" className="drawer-label">
+                🗄️ 생성할 서랍 개수
+              </label>
+              <div className="count-controls">
+                <button
+                  type="button"
+                  onClick={() => setDrawerCount(Math.max(1, drawerCount - 1))}
+                  className="count-btn"
+                >
+                  -
+                </button>
+                <input
+                  id="drawer-count"
+                  type="number"
+                  min="1"
+                  value={drawerCount}
+                  onChange={(e) => setDrawerCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="count-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setDrawerCount(drawerCount + 1)}
+                  className="count-btn"
+                >
+                  +
+                </button>
+              </div>
+              <p className="drawer-hint">각 서랍은 개별 방문 기록으로 저장됩니다.</p>
             </div>
 
             <div className="action-buttons">

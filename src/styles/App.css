@@ -357,6 +357,85 @@ body {
   font-weight: 700;
 }
 
+/* 서랍 개수 선택기 */
+.drawer-count-selector {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0b0ff;
+  text-align: center;
+}
+
+.drawer-label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.count-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.count-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 2px solid #8a2be2;
+  background: white;
+  color: #8a2be2;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.count-btn:hover {
+  background: #8a2be2;
+  color: white;
+}
+
+.count-btn:active {
+  transform: scale(0.95);
+}
+
+.count-input {
+  width: 80px;
+  padding: 10px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  color: #8a2be2;
+}
+
+.count-input:focus {
+  outline: none;
+  border-color: #8a2be2;
+}
+
+/* 화살표 제거 */
+.count-input::-webkit-inner-spin-button,
+.count-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.drawer-hint {
+  font-size: 0.85rem;
+  color: #888;
+}
+
 /* 액션 버튼 */
 .action-buttons {
   display: flex;
