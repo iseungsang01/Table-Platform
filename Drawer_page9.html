@@ -61,23 +61,37 @@
         .icon-box {
             width: 70px; height: 70px; border-radius: 50%; background: #0d0d1a;
             border: 2px solid; display: flex; justify-content: center; align-items: center;
-            font-size: 1.5rem; margin-bottom: 12px; transition: 0.3s;
+            font-size: 1.5rem; margin-bottom: 12px; transition: all 0.3s ease;
         }
         .flow-customer .icon-box { border-color: #7b2fbe; color: #a78bfa; }
         .flow-manager .icon-box { border-color: #d4af37; color: #fcd34d; }
         
+        /* Hover Effect */
+        .step-node:hover .icon-box {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+        }
+
         .step-title { font-weight: 700; font-size: 1rem; color: #f1f5f9; margin-bottom: 4px; }
         .step-desc { font-size: 0.8rem; color: #94a3b8; line-height: 1.4; }
         .step-arrow { color: #475569; font-size: 1rem; z-index: 2; background: #131326; padding: 0 5px; }
 
         /* Manager Grid */
         .manager-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;
-            border: 1px solid rgba(212, 175, 55, 0.1); margin-left: 20px;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+            background: #131326; padding: 18px; border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.4); 
+            z-index: 2; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            width: 280px;
+            transition: all 0.3s ease;
         }
-        .mgmt-item { font-size: 0.75rem; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
-        .mgmt-item i { color: #d4af37; font-size: 0.6rem; }
+        .manager-grid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
+        }
+        
+        .mgmt-item { font-size: 0.8rem; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+        .mgmt-item i { color: #d4af37; font-size: 0.5rem; }
     </style>
 </head>
 <body>
@@ -95,24 +109,28 @@
             <div class="flow-label">User Experience Flow</div>
             <div class="steps-container">
                 <div class="connector-line"></div>
+                
                 <div class="step-node">
                     <div class="icon-box"><i class="fa-solid fa-mobile-screen-button"></i></div>
                     <p class="step-title">01. 접속</p>
                     <p class="step-desc">전화번호 기반<br>초간편 로그인</p>
                 </div>
                 <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
                 <div class="step-node">
                     <div class="icon-box"><i class="fa-solid fa-user-check"></i></div>
                     <p class="step-title">02. 매칭</p>
                     <p class="step-desc">DB 실시간 조회<br>사용자 식별</p>
                 </div>
                 <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
                 <div class="step-node">
                     <div class="icon-box"><i class="fa-solid fa-stamp"></i></div>
                     <p class="step-title">03. 적립</p>
                     <p class="step-desc">스탬프 현황 및<br>방문 이력 갱신</p>
                 </div>
                 <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
                 <div class="step-node">
                     <div class="icon-box"><i class="fa-solid fa-gift"></i></div>
                     <p class="step-title">04. 리워드</p>
@@ -125,32 +143,35 @@
             <div class="flow-label">Admin Management Flow</div>
             <div class="steps-container">
                 <div class="connector-line"></div>
+                
                 <div class="step-node">
-                    <div class="icon-box"><i class="fa-solid fa-shield-lock"></i></div>
+                    <div class="icon-box"><i class="fa-solid fa-shield-halved"></i></div>
                     <p class="step-title">01. 인증</p>
                     <p class="step-desc">관리자 전용<br>보안 액세스</p>
                 </div>
                 <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
                 <div class="step-node">
                     <div class="icon-box"><i class="fa-solid fa-gauge-high"></i></div>
                     <p class="step-title">02. 대시보드</p>
                     <p class="step-desc">전체 유저 및<br>매장 현황 모니터링</p>
                 </div>
                 <i class="fa-solid fa-chevron-right step-arrow"></i>
-                <div style="flex: 1; display: flex; align-items: center;">
-                    <div class="step-node">
-                        <div class="icon-box"><i class="fa-solid fa-sliders"></i></div>
-                        <p class="step-title">03. 통합 관리</p>
-                        <p class="step-desc">데이터 기반 운영</p>
-                    </div>
-                    <div class="manager-grid">
-                        <div class="mgmt-item"><i class="fa-solid fa-circle"></i>고객 이력 관리</div>
-                        <div class="mgmt-item"><i class="fa-solid fa-circle"></i>쿠폰 발급/사용</div>
-                        <div class="mgmt-item"><i class="fa-solid fa-circle"></i>투표 및 공지</div>
-                        <div class="mgmt-item"><i class="fa-solid fa-circle"></i>생일 이벤트</div>
-                        <div class="mgmt-item"><i class="fa-solid fa-circle"></i>실시간 제안 대응</div>
-                        <div class="mgmt-item"><i class="fa-solid fa-circle"></i>데이터 통계</div>
-                    </div>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-sliders"></i></div>
+                    <p class="step-title">03. 통합 관리</p>
+                    <p class="step-desc">데이터 기반 운영</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="manager-grid">
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>고객 이력 관리</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>쿠폰 발급/사용</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>투표 및 공지</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>생일 이벤트</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>실시간 제안 대응</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>데이터 통계</div>
                 </div>
             </div>
         </div>

@@ -52,17 +52,17 @@
             position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 2px solid #2a2a3e;
             overflow: hidden; display: flex; flex-direction: column; align-items: center;
         }
-        .qr-header { width: 100%; height: 50px; background-color: #0d7377; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-        .qr-camera-view { width: 100%; height: 280px; background-color: #000; position: relative; display: flex; justify-content: center; align-items: center; }
-        .qr-overlay { width: 180px; height: 180px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; position: relative; }
+        .qr-header { width: 100%; height: 50px; background-color: #0d7377; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; }
+        
+        /* 높이 조정됨 (하단 카드 공간 확보) */
+        .qr-camera-view { width: 100%; height: 210px; background-color: #000; position: relative; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .qr-overlay { width: 130px; height: 130px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; position: relative; }
         
         .qr-scan-line {
             width: 100%; height: 2px; background-color: #0d7377; box-shadow: 0 0 10px #0d7377;
-            position: absolute; animation: scan 2s linear infinite;
+            position: absolute; animation: scan 2s linear infinite; z-index: 2;
         }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-
-        .qr-result-card { width: 90%; margin-top: 20px; background-color: #2a2a3e; border-radius: 10px; padding: 12px; border-left: 4px solid #d4af37; }
 
         /* Right Content (Text) */
         .text-area { flex: 1; display: flex; flex-direction: column; }
@@ -95,18 +95,44 @@
                 <div class="qr-header"><i class="fa-solid fa-qrcode mr-2"></i>방문 체크인</div>
                 <div class="qr-camera-view">
                     <div class="qr-overlay">
+                        <img src="21r7W.jpg" alt="QR Code" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; opacity: 0.8; position: relative; z-index: 1;" />
                         <div class="qr-scan-line"></div>
-                        <div style="position:absolute; top:-2px; left:-2px; width:20px; height:20px; border-top:4px solid #0d7377; border-left:4px solid #0d7377;"></div>
-                        <div style="position:absolute; top:-2px; right:-2px; width:20px; height:20px; border-top:4px solid #0d7377; border-right:4px solid #0d7377;"></div>
-                        <div style="position:absolute; bottom:-2px; left:-2px; width:20px; height:20px; border-bottom:4px solid #0d7377; border-left:4px solid #0d7377;"></div>
-                        <div style="position:absolute; bottom:-2px; right:-2px; width:20px; height:20px; border-bottom:4px solid #0d7377; border-right:4px solid #0d7377;"></div>
+                        <div style="position:absolute; top:-2px; left:-2px; width:20px; height:20px; border-top:4px solid #0d7377; border-left:4px solid #0d7377; z-index: 3;"></div>
+                        <div style="position:absolute; top:-2px; right:-2px; width:20px; height:20px; border-top:4px solid #0d7377; border-right:4px solid #0d7377; z-index: 3;"></div>
+                        <div style="position:absolute; bottom:-2px; left:-2px; width:20px; height:20px; border-bottom:4px solid #0d7377; border-left:4px solid #0d7377; z-index: 3;"></div>
+                        <div style="position:absolute; bottom:-2px; right:-2px; width:20px; height:20px; border-bottom:4px solid #0d7377; border-right:4px solid #0d7377; z-index: 3;"></div>
                     </div>
                 </div>
-                <div class="qr-result-card">
-                    <p style="color:#d4af37; font-size:0.8rem; font-weight:bold; margin:0 0 5px 0;"><i class="fa-solid fa-check-circle mr-1"></i> 스캔 완료</p>
-                    <p style="color:#cbd5e1; font-size:0.7rem; margin:0;">고객 ID: user_2910<br>방문 시각: 2026-02-19 19:30</p>
+                
+                <div class="w-full flex-1 flex flex-col bg-[#fbf9ff] p-4 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.3)] relative z-10 border-t border-purple-200 box-border">
+                    
+                    <div class="flex justify-between items-center border-b border-purple-200 pb-2 mb-3">
+                        <span class="text-[#6b21a8] font-bold text-[0.85rem]"><i class="fa-solid fa-user mr-1"></i> 고객 정보</span>
+                        <span class="text-xs text-gray-500 font-medium">총 방문 <strong class="text-[#6b21a8] text-sm ml-1">0회</strong></span>
+                    </div>
+
+                    <div class="border border-purple-100 rounded-2xl p-3 flex flex-col items-center bg-white mb-auto shadow-sm">
+                        <span class="text-[0.75rem] font-bold text-gray-800 mb-2">
+                            <i class="fa-solid fa-server text-[#6b21a8] mr-1"></i> 생성할 서랍 개수
+                        </span>
+                        <div class="flex items-center gap-4 my-1">
+                            <button class="w-8 h-8 rounded-xl border-2 border-[#a855f7] text-[#a855f7] font-bold text-lg flex items-center justify-center hover:bg-purple-50 transition">-</button>
+                            <div class="w-14 h-9 border border-gray-200 rounded-xl flex items-center justify-center font-bold text-[#6b21a8] text-base">1</div>
+                            <button class="w-8 h-8 rounded-xl border-2 border-[#a855f7] text-[#a855f7] font-bold text-lg flex items-center justify-center hover:bg-purple-50 transition">+</button>
+                        </div>
+                        <span class="text-[0.6rem] text-gray-400 mt-1">각 서랍은 개별 방문 기록으로 저장됩니다.</span>
+                    </div>
+
+                    <div class="flex gap-2 mt-3">
+                        <button class="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-[0.8rem] flex items-center justify-center shadow-sm hover:bg-gray-50 transition">
+                            <i class="fa-solid fa-xmark text-[#ef4444] mr-2 text-lg"></i> 취소
+                        </button>
+                        <button class="flex-1 py-2.5 rounded-xl bg-[#eab308] text-white font-bold text-[0.8rem] flex items-center justify-center shadow-sm hover:bg-yellow-500 transition">
+                            <i class="fa-solid fa-square-check text-[#4ade80] bg-white rounded-sm mr-1.5 text-lg"></i> 방문 확인
+                        </button>
+                    </div>
                 </div>
-                <div style="margin-top:auto; padding:15px; width:100%;"><div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:8px; text-align:center; font-size:0.7rem; color:#94a3b8;">카메라 활성화 중...</div></div>
+
             </div>
             <i class="fa-solid fa-camera absolute" style="right:-10px; top:50px; font-size:2.5rem; color:#0d7377; opacity:0.5;"></i>
         </div>
