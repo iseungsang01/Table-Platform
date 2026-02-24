@@ -116,8 +116,9 @@ export const confirmVisit = async (customerId, count = 1) => {
       throw updateError;
     }
 
-    // 3. 방문 기록 생성 (유저 서랍 개수용 - 지정된 count만큼 생성)
-    const historyEntries = Array.from({ length: count }).map(() => ({
+    // 3. 방문 기록 생성 (유저 서랍 개수용 - 최대 9개로 제한)
+    const safeCount = Math.max(1, Math.min(9, count));
+    const historyEntries = Array.from({ length: safeCount }).map(() => ({
       customer_id: customerId,
       visit_date: now.toISOString(),
       is_deleted: false,

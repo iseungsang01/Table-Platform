@@ -257,6 +257,7 @@ const VisitForm = ({ onSuccess, onError }) => {
                 <button
                   type="button"
                   onClick={() => setDrawerCount(Math.max(1, drawerCount - 1))}
+                  disabled={drawerCount <= 1}
                   className="count-btn"
                 >
                   -
@@ -265,19 +266,31 @@ const VisitForm = ({ onSuccess, onError }) => {
                   id="drawer-count"
                   type="number"
                   min="1"
+                  max="9"
                   value={drawerCount}
-                  onChange={(e) => setDrawerCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (isNaN(val)) {
+                      setDrawerCount('');
+                    } else {
+                      setDrawerCount(Math.max(1, Math.min(9, val)));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (drawerCount === '') setDrawerCount(1);
+                  }}
                   className="count-input"
                 />
                 <button
                   type="button"
-                  onClick={() => setDrawerCount(drawerCount + 1)}
+                  onClick={() => setDrawerCount(Math.min(9, drawerCount + 1))}
+                  disabled={drawerCount >= 9}
                   className="count-btn"
                 >
                   +
                 </button>
               </div>
-              <p className="drawer-hint">각 서랍은 개별 방문 기록으로 저장됩니다.</p>
+              <p className="drawer-hint">최대 9개까지 생성 가능하며, 각 서랍은 개별 방문 기록으로 저장됩니다.</p>
             </div>
 
             <div className="action-buttons">
