@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>시스템 아키텍처 - 기능 추가</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+        }
+
+        /* Background Pattern */
+        .bg-pattern {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(123, 47, 190, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 40%);
+            z-index: 0;
+        }
+        
+        .border-line { position: absolute; background-color: rgba(212, 175, 55, 0.3); z-index: 1; }
+        .border-top { top: 30px; left: 30px; right: 30px; height: 1px; }
+        .border-bottom { bottom: 30px; left: 30px; right: 30px; height: 1px; }
+
+        .header { position: absolute; top: 40px; left: 50px; z-index: 10; }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .subtitle { font-size: 1rem; color: #94a3b8; font-weight: 300; margin-top: 0.5rem; }
+
+        /* Diagram Layer */
+        .diagram-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+
+        .node { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 220px; z-index: 10; }
+        .node-icon-wrapper {
+            width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; margin-bottom: 10px; background-color: #1a1a2e; border: 2px solid; position: relative;
+        }
+        .node-content { background-color: rgba(26, 26, 46, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px 14px; border-radius: 8px; text-align: center; backdrop-filter: blur(4px); width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .node-title { font-weight: 700; font-size: 1.05rem; color: #f1f5f9; }
+
+        /* Node Styles */
+        .node-server .node-icon-wrapper { width: 110px; height: 110px; font-size: 2.8rem; border-color: #7b2fbe; color: #d4af37; box-shadow: 0 0 25px rgba(123, 47, 190, 0.4); }
+        .node-qr .node-icon-wrapper { border-color: #d4af37; color: #fcd34d; }
+        .node-user .node-icon-wrapper { border-color: #7b2fbe; color: #a78bfa; }
+        .node-manager .node-icon-wrapper { border-color: #d4af37; color: #fcd34d; }
+        .node-dev .node-icon-wrapper { border-color: #0d7377; color: #2dd4bf; }
+
+        /* Positions */
+        .pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 260px; }
+        .pos-tl { top: 25%; left: 22%; transform: translate(-50%, -50%); } 
+        .pos-tr { top: 25%; left: 78%; transform: translate(-50%, -50%); } 
+        .pos-bl { top: 75%; left: 22%; transform: translate(-50%, -50%); } 
+        .pos-br { top: 75%; left: 78%; transform: translate(-50%, -50%); } 
+
+        .flow-label {
+            position: absolute; background-color: #0d0d1a; border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0; padding: 6px 14px; border-radius: 12px; font-size: 0.85rem; font-weight: 500; z-index: 6;
+            transform: translate(-50%, -50%); text-align: center; 
+            white-space: pre-wrap; 
+            max-width: 240px; line-height: 1.4;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-pattern"></div>
+    <div class="border-line border-top"></div>
+    <div class="border-line border-bottom"></div>
+
+    <div class="header">
+        <h1 class="title">전체 시스템 흐름</h1>
+        <p class="subtitle">중앙 서버 중심의 데이터 연결 및 상호작용 구조</p>
+    </div>
+
+    <svg class="diagram-layer" viewBox="0 0 1280 720">
+        <defs>
+            <marker id="arrowhead-gold" markerHeight="7" markerWidth="10" orient="auto" refX="9" refY="3.5"><polygon fill="#d4af37" points="0 0, 10 3.5, 0 7"></polygon></marker>
+            <marker id="arrowhead-purple" markerHeight="7" markerWidth="10" orient="auto" refX="9" refY="3.5"><polygon fill="#7b2fbe" points="0 0, 10 3.5, 0 7"></polygon></marker>
+            <marker id="arrowhead-teal" markerHeight="7" markerWidth="10" orient="auto" refX="9" refY="3.5"><polygon fill="#0d7377" points="0 0, 10 3.5, 0 7"></polygon></marker>
+            <marker id="arrowhead-gold-start" markerHeight="7" markerWidth="10" orient="auto-start-reverse" refX="9" refY="3.5"><polygon fill="#d4af37" points="0 0, 10 3.5, 0 7"></polygon></marker>
+            <marker id="arrowhead-purple-start" markerHeight="7" markerWidth="10" orient="auto-start-reverse" refX="9" refY="3.5"><polygon fill="#7b2fbe" points="0 0, 10 3.5, 0 7"></polygon></marker>
+        </defs>
+        
+        <line x1="360" y1="230" x2="540" y2="310" stroke="#d4af37" stroke-width="2" marker-end="url(#arrowhead-gold)"></line>
+        
+        <line x1="920" y1="230" x2="740" y2="310" stroke="#7b2fbe" stroke-width="2" marker-start="url(#arrowhead-purple-start)" marker-end="url(#arrowhead-purple)"></line>
+        
+        <line x1="360" y1="490" x2="540" y2="410" stroke="#d4af37" stroke-width="2" marker-start="url(#arrowhead-gold-start)" marker-end="url(#arrowhead-gold)"></line>
+        
+        <line x1="740" y1="410" x2="920" y2="490" stroke="#0d7377" stroke-width="2" marker-end="url(#arrowhead-teal)"></line>
+    </svg>
+
+    <div class="flow-label" style="top: 34%; left: 35%; border-color: rgba(212, 175, 55, 0.4);">방문 기록 저장</div>
+    <div class="flow-label" style="top: 34%; left: 65%; border-color: rgba(123, 47, 190, 0.4);">기록 동기화 및 업/다운로드</div>
+    
+    <div class="flow-label" style="top: 66%; left: 35%; border-color: rgba(212, 175, 55, 0.4);">투표/공지 생성 및 스탬프 적립</div>
+    
+    <div class="flow-label" style="top: 66%; left: 65%; border-color: rgba(13, 115, 119, 0.4);">버그 리포트 / 로그 조회</div>
+
+    <div class="node node-server pos-center">
+        <div class="node-icon-wrapper"><i class="fa-solid fa-cloud"></i></div>
+        <div class="node-content">
+            <div class="node-title" style="color: #d4af37; font-size: 1.2rem;">☁️ 중앙 DB / 서버</div>
+        </div>
+    </div>
+    
+    <div class="node node-qr pos-tl">
+        <div class="node-icon-wrapper"><i class="fa-solid fa-qrcode"></i></div>
+        <div class="node-content"><div class="node-title">📷 QR 앱</div></div>
+    </div>
+    
+    <div class="node node-user pos-tr">
+        <div class="node-icon-wrapper"><i class="fa-solid fa-mobile-screen"></i></div>
+        <div class="node-content"><div class="node-title">📱 서랍 앱</div></div>
+    </div>
+    
+    <div class="node node-manager pos-bl">
+        <div class="node-icon-wrapper"><i class="fa-solid fa-laptop-code"></i></div>
+        <div class="node-content">
+            <div class="node-title">💻 매니저 앱</div>
+            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">운영 관리 & 스탬프 적립</div>
+        </div>
+    </div>
+    
+    <div class="node node-dev pos-br">
+        <div class="node-icon-wrapper"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+        <div class="node-content"><div class="node-title">🛠️ 개발자 앱</div></div>
+    </div>
+
+    <div style="position: absolute; bottom: 40px; right: 50px; font-size: 0.8rem; color: #94a3b8; text-align: right; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 8px;">
+        <p class="mb-1"><i class="fa-solid fa-circle text-xs mr-2" style="color: #d4af37;"></i>Admin Flow</p>
+        <p class="mb-1"><i class="fa-solid fa-circle text-xs mr-2" style="color: #7b2fbe;"></i>User Flow</p>
+        <p><i class="fa-solid fa-circle text-xs mr-2" style="color: #0d7377;"></i>Support Flow</p>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page4.html'; 
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            window.location.href = 'Drawer_page4.html';
+        } else if (e.key === 'ArrowLeft') {
+            window.location.href = 'Drawer_page2.html'; 
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Development Status & Roadmap</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative; background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Ambient Background */
+        .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); z-index: 0; opacity: 0.1; }
+        .orb-1 { top: -10%; right: -5%; width: 40vw; height: 40vw; background: #7b2fbe; }
+        .orb-2 { bottom: -10%; left: -5%; width: 45vw; height: 45vw; background: #0d7377; }
+
+        /* Header */
+        .header { margin-bottom: 3vh; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 1.5rem; z-index: 10; display: flex; justify-content: space-between; align-items: flex-end; }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; }
+        .subtitle { font-size: 1.1rem; color: #94a3b8; font-weight: 300; }
+
+        /* Content Layout */
+        .content-wrapper { display: flex; flex: 1; gap: 5vw; z-index: 10; height: 100%; }
+
+        /* Left Column: Status */
+        .status-column { flex: 0 0 38%; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.02); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.05); padding: 4vh 2.5vw; }
+        .section-title { font-family: 'Song Myung', serif; font-size: 1.6rem; color: #f1f5f9; margin-bottom: 3vh; display: flex; align-items: center; gap: 15px; }
+        
+        .check-item { display: flex; align-items: center; padding: 1.8vh; background: rgba(13, 115, 119, 0.05); border-radius: 12px; border-left: 4px solid #0d7377; margin-bottom: 2vh; }
+        .check-icon { width: 24px; height: 24px; background: #0d7377; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.7rem; margin-right: 15px; flex-shrink: 0; }
+        .check-text { font-size: 0.95rem; color: #e2e8f0; }
+
+        /* Right Column: Roadmap */
+        .roadmap-column { flex: 1; position: relative; }
+        .timeline-line { position: absolute; left: 30px; top: 10vh; bottom: 5vh; width: 1px; background: linear-gradient(to bottom, #7b2fbe 0%, rgba(123, 47, 190, 0) 100%); z-index: 0; }
+
+        .timeline-item { position: relative; margin-left: 30px; padding-left: 40px; margin-bottom: 5vh; transition: 0.3s; }
+        .timeline-node { position: absolute; left: -15px; top: 0; width: 30px; height: 30px; background: #0d0d1a; border: 2px solid #7b2fbe; border-radius: 50%; display: flex; justify-content: center; align-items: center; z-index: 2; color: #a78bfa; font-size: 0.8rem; box-shadow: 0 0 15px rgba(123, 47, 190, 0.3); }
+        
+        .timeline-content { background: rgba(123, 47, 190, 0.03); border: 1px solid rgba(123, 47, 190, 0.1); border-radius: 16px; padding: 2.5vh 2vw; }
+        .roadmap-title { color: #d8b4fe; font-size: 1.2rem; font-weight: 700; margin-bottom: 1vh; }
+        .roadmap-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.6; }
+        .highlight { color: #fcd34d; }
+
+        /* Completion Badge */
+        .phase-badge { margin-top: auto; align-self: flex-start; padding: 10px 20px; background: rgba(212, 175, 55, 0.1); border: 1px solid #d4af37; color: #d4af37; border-radius: 30px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="header">
+        <div>
+            <h1 class="title">개발 현황 & 로드맵</h1>
+            <p class="subtitle">지속 가능한 서비스를 위한 안정화 및 확장 전략</p>
+        </div>
+        <div style="font-family: 'Song Myung', serif; color: #d4af37; font-size: 1.5rem;">2026 ROADMAP</div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="status-column">
+            <h2 class="section-title"><i class="fa-solid fa-list-check color-[#0d7377]"></i> Milestones</h2>
+            <div class="check-item">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <p class="check-text">전체 4개 앱 통합 생태계 구축 완료</p>
+            </div>
+            <div class="check-item">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <p class="check-text"><b>Manager</b> & <b>QR</b> 앱 실무 현장 배포</p>
+            </div>
+            <div class="check-item">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <p class="check-text">User App(서랍) 알파 테스트 및 피드백 수집</p>
+            </div>
+            <div class="check-item">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <p class="check-text">Supabase DB 인프라 최적화 및 안정화</p>
+            </div>
+            
+            <div class="phase-badge">
+                <i class="fa-solid fa-circle-check"></i> Phase 1: Infrastructure Ready
+            </div>
+        </div>
+
+        <div class="roadmap-column">
+            <div class="timeline-line"></div>
+            
+            <div class="timeline-item">
+                <div class="timeline-node"><i class="fa-solid fa-rocket"></i></div>
+                <div class="timeline-content">
+                    <h3 class="roadmap-title">서랍 앱 정식 런칭 (Go-Live)</h3>
+                    <p class="roadmap-desc">Google Play Store 심사 및 정식 등록을 통해 일반 사용자 대상 서비스 확산. <span class="highlight">사용성 테스트 최종 보완 예정.</span></p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"><i class="fa-solid fa-star"></i></div>
+                <div class="timeline-content">
+                    <h3 class="roadmap-title">콘텐츠 고도화 (타로/운세)</h3>
+                    <p class="roadmap-desc">단순 유틸리티를 넘어 즐길 거리가 있는 서비스로 진화. <span class="highlight">데일리 타로 카드 API 연동</span>으로 사용자 체류 시간 증대.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="timeline-content">
+                    <h3 class="roadmap-title">멀티 플랫폼 확장 (Web/PC)</h3>
+                    <p class="roadmap-desc">Flutter의 크로스 플랫폼 장점을 극대화하여 Web 버전 개발. 모바일 기기 없이도 매장 현황을 확인할 수 있는 환경 제공.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page11.html'; // 마지막 요약 혹은 Q&A 페이지
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') window.location.href = 'Drawer_page11.html';
+        if (e.key === 'ArrowLeft') window.location.href = 'Drawer_page9.html';
+    });
+</script>
+</body>
+</html>

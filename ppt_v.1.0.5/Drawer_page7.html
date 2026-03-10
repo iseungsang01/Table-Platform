@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>tarot-developer-app</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex;
+            flex-direction: column;
+            color: #ffffff;
+            box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Background Elements - QR 앱과 통일 */
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .circle-1 {
+            top: -10vh;
+            right: -5vw;
+            width: 40vw;
+            height: 40vw;
+            border: 1px solid rgba(13, 115, 119, 0.1);
+        }
+
+        .circle-2 {
+            bottom: -15vh;
+            left: -5vw;
+            width: 30vw;
+            height: 30vw;
+            border: 1px solid rgba(168, 85, 247, 0.05);
+        }
+
+        /* Header - 디자인 통일 */
+        .header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .title {
+            font-family: 'Song Myung', serif;
+            font-size: 2.5rem;
+            color: #d4af37;
+            margin: 0;
+        }
+
+        .app-badge {
+            background-color: rgba(168, 85, 247, 0.15);
+            border: 1px solid #a855f7;
+            color: #d8b4fe;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Content Layout */
+        .content-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 5vw;
+            z-index: 10;
+            align-items: center;
+        }
+
+        /* Left Visual (Phone Frame - 사진 기반 재현) */
+        .visual-area {
+            flex: 0 0 350px;
+            position: relative;
+        }
+
+        .phone-frame {
+            width: 300px;
+            height: 580px;
+            border-radius: 32px;
+            background-color: #050505;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            border: 2px solid #1e1e2e;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            padding: 25px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+
+        .mock-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.1;
+        }
+
+        .mock-subtitle {
+            color: #a855f7;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-top: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        .mock-refresh {
+            width: 32px;
+            height: 32px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a855f7;
+        }
+
+        .mock-card {
+            background: #121212;
+            border: 1px solid #222;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .mock-tag {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .tag-blue {
+            color: #38bdf8;
+            border: 1px solid #0369a1;
+        }
+
+        .tag-orange {
+            color: #fbbf24;
+            border: 1px solid #92400e;
+        }
+
+        .mock-card h4 {
+            color: #fff;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .mock-card p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 4px 0 12px 0;
+        }
+
+        .mock-reply {
+            color: #a855f7;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-weight: bold;
+        }
+
+        /* Right Content (Text) - QR 앱과 스타일 통일 */
+        .text-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-item {
+            display: flex;
+            margin-bottom: 1.5vh;
+            background-color: rgba(255, 255, 255, 0.03);
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 4px solid #a855f7;
+            transition: 0.2s;
+        }
+
+        .feature-item:hover {
+            transform: translateX(10px);
+            background-color: rgba(168, 85, 247, 0.08);
+        }
+
+        .feature-icon {
+            flex: 0 0 45px;
+            font-size: 1.3rem;
+            color: #a855f7;
+        }
+
+        .feature-content h3 {
+            margin: 0 0 4px 0;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .feature-content p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* 하단 강조 아이템 (QR 앱의 골드 포인트 계승) */
+        .feature-item-highlight {
+            border-left-color: #d4af37;
+        }
+
+        .feature-item-highlight .feature-icon {
+            color: #d4af37;
+        }
+
+        .status-box {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-tag {
+            px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs;
+        }
+
+        .link-text {
+            color: #a855f7;
+            font-size: 0.85rem;
+            margin-left: auto;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="slide-container">
+        <div class="bg-circle circle-1"></div>
+        <div class="bg-circle circle-2"></div>
+
+        <div class="header">
+            <h1 class="title">tarot-developer-app</h1>
+            <span class="app-badge">OPERATIONAL TOOL</span>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="visual-area">
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="mock-header">
+                            <div>
+                                <h2 class="mock-title">Developer<br>Console</h2>
+                                <div class="mock-subtitle">BUG REPORTS MONITOR</div>
+                            </div>
+                            <div class="mock-refresh"><i class="fa-solid fa-rotate-right"></i></div>
+                        </div>
+
+                        <div class="mock-card">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="mock-tag tag-blue">확인중</div>
+                                <span style="font-size:0.6rem; color:#444;">2026. 02. 18</span>
+                            </div>
+                            <h4>a</h4>
+                            <p>b</p>
+                            <div class="flex items-center mb-2">
+                                <span
+                                    class="bg-green-900 bg-opacity-20 text-green-500 text-[9px] px-2 py-0.5 rounded flex items-center">
+                                    <i class="fa-solid fa-check mr-1"></i> 답변 완료
+                                </span>
+                            </div>
+                            <div class="mock-reply">답변하기 <i class="fa-solid fa-chevron-right ml-1"></i></div>
+                        </div>
+
+                        <div class="mock-card">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="mock-tag tag-orange">접수</div>
+                                <span style="font-size:0.6rem; color:#444;">2026. 02. 18</span>
+                            </div>
+                            <h4>new</h4>
+                            <p>mew2</p>
+                            <div class="mock-reply">답변하기 <i class="fa-solid fa-chevron-right ml-1"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <i class="fa-solid fa-terminal absolute"
+                    style="right:-10px; top:50px; font-size:2.5rem; color:#a855f7; opacity:0.3;"></i>
+            </div>
+
+            <div class="text-area">
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fa-solid fa-bug"></i></div>
+                    <div class="feature-content">
+                        <h3>실시간 버그 리포트 관리</h3>
+                        <p>사용자가 인앱에서 제출한 오류 및 개선사항을 실시간으로 수집하고 단계를 관리합니다.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fa-solid fa-comment-medical"></i></div>
+                    <div class="feature-content">
+                        <h3>현장 즉시 대응 시스템</h3>
+                        <p>이슈 확인 즉시 모바일에서 사용자에게 답변을 전송하여 운영 신뢰도를 높입니다.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+                    <div class="feature-content">
+                        <h3>인프라 원격 모니터링</h3>
+                        <p>서버 상태와 DB 부하를 실시간 스캔하여 이슈 발생 시 즉각적인 푸시 알림을 수신합니다.</p>
+                    </div>
+                </div>
+                <div class="feature-item feature-item-highlight">
+                    <div class="feature-icon"><i class="fa-solid fa-user-shield"></i></div>
+                    <div class="feature-content">
+                        <h3>관리자 전용 보안 액세스</h3>
+                        <p>인가된 개발자 계정만 접근 가능하며, 모든 시스템 변경 이력은 로그로 기록됩니다.</p>
+                    </div>
+                </div>
+
+                <div class="status-box">
+                    <div class="flex gap-2">
+                        <div class="px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-slate-300">
+                            Android App</div>
+                        <div
+                            class="px-3 py-1 bg-purple-900 bg-opacity-30 rounded border border-purple-700 text-xs text-purple-200">
+                            내부 배포 중</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.body.addEventListener('click', () => {
+            window.location.href = 'Drawer_page8.html';
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                window.location.href = 'Drawer_page8.html';
+            } else if (e.key === 'ArrowLeft') {
+                window.location.href = 'Drawer_page6.html';
+            }
+        });
+    </script>
+</body>
+
+</html>

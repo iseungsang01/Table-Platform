@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>마무리 - Table Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative; background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            color: #ffffff; box-sizing: border-box;
+            padding: 40px;
+        }
+
+        /* Decorative Borders - Tarot Card Style */
+        .border-frame {
+            position: absolute; top: 25px; left: 25px; right: 25px; bottom: 25px;
+            border: 1px solid rgba(212, 175, 55, 0.2); z-index: 1; pointer-events: none;
+        }
+        .corner-ornament {
+            position: absolute; width: 50px; height: 50px;
+            border: 2px solid #d4af37; z-index: 2;
+        }
+        .corner-tl { top: 25px; left: 25px; border-right: none; border-bottom: none; }
+        .corner-tr { top: 25px; right: 25px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 25px; left: 25px; border-right: none; border-top: none; }
+        .corner-br { bottom: 25px; right: 25px; border-left: none; border-top: none; }
+
+        /* Main Content */
+        .main-content {
+            z-index: 10; text-align: center;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; flex: 1;
+        }
+        .motto-container {
+            position: relative; padding: 60px 100px;
+            animation: fadeIn 2s ease-out;
+        }
+        .quote-icon { font-size: 3.5rem; color: rgba(123, 47, 190, 0.25); position: absolute; }
+        .quote-left { top: 0; left: 0; }
+        .quote-right { bottom: 0; right: 0; }
+
+        .motto-text {
+            font-family: 'Song Myung', serif; font-size: 4.5rem;
+            color: #d4af37; line-height: 1.4;
+            text-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
+            margin: 0; font-weight: 400; letter-spacing: -0.02em;
+        }
+        .motto-divider {
+            width: 120px; height: 2px;
+            background: linear-gradient(90deg, transparent, #0d7377, transparent);
+            margin: 40px auto 0;
+        }
+
+        /* Brand & Contact */
+        .footer-section {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 25px; z-index: 10; margin-bottom: 60px;
+            animation: fadeIn 3s ease-out;
+        }
+        .brand-logo { display: flex; align-items: center; gap: 15px; font-size: 1.8rem; font-family: 'Song Myung', serif; color: #f1f5f9; }
+        .brand-logo i { color: #7b2fbe; filter: drop-shadow(0 0 10px rgba(123, 47, 190, 0.5)); }
+        
+        .contact-info {
+            background: rgba(255, 255, 255, 0.03); padding: 12px 35px;
+            border-radius: 40px; border: 1px solid rgba(212, 175, 55, 0.15);
+            transition: 0.3s;
+        }
+        .contact-info:hover { background: rgba(212, 175, 55, 0.05); transform: translateY(-3px); }
+        .contact-info a { color: #4fd1c5; text-decoration: none; font-size: 1.1rem; display: flex; align-items: center; gap: 12px; }
+
+        /* Background Visuals */
+        .bg-circle { position: absolute; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.02); pointer-events: none; }
+        .c1 { width: 700px; height: 700px; top: 50%; left: 50%; transform: translate(-50%, -50%); border-color: rgba(123, 47, 190, 0.08); }
+        .bg-star { position: absolute; color: rgba(212, 175, 55, 0.2); animation: twinkle 3s infinite alternate; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes twinkle { from { opacity: 0.2; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="border-frame"></div>
+    <div class="corner-ornament corner-tl"></div>
+    <div class="corner-ornament corner-tr"></div>
+    <div class="corner-ornament corner-bl"></div>
+    <div class="corner-ornament corner-br"></div>
+
+    <div class="bg-circle c1"></div>
+    
+    <div class="bg-star" style="top: 15%; left: 15%;"><i class="fa-solid fa-star"></i></div>
+    <div class="bg-star" style="bottom: 20%; right: 10%; animation-delay: 1s;"><i class="fa-solid fa-moon"></i></div>
+    <div class="bg-star" style="top: 25%; right: 20%; font-size: 10px; animation-delay: 0.5s;"><i class="fa-solid fa-sparkles"></i></div>
+
+    <div class="main-content">
+        <div class="motto-container">
+            <i class="fa-solid fa-quote-left quote-icon quote-left"></i>
+            <h1 class="motto-text">
+                사업의 정체성을<br/>훼손시키지 않는다
+            </h1>
+            <i class="fa-solid fa-quote-right quote-icon quote-right"></i>
+            <div class="motto-divider"></div>
+        </div>
+    </div>
+
+    <div class="footer-section">
+        <div class="brand-logo">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Table Platform : Drawer Project</span>
+        </div>
+        <div class="contact-info">
+            <a href="https://tarot-manager-app.vercel.app" target="_blank">
+                <i class="fa-solid fa-globe"></i>
+                tarot-manager-app.vercel.app
+            </a>
+        </div>
+        <p style="color: #64748b; font-size: 0.9rem; margin-top: 10px;">감사합니다.</p>
+    </div>
+</div>
+
+<script>
+    // 마지막 페이지이므로 처음으로 돌아가거나 종료 안내
+    document.body.addEventListener('click', () => {
+        if(confirm("발표를 마치시겠습니까? (확인 클릭 시 첫 페이지로 이동)")) {
+            window.location.href = 'Drawer_page1.html';
+        }
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') window.location.href = 'Drawer_page10.html';
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Table Platform Presentation - Page 1</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            /* 마우스 커서를 포인터로 바꿔서 클릭 가능하다는 신호 제공 */
+            cursor: pointer; 
+        }
+        .slide-container {
+            width: 100vw; /* 화면 너비에 맞춤 */
+            height: 100vh; /* 화면 높이에 맞춤 */
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+        }
+        
+        /* Ornamental Border */
+        .tarot-border-outer {
+            position: absolute;
+            top: 24px; left: 24px; right: 24px; bottom: 24px;
+            border: 2px solid #d4af37;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .tarot-border-inner {
+            position: absolute;
+            top: 32px; left: 32px; right: 32px; bottom: 32px;
+            border: 1px solid rgba(123, 47, 190, 0.5);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        /* Corner Ornaments */
+        .corner {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-color: #d4af37;
+            border-style: solid;
+            z-index: 2;
+        }
+        .corner-tl { top: 24px; left: 24px; border-width: 4px 0 0 4px; }
+        .corner-tr { top: 24px; right: 24px; border-width: 4px 4px 0 0; }
+        .corner-bl { bottom: 24px; left: 24px; border-width: 0 0 4px 4px; }
+        .corner-br { bottom: 24px; right: 24px; border-width: 0 4px 4px 0; }
+
+        /* Typography */
+        .title-main {
+            font-family: 'Song Myung', serif;
+            font-size: clamp(3rem, 8vw, 6rem); /* 글자 크기 유동적 조절 */
+            color: #d4af37;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            letter-spacing: -0.01em;
+        }
+        
+        .subtitle {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: clamp(1rem, 3vw, 1.8rem);
+            font-weight: 300;
+            color: #e2e8f0;
+            letter-spacing: 0.15em;
+            margin-bottom: 4rem;
+            text-transform: uppercase;
+        }
+
+        /* Decorative Background Circles */
+        .bg-decoration {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+        .circle-1 { width: 40vh; height: 40vh; border-color: rgba(123, 47, 190, 0.15); }
+        .circle-2 { width: 60vh; height: 60vh; border-color: rgba(212, 175, 55, 0.1); }
+        .circle-3 { width: 80vh; height: 80vh; border-color: rgba(13, 115, 119, 0.1); }
+
+        .footer-info {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+            font-size: 1.1rem;
+            color: #94a3b8;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+            width: 100%;
+            max-width: 400px;
+            justify-content: center;
+        }
+
+        .icon-gold { color: #d4af37; }
+        .icon-purple { color: #7b2fbe; }
+        .icon-teal { color: #0d7377; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="bg-decoration circle-1"></div>
+        <div class="bg-decoration circle-2"></div>
+        <div class="bg-decoration circle-3"></div>
+        
+        <div class="tarot-border-outer"></div>
+        <div class="tarot-border-inner"></div>
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+
+        <div style="z-index: 10; text-align: center; padding: 0 20px;">
+            <div style="margin-bottom: 2rem; font-size: 3rem; color: #d4af37; opacity: 0.9;">
+                <i class="fa-solid fa-moon"></i>
+            </div>
+            <h1 class="title-main">Table Platform</h1>
+            <p class="subtitle">타로 와인바를 위한 스마트 고객 관리 생태계</p>
+            <div class="footer-info">
+                <p><i class="fa-regular fa-calendar-check icon-purple mr-2"></i> 2026. 02. 25</p>
+                <p><i class="fa-solid fa-code icon-teal mr-2"></i> Table Platform</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 화면 어디든 클릭하면 다음 페이지로 이동
+        document.body.addEventListener('click', () => {
+            window.location.href = 'Drawer_page2.html';
+        });
+
+        // 2. 키보드 오른쪽 방향키나 스페이스바를 누르면 다음 페이지로 이동
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                window.location.href = 'Drawer_page2.html';
+            }
+        });
+    </script>
+</body>
+</html>

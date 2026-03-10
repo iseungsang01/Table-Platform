@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Database Architecture (ERD)</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative; background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Background Grid */
+        .bg-grid {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 0; pointer-events: none;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 2vh; border-bottom: 1px solid rgba(123, 47, 190, 0.3);
+            padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end; z-index: 10;
+        }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; }
+        .subtitle { font-size: 1rem; color: #94a3b8; font-weight: 300; }
+
+        /* Content Layout */
+        .content-wrapper { display: flex; flex: 1; gap: 30px; z-index: 10; position: relative; overflow: hidden; }
+
+        /* Diagram Area */
+        .diagram-area { flex: 0 0 68%; position: relative; height: 100%; }
+        .svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+        /* Table Nodes */
+        .db-table {
+            position: absolute; width: 180px; background-color: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 5;
+            font-family: 'Fira Code', monospace;
+        }
+        .table-header { padding: 6px 10px; font-size: 0.75rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .table-body { padding: 6px 10px; font-size: 0.65rem; color: #cbd5e1; line-height: 1.6; }
+        .pk { color: #d4af37; margin-right: 2px; font-weight: bold; }
+        .fk { color: #7b2fbe; margin-right: 2px; }
+        .col-type { color: #64748b; float: right; font-size: 0.55rem; }
+
+        /* Table Specifics */
+        .table-customers { width: 230px; top: 35%; left: 35%; border-color: #d4af37; box-shadow: 0 0 15px rgba(212, 175, 55, 0.1); }
+        .table-customers .table-header { background: rgba(212, 175, 55, 0.2); color: #fcd34d; }
+        
+        .table-visit { top: 8%; left: 5%; border-color: #7b2fbe; }
+        .table-coupon { bottom: 8%; left: 5%; border-color: #7b2fbe; }
+        .table-bugs { bottom: 8%; right: 5%; border-color: #0d7377; }
+        
+        .table-votes { top: 8%; right: 5%; border-color: #d4af37; }
+        .table-vote-res { top: 40%; right: 5%; border-color: #d4af37; }
+        
+        .table-notices { top: 5%; left: 40%; border-color: #64748b; border-style: dashed; }
+        .table-config { bottom: 5%; left: 40%; border-color: #ef4444; border-style: dashed; }
+
+        /* Text Area */
+        .text-area { flex: 1; padding: 25px; background: rgba(255, 255, 255, 0.02); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+        .item-header { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+        .item-icon { width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border-radius: 6px; font-size: 0.8rem; }
+        .item-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; padding-left: 38px; }
+
+        /* Legend */
+        .legend { position: absolute; bottom: 0; left: 0; display: flex; gap: 12px; font-size: 0.65rem; color: #64748b; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-grid"></div>
+
+    <div class="header">
+        <div>
+            <h1 class="title">데이터베이스 구조 (ERD)</h1>
+            <p class="subtitle">보안(RLS/Crypto), 멤버십 AI 트래킹 및 관계 무결성 최적화 모델</p>
+        </div>
+        <div style="font-family: 'Fira Code', monospace; color: #7b2fbe;">Supabase PostgreSQL</div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="diagram-area">
+            <svg class="svg-layer">
+                <defs>
+                    <marker id="arrow" markerHeight="7" markerWidth="10" orient="auto" refX="9" refY="3.5">
+                        <polygon fill="#475569" points="0 0, 10 3.5, 0 7"></polygon>
+                    </marker>
+                </defs>
+                <line x1="45%" y1="45%" x2="15%" y2="20%" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" />
+                <line x1="45%" y1="55%" x2="15%" y2="85%" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" />
+                <line x1="55%" y1="55%" x2="85%" y2="85%" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" />
+                <line x1="55%" y1="45%" x2="82%" y2="45%" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" />
+                <line x1="87%" y1="20%" x2="87%" y2="40%" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" />
+            </svg>
+
+            <div class="db-table table-customers">
+                <div class="table-header"><i class="fa-solid fa-users mr-2"></i>CUSTOMERS</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">uuid</span></div>
+                    <div>phone_number <span class="col-type">varchar</span></div>
+                    <div>password <span class="col-type">text(crypt)</span></div>
+                    <div>membership_type <span class="col-type">varchar</span></div>
+                    <div>daily_ai_count <span class="col-type">int</span></div>
+                    <div>current_stamps <span class="col-type">int</span></div>
+                    <div>visit_count <span class="col-type">int</span></div>
+                    <div>last_visit <span class="col-type">ts</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-visit">
+                <div class="table-header"><i class="fa-solid fa-clock-rotate-left mr-2"></i>VISIT_HISTORY</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">int</span></div>
+                    <div><span class="fk">FK</span>customer_id <span class="col-type">uuid</span></div>
+                    <div>visit_date <span class="col-type">ts</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-coupon">
+                <div class="table-header"><i class="fa-solid fa-ticket mr-2"></i>COUPON_HISTORY</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">int</span></div>
+                    <div><span class="fk">FK</span>customer_id <span class="col-type">uuid</span></div>
+                    <div>coupon_code <span class="col-type">varchar</span></div>
+                    <div>is_used <span class="col-type">bool</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-bugs">
+                <div class="table-header"><i class="fa-solid fa-bug mr-2"></i>BUG_REPORTS</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">int</span></div>
+                    <div><span class="fk">FK</span>customer_id <span class="col-type">uuid</span></div>
+                    <div>status <span class="col-type">varchar</span></div>
+                    <div>device_info <span class="col-type">jsonb</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-votes">
+                <div class="table-header"><i class="fa-solid fa-check-to-slot mr-2"></i>VOTES</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">int</span></div>
+                    <div>title <span class="col-type">varchar</span></div>
+                    <div>options <span class="col-type">jsonb</span></div>
+                    <div>is_active <span class="col-type">bool</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-vote-res">
+                <div class="table-header"><i class="fa-solid fa-poll mr-2"></i>VOTE_RESPONSES</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">int</span></div>
+                    <div><span class="fk">FK</span>vote_id <span class="col-type">int</span></div>
+                    <div><span class="fk">FK</span>customer_id <span class="col-type">uuid</span></div>
+                    <div>selected_options <span class="col-type">int[]</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-notices">
+                <div class="table-header"><i class="fa-solid fa-thumbtack mr-2"></i>NOTICES</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>id <span class="col-type">int</span></div>
+                    <div>title <span class="col-type">varchar</span></div>
+                    <div>is_pinned <span class="col-type">bool</span></div>
+                </div>
+            </div>
+
+            <div class="db-table table-config">
+                <div class="table-header"><i class="fa-solid fa-gear mr-2"></i>APP_CONFIGS</div>
+                <div class="table-body">
+                    <div><span class="pk">PK</span>key <span class="col-type">text</span></div>
+                    <div>value <span class="col-type">text</span></div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <span><span class="dot" style="background:#d4af37"></span>Core (고객/투표)</span>
+                <span><span class="dot" style="background:#7b2fbe"></span>Activity (방문/쿠폰)</span>
+                <span><span class="dot" style="background:#0d7377"></span>Support (CS)</span>
+                <span><span class="dot" style="background:#ef4444"></span>System (설정)</span>
+            </div>
+        </div>
+
+        <div class="text-area">
+            <div>
+                <div class="item-header" style="color:#fcd34d">
+                    <div class="item-icon" style="background:rgba(212,175,55,0.2)"><i class="fa-solid fa-shield-halved"></i></div>
+                    물리적 접근 제어 & 강력한 암호화
+                </div>
+                <p class="item-desc">모든 테이블에 <b>Row Level Security(RLS)</b>를 활성화하여 유저 간 데이터 격리를 구현했습니다. 또한 <code>pgcrypto</code> 확장을 통해 비밀번호와 민감 데이터를 <b>Bcrypt 해시 방식</b>으로 안전하게 저장합니다.</p>
+            </div>
+            <div>
+                <div class="item-header" style="color:#d8b4fe">
+                    <div class="item-icon" style="background:rgba(123,47,190,0.2)"><i class="fa-solid fa-robot"></i></div>
+                    멤버십 기반 AI 트래킹 구조
+                </div>
+                <p class="item-desc">Customers 테이블에 <code>membership_type</code>과 AI 사용량(일간/월간) 컬럼을 도입하고, RPC 함수(<code>increment_ai_usage</code>)를 통해 등급별(Free/Pro/Premium) 쿼터 제한을 데이터베이스 단에서 통제합니다.</p>
+            </div>
+            <div>
+                <div class="item-header" style="color:#4fd1c5">
+                    <div class="item-icon" style="background:rgba(13,115,119,0.2)"><i class="fa-solid fa-project-diagram"></i></div>
+                    관계 무결성 및 비정형 데이터 지원
+                </div>
+                <p class="item-desc">투표 옵션, 기기 정보 등은 <b>JSONB</b>로 처리하여 스키마 유연성을 확보했습니다. 고객 삭제 시 <code>ON DELETE CASCADE</code> 및 Soft Delete 제약을 결합해 좀비 데이터를 원천 차단합니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page9.html'; 
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') window.location.href = 'Drawer_page9.html';
+        if (e.key === 'ArrowLeft') window.location.href = 'Drawer_page7.html';
+    });
+</script>
+</body>
+</html>

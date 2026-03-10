@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>사용자 플로우</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative; background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Border Accents */
+        .border-line { position: absolute; background-color: rgba(212, 175, 55, 0.2); z-index: 1; }
+        .border-top { top: 30px; left: 30px; right: 30px; height: 1px; }
+        .border-bottom { bottom: 30px; left: 30px; right: 30px; height: 1px; }
+
+        /* Header */
+        .header { margin-bottom: 4vh; z-index: 10; }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; }
+        .subtitle { font-size: 1.1rem; color: #94a3b8; font-weight: 300; margin-top: 0.5rem; }
+
+        /* Flow Track */
+        .flow-track {
+            background-color: rgba(26, 26, 46, 0.4); border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px; padding: 3vh 3vw; margin-bottom: 4vh;
+            position: relative; display: flex; flex-direction: column;
+        }
+        .flow-label {
+            position: absolute; top: -12px; left: 30px; padding: 4px 16px;
+            border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+        }
+        .flow-customer { border-left: 4px solid #7b2fbe; }
+        .flow-customer .flow-label { background: #2e1065; color: #a78bfa; border: 1px solid #7b2fbe; }
+        
+        .flow-manager { border-left: 4px solid #d4af37; }
+        .flow-manager .flow-label { background: #422006; color: #fcd34d; border: 1px solid #d4af37; }
+
+        /* Steps */
+        .steps-container { display: flex; align-items: center; justify-content: space-between; position: relative; }
+        .connector-line {
+            position: absolute; top: 40px; left: 50px; right: 50px; height: 2px;
+            z-index: 0; opacity: 0.2;
+        }
+        .flow-customer .connector-line { background: #a78bfa; }
+        .flow-manager .connector-line { background: #d4af37; }
+
+        .step-node { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 120px; text-align: center; }
+        .icon-box {
+            width: 70px; height: 70px; border-radius: 50%; background: #0d0d1a;
+            border: 2px solid; display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem; margin-bottom: 12px; transition: all 0.3s ease;
+        }
+        .flow-customer .icon-box { border-color: #7b2fbe; color: #a78bfa; }
+        .flow-manager .icon-box { border-color: #d4af37; color: #fcd34d; }
+        
+        /* Hover Effect */
+        .step-node:hover .icon-box {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .step-title { font-weight: 700; font-size: 1rem; color: #f1f5f9; margin-bottom: 4px; }
+        .step-desc { font-size: 0.8rem; color: #94a3b8; line-height: 1.4; }
+        .step-arrow { color: #475569; font-size: 1rem; z-index: 2; background: #131326; padding: 0 5px; }
+
+        /* Manager Grid */
+        .manager-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+            background: #131326; padding: 18px; border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.4); 
+            z-index: 2; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            width: 280px;
+            transition: all 0.3s ease;
+        }
+        .manager-grid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
+        }
+        
+        .mgmt-item { font-size: 0.8rem; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+        .mgmt-item i { color: #d4af37; font-size: 0.5rem; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="border-line border-top"></div>
+    <div class="border-line border-bottom"></div>
+
+    <div class="header">
+        <h1 class="title">사용자 플로우</h1>
+        <p class="subtitle">고객의 간편한 경험과 관리자의 효율적인 운영 프로세스</p>
+    </div>
+
+    <div class="flows-wrapper">
+        <div class="flow-track flow-customer">
+            <div class="flow-label">User Experience Flow</div>
+            <div class="steps-container">
+                <div class="connector-line"></div>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                    <p class="step-title">01. 접속</p>
+                    <p class="step-desc">전화번호 기반<br>초간편 로그인</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-user-check"></i></div>
+                    <p class="step-title">02. 매칭</p>
+                    <p class="step-desc">DB 실시간 조회<br>사용자 식별</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-stamp"></i></div>
+                    <p class="step-title">03. 적립</p>
+                    <p class="step-desc">스탬프 현황 및<br>방문 이력 갱신</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-gift"></i></div>
+                    <p class="step-title">04. 리워드</p>
+                    <p class="step-desc">기준 달성 시<br>자동 쿠폰 발행</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flow-track flow-manager">
+            <div class="flow-label">Admin Management Flow</div>
+            <div class="steps-container">
+                <div class="connector-line"></div>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-shield-halved"></i></div>
+                    <p class="step-title">01. 인증</p>
+                    <p class="step-desc">관리자 전용<br>보안 액세스</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-gauge-high"></i></div>
+                    <p class="step-title">02. 대시보드</p>
+                    <p class="step-desc">전체 유저 및<br>매장 현황 모니터링</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="step-node">
+                    <div class="icon-box"><i class="fa-solid fa-sliders"></i></div>
+                    <p class="step-title">03. 통합 관리</p>
+                    <p class="step-desc">데이터 기반 운영</p>
+                </div>
+                <i class="fa-solid fa-chevron-right step-arrow"></i>
+                
+                <div class="manager-grid">
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>고객 이력 관리</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>쿠폰 발급/사용</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>투표 및 공지</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>생일 이벤트</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>실시간 제안 대응</div>
+                    <div class="mgmt-item"><i class="fa-solid fa-circle"></i>데이터 통계</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page10.html'; // 마지막 요약 혹은 Q&A 페이지
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') window.location.href = 'Drawer_page10.html';
+        if (e.key === 'ArrowLeft') window.location.href = 'Drawer_page8.html';
+    });
+</script>
+</body>
+</html>

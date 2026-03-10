@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>QR App (tarot-qr-app)</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Background Elements */
+        .bg-circle {
+            position: absolute; border-radius: 50%; border: 1px solid rgba(123, 47, 190, 0.1);
+            z-index: 0; pointer-events: none;
+        }
+        .circle-1 { top: -10vh; right: -5vw; width: 40vw; height: 40vw; border-color: rgba(13, 115, 119, 0.1); }
+        .circle-2 { bottom: -15vh; left: -5vw; width: 30vw; height: 30vw; border-color: rgba(212, 175, 55, 0.05); }
+
+        /* Header */
+        .header {
+            margin-bottom: 2rem; border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; z-index: 10;
+        }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; }
+        .app-badge {
+            background-color: rgba(13, 115, 119, 0.2); border: 1px solid #0d7377;
+            color: #4fd1c5; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 500;
+        }
+
+        /* Content Layout */
+        .content-wrapper { display: flex; flex: 1; gap: 5vw; z-index: 10; align-items: center; }
+
+        /* Left Visual (QR Scanner) */
+        .visual-area { flex: 0 0 350px; position: relative; }
+        .qr-frame {
+            width: 300px; height: 540px; border-radius: 24px; background-color: #1a1a2e;
+            position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 2px solid #2a2a3e;
+            overflow: hidden; display: flex; flex-direction: column; align-items: center;
+        }
+        .qr-header { width: 100%; height: 50px; background-color: #0d7377; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; }
+        
+        /* 높이 조정됨 (하단 카드 공간 확보) */
+        .qr-camera-view { width: 100%; height: 210px; background-color: #000; position: relative; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .qr-overlay { width: 130px; height: 130px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; position: relative; }
+        
+        .qr-scan-line {
+            width: 100%; height: 2px; background-color: #0d7377; box-shadow: 0 0 10px #0d7377;
+            position: absolute; animation: scan 2s linear infinite; z-index: 2;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* Right Content (Text) */
+        .text-area { flex: 1; display: flex; flex-direction: column; }
+        .feature-item {
+            display: flex; margin-bottom: 1.5vh; background-color: rgba(255, 255, 255, 0.03);
+            padding: 18px; border-radius: 12px; border-left: 4px solid #0d7377; transition: 0.2s;
+        }
+        .feature-item:hover { transform: translateX(10px); background-color: rgba(13, 115, 119, 0.1); }
+        .feature-icon { flex: 0 0 45px; font-size: 1.3rem; color: #0d7377; }
+        .feature-content h3 { margin: 0 0 4px 0; color: #e2e8f0; font-size: 1.1rem; font-weight: 600; }
+        .feature-content p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; }
+
+        .status-box { margin-top: auto; display: flex; align-items: center; gap: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .link-text { color: #4fd1c5; font-size: 0.85rem; margin-left: auto; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-circle circle-1"></div>
+    <div class="bg-circle circle-2"></div>
+
+    <div class="header">
+        <h1 class="title">tarot-qr-app</h1>
+        <span class="app-badge">ADMIN TOOL</span>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="visual-area">
+            <div class="qr-frame">
+                <div class="qr-header"><i class="fa-solid fa-qrcode mr-2"></i>방문 체크인</div>
+                <div class="qr-camera-view">
+                    <div class="qr-overlay">
+                        <img src="21r7W.jpg" alt="QR Code" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; opacity: 0.8; position: relative; z-index: 1;" />
+                        <div class="qr-scan-line"></div>
+                        <div style="position:absolute; top:-2px; left:-2px; width:20px; height:20px; border-top:4px solid #0d7377; border-left:4px solid #0d7377; z-index: 3;"></div>
+                        <div style="position:absolute; top:-2px; right:-2px; width:20px; height:20px; border-top:4px solid #0d7377; border-right:4px solid #0d7377; z-index: 3;"></div>
+                        <div style="position:absolute; bottom:-2px; left:-2px; width:20px; height:20px; border-bottom:4px solid #0d7377; border-left:4px solid #0d7377; z-index: 3;"></div>
+                        <div style="position:absolute; bottom:-2px; right:-2px; width:20px; height:20px; border-bottom:4px solid #0d7377; border-right:4px solid #0d7377; z-index: 3;"></div>
+                    </div>
+                </div>
+                
+                <div class="w-full flex-1 flex flex-col bg-[#fbf9ff] p-4 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.3)] relative z-10 border-t border-purple-200 box-border">
+                    
+                    <div class="flex justify-between items-center border-b border-purple-200 pb-2 mb-3">
+                        <span class="text-[#6b21a8] font-bold text-[0.85rem]"><i class="fa-solid fa-user mr-1"></i> 고객 정보</span>
+                        <span class="text-xs text-gray-500 font-medium">총 방문 <strong class="text-[#6b21a8] text-sm ml-1">0회</strong></span>
+                    </div>
+
+                    <div class="border border-purple-100 rounded-2xl p-3 flex flex-col items-center bg-white mb-auto shadow-sm">
+                        <span class="text-[0.75rem] font-bold text-gray-800 mb-2">
+                            <i class="fa-solid fa-server text-[#6b21a8] mr-1"></i> 생성할 서랍 개수
+                        </span>
+                        <div class="flex items-center gap-4 my-1">
+                            <button class="w-8 h-8 rounded-xl border-2 border-[#a855f7] text-[#a855f7] font-bold text-lg flex items-center justify-center hover:bg-purple-50 transition">-</button>
+                            <div class="w-14 h-9 border border-gray-200 rounded-xl flex items-center justify-center font-bold text-[#6b21a8] text-base">1</div>
+                            <button class="w-8 h-8 rounded-xl border-2 border-[#a855f7] text-[#a855f7] font-bold text-lg flex items-center justify-center hover:bg-purple-50 transition">+</button>
+                        </div>
+                        <span class="text-[0.6rem] text-gray-400 mt-1">각 서랍은 개별 방문 기록으로 저장됩니다.</span>
+                    </div>
+
+                    <div class="flex gap-2 mt-3">
+                        <button class="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-[0.8rem] flex items-center justify-center shadow-sm hover:bg-gray-50 transition">
+                            <i class="fa-solid fa-xmark text-[#ef4444] mr-2 text-lg"></i> 취소
+                        </button>
+                        <button class="flex-1 py-2.5 rounded-xl bg-[#eab308] text-white font-bold text-[0.8rem] flex items-center justify-center shadow-sm hover:bg-yellow-500 transition">
+                            <i class="fa-solid fa-square-check text-[#4ade80] bg-white rounded-sm mr-1.5 text-lg"></i> 방문 확인
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            <i class="fa-solid fa-camera absolute" style="right:-10px; top:50px; font-size:2.5rem; color:#0d7377; opacity:0.5;"></i>
+        </div>
+
+        <div class="text-area">
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-camera-rotate"></i></div>
+                <div class="feature-content">
+                    <h3>QR 방문 체크인 & 자동 기록</h3>
+                    <p>현장에서 고객 QR을 스캔하여 DB에 실시간 방문 데이터를 저장합니다.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-link"></i></div>
+                <div class="feature-content">
+                    <h3>서랍(기록 공간) 즉시 연동</h3>
+                    <p>스캔과 동시에 고객의 개인 앱에 해당 방문 '서랍'이 자동 생성됩니다.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="feature-content">
+                    <h3>유연한 기록 모드 지원</h3>
+                    <p>타로 상담 혹은 일반 식사 등 방문 목적에 따른 데이터 분리 기록이 가능합니다.</p>
+                </div>
+            </div>
+            <div class="feature-item" style="border-left-color: #d4af37;">
+                <div class="feature-icon"><i class="fa-solid fa-database" style="color:#d4af37;"></i></div>
+                <div class="feature-content">
+                    <h3>실시간 비즈니스 인사이트</h3>
+                    <p>관리자는 현장 방문 현황을 즉시 파악하고 서비스 응대에 활용합니다.</p>
+                </div>
+            </div>
+
+            <div class="status-box">
+                <div class="flex gap-2">
+                    <div class="px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs">Web App</div>
+                    <div class="px-3 py-1 bg-teal-900 bg-opacity-30 rounded border border-teal-700 text-xs text-teal-200">배포 완료</div>
+                </div>
+                <div class="link-text"><i class="fa-solid fa-link mr-1"></i> qr-check-tawny.vercel.app</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page7.html'; // 기술 스택 등 다음 페이지로
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            window.location.href = 'Drawer_page7.html';
+        } else if (e.key === 'ArrowLeft') {
+            window.location.href = 'Drawer_page5.html'; // 관리자 앱 페이지로
+        }
+    });
+</script>
+</body>
+</html>

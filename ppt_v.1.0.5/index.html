@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawer Project Portfolio | Table Platform</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: #0d0d1a;
+        }
+        #slide-frame {
+            width: 100%; height: 100%;
+            border: none;
+        }
+        /* 페이지 번호 표시기 */
+        #page-indicator {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            color: rgba(212, 175, 55, 0.5);
+            font-family: 'serif';
+            font-size: 1rem;
+            z-index: 100;
+            letter-spacing: 2px;
+        }
+        /* 프로그레스 바 */
+        #progress-bar {
+            position: absolute;
+            bottom: 0; left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #7b2fbe, #d4af37);
+            transition: width 0.3s ease;
+            z-index: 101;
+        }
+    </style>
+</head>
+<body>
+
+    <iframe id="slide-frame" src="Drawer_page1.html"></iframe>
+    <div id="page-indicator">PAGE 01 / 11</div>
+    <div id="progress-bar" style="width: 9%;"></div>
+
+    <script>
+        let currentPage = 1;
+        const totalPages = 11;
+        const frame = document.getElementById('slide-frame');
+        const indicator = document.getElementById('page-indicator');
+        const progress = document.getElementById('progress-bar');
+
+        function updatePage() {
+            // 페이지 전환
+            frame.src = `Drawer_page${currentPage}.html`;
+            
+            // 인디케이터 업데이트
+            indicator.innerText = `PAGE ${currentPage.toString().padStart(2, '0')} / ${totalPages}`;
+            
+            // 프로그레스 바 업데이트
+            const percent = (currentPage / totalPages) * 100;
+            progress.style.width = `${percent}%`;
+        }
+
+        // 키보드 제어
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updatePage();
+                }
+            } else if (e.key === 'ArrowLeft') {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updatePage();
+                }
+            }
+        });
+
+        // iframe 내부에서 발생하는 클릭 이벤트 감지 (선택 사항)
+        // 주의: 각 슬라이드 내부에 이미 window.location 코드가 있다면 이 중복 제어는 필요 없을 수 있습니다.
+    </script>
+</body>
+</html>

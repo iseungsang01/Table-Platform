@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>4개 앱 구성 개요</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex;
+            flex-direction: column;
+            color: #ffffff;
+            padding: 5vh 5vw; /* 반응형 패딩 */
+            box-sizing: border-box;
+        }
+
+        /* Background Elements */
+        .bg-pattern {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(circle at 50% 50%, rgba(123, 47, 190, 0.05) 0%, transparent 70%);
+            z-index: 0;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 1rem;
+            z-index: 10;
+        }
+        
+        .title {
+            font-family: 'Song Myung', serif;
+            font-size: 2.5rem;
+            color: #d4af37;
+            margin: 0;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        /* Grid Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 20px;
+            flex: 1;
+            z-index: 10;
+        }
+
+        /* Card Styles */
+        .app-card {
+            background-color: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(123, 47, 190, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+        }
+
+        .card-core::before { background-color: #7b2fbe; }
+        .card-admin::before { background-color: #d4af37; }
+        .card-support::before { background-color: #0d7377; }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .icon-box {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center; align-items: center;
+            font-size: 1.2rem;
+            margin-right: 14px;
+            background-color: rgba(13, 13, 26, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .icon-core { color: #a78bfa; border-color: rgba(123, 47, 190, 0.5); }
+        .icon-admin { color: #fcd34d; border-color: rgba(212, 175, 55, 0.5); }
+        .icon-support { color: #2dd4bf; border-color: rgba(13, 115, 119, 0.5); }
+
+        .app-name { font-size: 1.3rem; font-weight: 700; color: #f1f5f9; }
+        .app-type { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; }
+
+        .info-row { display: flex; margin-bottom: 6px; font-size: 0.9rem; color: #cbd5e1; }
+        .info-label { width: 70px; color: #94a3b8; font-size: 0.8rem; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-top: 10px;
+            align-self: flex-start;
+        }
+
+        .status-alpha { background-color: rgba(123, 47, 190, 0.2); color: #e9d5ff; border: 1px solid rgba(123, 47, 190, 0.4); }
+        .status-deployed { background-color: rgba(212, 175, 55, 0.2); color: #fde68a; border: 1px solid rgba(212, 175, 55, 0.4); }
+        .status-internal { background-color: rgba(13, 115, 119, 0.2); color: #ccfbf1; border: 1px solid rgba(13, 115, 119, 0.4); }
+
+        .corner-accent { position: absolute; width: 15px; height: 15px; border-style: solid; border-color: rgba(255, 255, 255, 0.1); }
+        .tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
+        .bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-pattern"></div>
+    
+    <div class="header">
+        <div>
+            <h1 class="title">플랫폼 생태계 구성</h1>
+            <p class="subtitle" style="margin-top: 0.5rem;">4개의 전문화된 앱으로 구성된 Table Platform</p>
+        </div>
+        <div style="text-align: right; color: #d4af37; font-size: 1.5rem;">
+            <i class="fa-solid fa-layer-group"></i>
+        </div>
+    </div>
+
+    <div class="grid-container">
+        <div class="app-card card-core">
+            <div class="corner-accent tr"></div><div class="corner-accent bl"></div>
+            <div class="card-header">
+                <div class="icon-box icon-core"><i class="fa-solid fa-mobile-screen"></i></div>
+                <div><h2 class="app-name">서랍 (User App)</h2><div class="app-type" style="color: #a78bfa;">CORE APP</div></div>
+            </div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">대상</span><span class="info-value">일반 사용자 (고객)</span></div>
+                <div class="info-row"><span class="info-label">역할</span><span class="info-value">기록 저장, 공지, 투표</span></div>
+                <div class="status-badge status-alpha">알파 테스트 중</div>
+            </div>
+        </div>
+
+        <div class="app-card card-admin">
+            <div class="corner-accent tr"></div><div class="corner-accent bl"></div>
+            <div class="card-header">
+                <div class="icon-box icon-admin"><i class="fa-solid fa-laptop-code"></i></div>
+                <div><h2 class="app-name">Manager App</h2><div class="app-type" style="color: #fcd34d;">ADMIN TOOL</div></div>
+            </div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">대상</span><span class="info-value">관리자 (매니저)</span></div>
+                <div class="info-row"><span class="info-label">역할</span><span class="info-value">데이터 관리, 쿠폰 발급</span></div>
+                <div class="status-badge status-deployed">배포 완료 (운영 중)</div>
+            </div>
+        </div>
+
+        <div class="app-card card-admin">
+            <div class="corner-accent tr"></div><div class="corner-accent bl"></div>
+            <div class="card-header">
+                <div class="icon-box icon-admin"><i class="fa-solid fa-qrcode"></i></div>
+                <div><h2 class="app-name">QR App</h2><div class="app-type" style="color: #fcd34d;">ADMIN TOOL</div></div>
+            </div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">대상</span><span class="info-value">관리자 (현장)</span></div>
+                <div class="info-row"><span class="info-label">역할</span><span class="info-value">현장 체크인 데이터 생성</span></div>
+                <div class="status-badge status-deployed">배포 완료</div>
+            </div>
+        </div>
+
+        <div class="app-card card-support">
+            <div class="corner-accent tr"></div><div class="corner-accent bl"></div>
+            <div class="card-header">
+                <div class="icon-box icon-support"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div><h2 class="app-name">Developer App</h2><div class="app-type" style="color: #2dd4bf;">SUPPORT TOOL</div></div>
+            </div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">대상</span><span class="info-value">개발자</span></div>
+                <div class="info-row"><span class="info-label">역할</span><span class="info-value">오류 수신, DB 모니터링</span></div>
+                <div class="status-badge status-internal">내부용</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 클릭 시 다음 페이지로
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page3.html';
+    });
+
+    // 키보드 제어
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            window.location.href = 'Drawer_page3.html';
+        } else if (e.key === 'ArrowLeft') {
+            window.location.href = 'Drawer_page1.html'; // 이전 페이지 (첫 화면)
+        }
+    });
+</script>
+</body>
+</html>

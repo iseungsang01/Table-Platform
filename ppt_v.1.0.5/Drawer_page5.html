@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>tarot-manager-app</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Background Elements */
+        .bg-circle {
+            position: absolute; border-radius: 50%; border: 1px solid rgba(212, 175, 55, 0.1);
+            z-index: 0; pointer-events: none;
+        }
+        .circle-1 { top: -100px; right: -100px; width: 600px; height: 600px; border-color: rgba(212, 175, 55, 0.15); }
+        .circle-2 { bottom: -150px; left: -100px; width: 500px; height: 500px; border-color: rgba(123, 47, 190, 0.1); }
+
+        /* Header */
+        .header {
+            margin-bottom: 2rem; border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; z-index: 10;
+        }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; }
+        .app-badge {
+            background-color: rgba(212, 175, 55, 0.2); border: 1px solid #d4af37;
+            color: #fef3c7; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 500;
+        }
+
+        /* Content Layout */
+        .content-wrapper { display: flex; flex: 1; gap: 5vw; z-index: 10; align-items: center; }
+
+        /* Left Visual (Monitor Mockup) */
+        .visual-area { flex: 0 0 450px; display: flex; justify-content: center; align-items: center; position: relative; }
+        .monitor-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; transform: scale(1.1); }
+        .monitor-frame {
+            width: 400px; height: 260px; background: #0f172a; border: 10px solid #334155;
+            border-radius: 8px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; z-index: 2;
+        }
+        
+        /* 모니터 내부 타로 UI 디자인 */
+        .monitor-screen { width: 100%; height: 100%; background-color: #1a0b2e; }
+        
+        .tarot-ui {
+            width: 100%; height: 100%;
+            padding: 12px; display: flex; gap: 10px; box-sizing: border-box;
+        }
+        .tarot-panel {
+            border: 1px solid #d4af37; border-radius: 6px; padding: 10px;
+            display: flex; flex-direction: column; position: relative;
+            box-shadow: 0 0 10px rgba(212,175,55,0.05);
+        }
+        .tarot-left { flex: 0.9; }
+        .tarot-right { flex: 1.1; }
+        .t-title { color: #facc15; font-size: 14px; font-weight: bold; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
+        .t-sub { color: #a8a2b5; font-size: 7px; margin-bottom: 12px; }
+        .t-label { color: #e9d5ff; font-size: 7px; margin-bottom: 3px; margin-top: 6px; font-weight: 500;}
+        .t-input { background: #ede9fe; border-radius: 3px; display: flex; align-items: center; padding: 4px 6px; color: #333; font-size: 8px; justify-content: space-between; }
+        .t-row { display: flex; gap: 5px; }
+        .t-btn-primary { background: #8b5cf6; color: white; text-align: center; border-radius: 4px; padding: 8px; font-size: 10px; margin-top: auto; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        .tr-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border-bottom: 1px solid rgba(212,175,55,0.2); padding-bottom: 6px; }
+        .tr-hl { color: #facc15; font-size: 12px; font-weight: bold; line-height: 1.2; }
+        .tr-hl span { display: block; color: #a8a2b5; font-size: 7px; font-weight: normal; margin-top: 2px;}
+        .tr-hr { display: flex; gap: 4px; }
+        .tr-pill { border: 1px solid rgba(212,175,55,0.4); border-radius: 10px; padding: 2px 5px; font-size: 6px; color: #facc15; background: rgba(212,175,55,0.05); }
+        
+        .t-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: auto; }
+        .t-card { background: #25104a; border: 1px solid rgba(139,92,246,0.5); border-radius: 3px; height: 50px; display: flex; justify-content: center; padding-top: 3px; }
+        .t-star { color: #d4af37; font-size: 5px; }
+
+        .tr-actions { display: flex; gap: 6px; margin-top: 10px; }
+        .t-btn-action { flex: 1; padding: 6px 0; text-align: center; border-radius: 4px; font-size: 9px; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .bg-green-st { background: #4d7c2f; border: 1px solid #65a33d; }
+        .bg-cyan-st { background: #06b6d4; border: 1px solid #22d3ee; }
+        .bg-brown-st { background: #92400e; border: 1px solid #b45309; }
+
+        /* 모니터 스탠드 */
+        .monitor-stand { width: 60px; height: 30px; background: #334155; margin-top: -5px; z-index: 1; }
+        .monitor-base { width: 120px; height: 6px; background: #1e293b; border-radius: 3px; }
+
+        /* Right Content (Text) */
+        .text-area { flex: 1; display: flex; flex-direction: column; }
+        .feature-item {
+            display: flex; margin-bottom: 1.5vh; background-color: rgba(255, 255, 255, 0.03);
+            padding: 18px; border-radius: 12px; border-left: 4px solid #d4af37; transition: 0.2s;
+        }
+        .feature-item:hover { transform: translateX(10px); background-color: rgba(212, 175, 55, 0.1); }
+        .feature-icon { flex: 0 0 45px; font-size: 1.3rem; color: #f59e0b; }
+        .feature-content h3 { margin: 0 0 4px 0; color: #e2e8f0; font-size: 1.1rem; font-weight: 600; }
+        .feature-content p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; }
+
+        .status-box { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .link-box { display: flex; align-items: center; background: rgba(13, 115, 119, 0.1); border: 1px solid rgba(13, 115, 119, 0.3); padding: 8px 16px; border-radius: 8px; color: #2dd4bf; font-size: 0.85rem; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        .floating { animation: float 4s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-circle circle-1"></div>
+    <div class="bg-circle circle-2"></div>
+
+    <div class="header">
+        <h1 class="title">tarot-manager-app</h1>
+        <span class="app-badge">ADMIN TOOL</span>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="visual-area">
+            <div class="monitor-wrapper floating">
+                <div class="monitor-frame">
+                    <div class="monitor-screen">
+                        <div class="tarot-ui">
+                            <div class="tarot-panel tarot-left">
+                                <div class="t-title"><span>🔮</span> 타로 스탬프</div>
+                                <div class="t-sub">10장의 카드를 모아 운명의 쿠폰을 받으세요</div>
+                                
+                                <div class="t-label">전화번호</div>
+                                <div class="t-input">010-1234-1234</div>
+                                
+                                <div class="t-label">닉네임 (선택)</div>
+                                <div class="t-input" style="color:#888;">타로러버</div>
+                                
+                                <div class="t-label">생일 (선택)</div>
+                                <div class="t-row">
+                                    <div class="t-input" style="flex:1;">년도 <i class="fa-solid fa-chevron-down" style="font-size:6px;"></i></div>
+                                    <div class="t-input" style="flex:1;">월 <i class="fa-solid fa-chevron-down" style="font-size:6px;"></i></div>
+                                    <div class="t-input" style="flex:1;">일 <i class="fa-solid fa-chevron-down" style="font-size:6px;"></i></div>
+                                </div>
+                                
+                                <div class="t-btn-primary">조회하기</div>
+                            </div>
+                            
+                            <div class="tarot-panel tarot-right">
+                                <div class="tr-header">
+                                    <div class="tr-hl">1234 <span>010-1234-1234</span></div>
+                                    <div class="tr-hr">
+                                        <div class="tr-pill">카드: 0/10</div>
+                                        <div class="tr-pill">방문: 4회</div>
+                                    </div>
+                                </div>
+                                <div class="t-grid">
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                    <div class="t-card"><div class="t-star"><i class="fa-solid fa-star"></i></div></div>
+                                </div>
+                                <div class="tr-actions">
+                                    <div class="t-btn-action bg-green-st"><i class="fa-solid fa-check"></i> 스탬프</div>
+                                    <div class="t-btn-action bg-cyan-st"><i class="fa-solid fa-pencil"></i> 수정</div>
+                                    <div class="t-btn-action bg-brown-st"><i class="fa-solid fa-gift" style="color:#d4af37;"></i> 쿠폰</div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                </div>
+                <div class="monitor-stand"></div>
+                <div class="monitor-base"></div>
+            </div>
+            <i class="fa-solid fa-laptop-code absolute" style="right: 20px; top: 40px; font-size: 2.5rem; color: #d4af37; opacity: 0.6;"></i>
+        </div>
+
+        <div class="text-area">
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-address-book"></i></div>
+                <div class="feature-content">
+                    <h3>고객 데이터 통합 관리</h3>
+                    <p>전화번호 기반 고객 조회 및 신규 등록, 방문 이력 히스토리 관리</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-stamp"></i></div>
+                <div class="feature-content">
+                    <h3>스탬프 & 쿠폰 자동화</h3>
+                    <p>스탬프 적립 및 쿠폰 자동 발급(10개 달성), 생일자 쿠폰 관리</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-bullhorn"></i></div>
+                <div class="feature-content">
+                    <h3>콘텐츠 관리 (CMS)</h3>
+                    <p>앱 내 공지사항 및 투표 생성/관리, 고객 피드백 실시간 모니터링</p>
+                </div>
+            </div>
+
+            <div class="status-box">
+                <div class="flex gap-3">
+                    <div class="status-item bg-slate-800 px-3 py-1 rounded text-xs border border-slate-700">PC 웹 기반</div>
+                    <div class="status-item bg-amber-900 bg-opacity-30 px-3 py-1 rounded text-xs border border-amber-700 text-amber-200">배포 완료</div>
+                </div>
+                <a href="https://tarot-manager-app.vercel.app/" class="link-box" target="_blank">
+                    <i class="fa-solid fa-link mr-2"></i>
+                    tarot-manager-app.vercel.app
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page6.html'; // 다음 QR 앱 페이지로
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            window.location.href = 'Drawer_page6.html';
+        } else if (e.key === 'ArrowLeft') {
+            window.location.href = 'Drawer_page4.html'; // 이전 사용자 앱 페이지로
+        }
+    });
+</script>
+</body>
+</html>

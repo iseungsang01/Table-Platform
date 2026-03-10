@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>서랍 (tarot-user-app)</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Song+Myung&display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0d0d1a;
+            font-family: 'Noto Sans KR', sans-serif;
+            cursor: pointer;
+        }
+        .slide-container {
+            width: 100vw; height: 100vh;
+            position: relative;
+            background-color: #0d0d1a;
+            display: flex; flex-direction: column;
+            color: #ffffff; box-sizing: border-box;
+            padding: 5vh 5vw;
+        }
+
+        /* Background Elements */
+        .bg-circle {
+            position: absolute; border-radius: 50%; border: 1px solid rgba(123, 47, 190, 0.1);
+            z-index: 0; pointer-events: none;
+        }
+        .circle-1 { top: -10vh; right: -5vw; width: 40vw; height: 40vw; border-color: rgba(123, 47, 190, 0.15); }
+        .circle-2 { bottom: -15vh; left: -5vw; width: 30vw; height: 30vw; border-color: rgba(212, 175, 55, 0.1); }
+
+        /* Header */
+        .header {
+            margin-bottom: 2rem; border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; z-index: 10;
+        }
+        .title { font-family: 'Song Myung', serif; font-size: 2.5rem; color: #d4af37; margin: 0; }
+        .app-badge {
+            background-color: rgba(123, 47, 190, 0.2); border: 1px solid #7b2fbe;
+            color: #d8b4fe; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem;
+        }
+
+        /* Content Layout */
+        .content-wrapper { display: flex; flex: 1; gap: 5vw; z-index: 10; align-items: center; }
+
+        /* Left Visual (Phone Mockup) */
+        .visual-area { flex: 0 0 320px; position: relative; }
+        .phone-frame {
+            width: 280px; height: 560px; border: 4px solid #334155; border-radius: 36px;
+            background-color: #0f172a; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden;
+        }
+        
+        /* --- NEW PHONE UI STYLES --- */
+        .phone-screen { 
+            width: 100%; height: 100%; background-color: #1c0a35; 
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .archive-title { font-family: 'Song Myung', serif; font-size: 1.4rem; color: #d4af37; letter-spacing: 4px; text-align: center; margin: 1.5rem 0 1.2rem; font-weight: bold; }
+        
+        .stats-panel { background-color: #291a14; border: 1px solid #453421; border-radius: 8px; margin: 0 1rem 1rem; display: flex; padding: 0.8rem 0; }
+        .stat-col { flex: 1; text-align: center; }
+        .stat-label { color: #a496b8; font-size: 0.6rem; margin-bottom: 0.3rem; font-weight: 500;}
+        .stat-val { color: white; font-weight: 700; font-size: 1rem; }
+        .stat-val.gold { color: #d4af37; }
+        .stat-divider { width: 1px; background-color: rgba(255, 255, 255, 0.1); margin: 0.2rem 0; }
+
+        .toggle-row-1 { display: flex; margin: 0 1rem 0.8rem; border: 1px solid #382452; border-radius: 8px; overflow: hidden; }
+        .toggle-btn { flex: 1; text-align: center; padding: 0.6rem 0; font-size: 0.7rem; color: #7c6896; font-weight: 700; background-color: #17072d; }
+        .toggle-btn.active { background-color: #d4af37; color: #2c2015; }
+
+        .toggle-row-2 { display: flex; margin: 0 1rem 1rem; gap: 0.5rem; }
+        .toggle-box { flex: 1; text-align: center; padding: 0.5rem 0; font-size: 0.7rem; border: 1px solid #382452; border-radius: 8px; color: #7c6896; font-weight: 700; background-color: #17072d; }
+        .toggle-box.active { background-color: #d4af37; color: #2c2015; border-color: #d4af37; }
+
+        .tooltip-box { margin: 0 1rem 1rem; background-color: rgba(255,255,255,0.04); border: 1px solid #382452; border-radius: 8px; padding: 0.7rem; text-align: center; font-size: 0.65rem; color: #c4b5d6; }
+
+        .cabinet-area { background-color: #3b2820; border-top: 6px solid #2b1d16; flex: 1; padding: 0.5rem 0 0 0; display: flex; flex-direction: column; position: relative;}
+        .drawer { background-color: #836442; border: 1px solid #664a2e; border-bottom: 5px solid #573e25; margin: 0 0.5rem 0.5rem; height: 80px; position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 1rem; }
+        .drawer-empty { background-color: rgba(0,0,0,0.15); color: rgba(255,255,255,0.4); font-size: 0.55rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; letter-spacing: 1px;}
+        .drawer-date { font-family: 'Song Myung', serif; color: #e6c855; font-size: 1rem; font-weight: bold; }
+        .drawer-knob-base { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 26px; height: 6px; background-color: #4a341e; border-radius: 3px; }
+        .drawer-knob { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background-color: #e6c855; border-radius: 50%; box-shadow: 0 2px 3px rgba(0,0,0,0.4); }
+
+        .bottom-nav { background-color: #210c3f; border-top: 2px solid #d4af37; display: flex; justify-content: space-around; align-items: center; padding: 0.5rem 0; height: 55px; z-index: 10;}
+        .nav-item { text-align: center; color: #a496b8; display: flex; flex-direction: column; gap: 0.2rem; }
+        .nav-item.active { color: #d4af37; }
+        .nav-item i { font-size: 1.1rem; }
+        .nav-item span { font-size: 0.6rem; font-weight: bold; }
+
+        /* Right Content (Text) */
+        .text-area { flex: 1; display: flex; flex-direction: column; }
+        .feature-item {
+            display: flex; margin-bottom: 1.5vh; background-color: rgba(255, 255, 255, 0.03);
+            padding: 18px; border-radius: 12px; border-left: 4px solid #7b2fbe; transition: 0.2s;
+        }
+        .feature-item:hover { transform: translateX(10px); background-color: rgba(123, 47, 190, 0.1); }
+        .feature-icon { flex: 0 0 50px; font-size: 1.5rem; color: #d4af37; }
+        .feature-content h3 { margin: 0 0 4px 0; color: #e2e8f0; font-size: 1.1rem; font-weight: 600; }
+        .feature-content p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; }
+
+        .status-box { margin-top: auto; display: flex; gap: 15px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .status-item { font-size: 0.85rem; color: #cbd5e1; background-color: rgba(13, 115, 119, 0.15); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(13, 115, 119, 0.3); }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .floating { animation: float 3s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+    <div class="bg-circle circle-1"></div>
+    <div class="bg-circle circle-2"></div>
+
+    <div class="header">
+        <h1 class="title">서랍 (tarot-user-app)</h1>
+        <span class="app-badge">CORE APP</span>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="visual-area floating">
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    
+                    <div class="archive-title">TAROT ARCHIVE</div>
+                    
+                    <div class="stats-panel">
+                        <div class="stat-col">
+                            <div class="stat-label">스탬프</div>
+                            <div class="stat-val">1/10</div>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-col">
+                            <div class="stat-label">방문 횟수</div>
+                            <div class="stat-val">23</div>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-col">
+                            <div class="stat-label">보유 쿠폰</div>
+                            <div class="stat-val gold">3</div>
+                        </div>
+                    </div>
+
+                    <div class="toggle-row-1">
+                        <div class="toggle-btn">ON</div>
+                        <div class="toggle-btn" style="border-left: 1px solid #382452; border-right: 1px solid #382452;">OFF</div>
+                        <div class="toggle-btn active">ALL</div>
+                    </div>
+
+                    <div class="toggle-row-2">
+                        <div class="toggle-box active">전체</div>
+                        <div class="toggle-box">연도별</div>
+                        <div class="toggle-box">월별</div>
+                    </div>
+
+                    <div class="tooltip-box">
+                        <i class="fa-regular fa-lightbulb" style="color: #d4af37; margin-right: 5px;"></i>
+                        서랍을 길게 누르면 다중 선택 모드로 진입합니다
+                    </div>
+
+                    <div class="cabinet-area">
+                        <div class="drawer">
+                            <div class="drawer-empty">EMPTY</div>
+                            <div class="drawer-knob-base"></div>
+                            <div class="drawer-knob"></div>
+                            <div class="drawer-date">2026.1.26</div>
+                        </div>
+                        <div class="drawer">
+                            <div class="drawer-empty">EMPTY</div>
+                            <div class="drawer-knob-base"></div>
+                            <div class="drawer-knob"></div>
+                            <div class="drawer-date">2026.1.26</div>
+                        </div>
+                        <div class="drawer" style="margin-bottom: -10px;"></div>
+                    </div>
+
+                    <div class="bottom-nav">
+                        <div class="nav-item active">
+                            <i class="fa-solid fa-house"></i>
+                            <span>홈</span>
+                        </div>
+                        <div class="nav-item">
+                            <i class="fa-solid fa-ticket"></i>
+                            <span>쿠폰</span>
+                        </div>
+                        <div class="nav-item">
+                            <i class="fa-solid fa-box-open"></i>
+                            <span>투표</span>
+                        </div>
+                        <div class="nav-item">
+                            <i class="fa-solid fa-bullhorn"></i>
+                            <span>공지</span>
+                        </div>
+                        <div class="nav-item">
+                            <i class="fa-solid fa-gear"></i>
+                            <span>설정</span>
+                        </div>
+                    </div>
+
+                </div>
+                </div>
+        </div>
+
+        <div class="text-area">
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-box-archive"></i></div>
+                <div class="feature-content">
+                    <h3>서랍 (기록 공간) 획득</h3>
+                    <p>QR 방문 체크인 시 자동으로 생성되는 나만의 타로 기록 공간 제공</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-scroll"></i></div>
+                <div class="feature-content">
+                    <h3>타로 상담 기록 관리</h3>
+                    <p>개인 타로 상담 내용을 날짜별로 저장하고 언제든 다시 열람 가능</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fa-solid fa-check-to-slot"></i></div>
+                <div class="feature-content">
+                    <h3>공지사항 & 투표</h3>
+                    <p>매장의 새로운 소식을 확인하고, 진행 중인 투표에 참여하여 의견 반영</p>
+                </div>
+            </div>
+            <div class="feature-item" style="border-left-color: #0d7377;">
+                <div class="feature-icon"><i class="fa-solid fa-robot" style="color: #0d7377;"></i></div>
+                <div class="feature-content">
+                    <h3>AI 데일리 운세</h3>
+                    <p>매일 확인하는 운세 기능</p>
+                </div>
+            </div>
+
+            <div class="status-box">
+                <div class="status-item"><i class="fa-brands fa-android mr-2 text-green-400"></i>Android App</div>
+                <div class="status-item" style="border-color: #7b2fbe;"><i class="fa-solid fa-flask mr-2 text-purple-400"></i>알파 테스트 중</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.body.addEventListener('click', () => {
+        window.location.href = 'Drawer_page5.html'; // 마지막 페이지로
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            window.location.href = 'Drawer_page5.html';
+        } else if (e.key === 'ArrowLeft') {
+            window.location.href = 'Drawer_page3.html'; // 이전 아키텍처 페이지로
+        }
+    });
+</script>
+</body>
+</html>
